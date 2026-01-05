@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Search, Filter, ChevronDown } from 'lucide-react'
 import exercisesData from '@/exercisesv2.json'
@@ -74,6 +74,8 @@ export default function ExerciseBrowser({ isOpen, onClose, onSelect }: ExerciseB
   const [selectedMechanics, setSelectedMechanics] = useState<string | null>(null);
   const [selectedLevel, setSelectedLevel] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
+  const [displayCount, setDisplayCount] = useState(20);
+  const loadMoreRef = useRef<HTMLDivElement>(null);
 
   const exercises = exercisesData as Exercise[];
 
@@ -98,6 +100,33 @@ export default function ExerciseBrowser({ isOpen, onClose, onSelect }: ExerciseB
       return matchesSearch && matchesMuscle && matchesEquipment && matchesMechanics && matchesLevel;
     });
   }, [exercises, searchQuery, selectedMuscle, selectedEquipment, selectedMechanics, selectedLevel]);
+
+  const displayedExercises = useMemo(() => {
+    return filteredExercises.slice(0, displayCount);
+  }, [filteredExercises, displayCount]);
+
+  // Reset display count when filters change
+  useEffect(() => {
+    setDisplayCount(20);
+  }, [searchQuery, selectedMuscle, selectedEquipment, selectedMechanics, selectedLevel]);
+
+  // Intersection Observer for infinite scroll
+  useEffect(() => {
+    if (!loadMoreRef.current || !isOpen) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && displayCount < filteredExercises.length) {
+          setDisplayCount(prev => Math.min(prev + 20, filteredExercises.length));
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    observer.observe(loadMoreRef.current);
+
+    return () => observer.disconnect();
+  }, [displayCount, filteredExercises.length, isOpen]);
 
   const handleSelect = (exercise: Exercise) => {
     // Clean up the name - remove "Video Exercise Guide" suffix
@@ -336,9 +365,9 @@ export default function ExerciseBrowser({ isOpen, onClose, onSelect }: ExerciseB
           ) : (
             <div className="p-4 space-y-2">
               <div className="text-xs text-muted-foreground mb-3 font-medium">
-                {filteredExercises.length} exercise{filteredExercises.length !== 1 ? 's' : ''} found
+                Showing {displayedExercises.length} of {filteredExercises.length} exercise{filteredExercises.length !== 1 ? 's' : ''}
               </div>
-              {filteredExercises.map((exercise, idx) => {
+              {displayedExercises.map((exercise, idx) => {
                 const levelConfig = exercise.meta ? EXPERIENCE_LEVELS.find(l => l.id === exercise.meta!['Exp. Level']) : null;
                 
                 return (
@@ -383,6 +412,15 @@ export default function ExerciseBrowser({ isOpen, onClose, onSelect }: ExerciseB
                   </motion.button>
                 );
               })}
+              
+              {/* Infinite scroll trigger */}
+              {displayedExercises.length < filteredExercises.length && (
+                <div ref={loadMoreRef} className="py-4 text-center">
+                  <div className="text-xs text-muted-foreground">
+                    Loading more exercises...
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
