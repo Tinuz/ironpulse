@@ -1,4 +1,4 @@
-# Google OAuth Setup voor IronPulse
+# Google OAuth Setup voor NEXT•REP
 
 ## 1. Supabase Dashboard Configuratie
 

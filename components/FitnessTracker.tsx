@@ -14,6 +14,7 @@ import Settings from '@/components/pages/Settings'
 import Login from '@/components/pages/Login'
 import WorkoutDetail from '@/components/pages/WorkoutDetail'
 import WorkoutEditor from '@/components/pages/WorkoutEditor'
+import ExerciseProgress from '@/components/pages/ExerciseProgress'
 import { DataProvider } from '@/components/context/DataContext'
 import { AuthProvider, useAuth } from '@/components/context/AuthContext'
 import Navigation from '@/components/Navigation'
@@ -46,6 +47,7 @@ const ProtectedLayout = () => {
   const renderPage = () => {
     if (pathname === '/') return <Dashboard />
     if (pathname === '/schema') return <SchemaBuilder />
+    if (pathname === '/exercise-progress') return <ExerciseProgress />
     if (pathname.startsWith('/workout/')) {
       const id = pathname.split('/workout/')[1]
       const isEdit = searchParams.get('edit') === 'true'

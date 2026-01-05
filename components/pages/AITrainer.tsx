@@ -2,28 +2,34 @@
 
 import React, { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Bot, Send, Sparkles, Zap, BrainCircuit } from 'lucide-react'
+import { ArrowLeft, Bot, Send, Sparkles, Zap, BrainCircuit, AlertTriangle, CheckCircle, Info, Lightbulb } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useData } from '@/components/context/DataContext'
-import { generateUserContext, getRandomTip, Message } from '@/components/utils/aiTrainer'
+import { generateUserContext, getRandomTip, Message, generateProactiveInsights, ProactiveInsight } from '@/components/utils/aiTrainer'
 
 export default function AITrainer() {
   const router = useRouter()
-  const { history, bodyStats, nutritionLogs, coachProfile } = useData();
+  const { history, bodyStats, nutritionLogs, coachProfile, userProfile } = useData();
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [dailyTip, setDailyTip] = useState<string>('');
+  const [insights, setInsights] = useState<ProactiveInsight[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Initial greeting on mount
+  // Initial greeting and insights on mount
   useEffect(() => {
     setDailyTip(getRandomTip());
+    
+    // Generate proactive insights
+    const newInsights = generateProactiveInsights(history, bodyStats, nutritionLogs, userProfile || undefined);
+    setInsights(newInsights);
+    
     if (messages.length === 0) {
       const initialMsg: Message = {
         id: 'init-1',
         role: 'ai',
-        text: '👋 Hey! Ik ben je AI Coach. Vraag me alles over training, voeding of je progressie!',
+        text: '👋 Hey! Ik ben je AI Coach. Ik heb je workouts, voeding en progressie geanalyseerd. Vraag me alles!',
         timestamp: Date.now()
       };
       setMessages([initialMsg]);
@@ -35,6 +41,24 @@ export default function AITrainer() {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages, isTyping]);
+
+  const getInsightIcon = (type: ProactiveInsight['type']) => {
+    switch(type) {
+      case 'success': return <CheckCircle size={16} className="text-green-500" />;
+      case 'warning': return <AlertTriangle size={16} className="text-yellow-500" />;
+      case 'info': return <Info size={16} className="text-blue-500" />;
+      case 'suggestion': return <Lightbulb size={16} className="text-purple-500" />;
+    }
+  };
+
+  const getInsightColor = (type: ProactiveInsight['type']) => {
+    switch(type) {
+      case 'success': return 'from-green-500/20 to-green-500/5 border-green-500/20';
+      case 'warning': return 'from-yellow-500/20 to-yellow-500/5 border-yellow-500/20';
+      case 'info': return 'from-blue-500/20 to-blue-500/5 border-blue-500/20';
+      case 'suggestion': return 'from-purple-500/20 to-purple-500/5 border-purple-500/20';
+    }
+  };
 
   const handleSendMessage = async () => {
     if (!inputText.trim()) return;
@@ -51,8 +75,8 @@ export default function AITrainer() {
     setIsTyping(true);
 
     try {
-      // Generate user context from data
-      const userContext = generateUserContext(history, bodyStats, nutritionLogs);
+      // Generate comprehensive user context from data with userProfile
+      const userContext = generateUserContext(history, bodyStats, nutritionLogs, userProfile || undefined);
 
       // Prepare messages for API
       const apiMessages = messages
@@ -109,6 +133,10 @@ export default function AITrainer() {
     if (e.key === 'Enter') handleSendMessage();
   };
 
+  const handleQuickPrompt = (prompt: string) => {
+    setInputText(prompt);
+  };
+
   return (
     <div className="min-h-screen bg-background pb-20 flex flex-col">
       {/* Header */}
@@ -127,7 +155,7 @@ export default function AITrainer() {
       <div className="flex-1 overflow-y-auto p-4 space-y-6" ref={scrollRef}>
         
         {/* Quick Actions / Featured Tip */}
-        <div className="grid grid-cols-1 gap-4 mb-8">
+        <div className="grid grid-cols-1 gap-4 mb-6">
           <motion.div 
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -144,6 +172,72 @@ export default function AITrainer() {
             </p>
           </motion.div>
         </div>
+
+        {/* Proactive Insights */}
+        {insights.length > 0 && (
+          <div className="space-y-3 mb-6">
+            <div className="flex items-center gap-2">
+              <div className="h-[1px] flex-1 bg-white/10"></div>
+              <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Je Coach Insights</span>
+              <div className="h-[1px] flex-1 bg-white/10"></div>
+            </div>
+            
+            {insights.map((insight, idx) => (
+              <motion.div
+                key={idx}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: idx * 0.1 }}
+                className={`bg-gradient-to-br ${getInsightColor(insight.type)} border p-4 rounded-xl`}
+              >
+                <div className="flex items-start gap-3">
+                  <div className="mt-0.5">
+                    {getInsightIcon(insight.type)}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-bold text-sm mb-1">{insight.title}</h4>
+                    <p className="text-xs text-muted-foreground leading-relaxed">{insight.message}</p>
+                    {insight.action && (
+                      <button className="mt-2 text-xs font-bold text-primary hover:underline">
+                        {insight.action} →
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        )}
+
+        {/* Quick Prompt Buttons */}
+        {history.length > 0 && (
+          <div className="grid grid-cols-2 gap-3 mb-6">
+            <button 
+              onClick={() => handleQuickPrompt('Genereer een push/pull workout voor me')}
+              className="bg-card border border-white/10 p-3 rounded-xl text-xs font-medium hover:bg-white/5 transition-colors text-left"
+            >
+              💪 Push/Pull Workout
+            </button>
+            <button 
+              onClick={() => handleQuickPrompt('Maak een voedingsschema voor vandaag')}
+              className="bg-card border border-white/10 p-3 rounded-xl text-xs font-medium hover:bg-white/5 transition-colors text-left"
+            >
+              🍽️ Meal Plan
+            </button>
+            <button 
+              onClick={() => handleQuickPrompt('Analyseer mijn progressie van deze maand')}
+              className="bg-card border border-white/10 p-3 rounded-xl text-xs font-medium hover:bg-white/5 transition-colors text-left"
+            >
+              📈 Progress Check
+            </button>
+            <button 
+              onClick={() => handleQuickPrompt('Geef tips om mijn plateaus te doorbreken')}
+              className="bg-card border border-white/10 p-3 rounded-xl text-xs font-medium hover:bg-white/5 transition-colors text-left"
+            >
+              🎯 Break Plateaus
+            </button>
+          </div>
+        )}
 
         {/* Chat Interface */}
         <div className="space-y-4 pb-4">

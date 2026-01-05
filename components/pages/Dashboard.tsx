@@ -58,7 +58,7 @@ export default function Dashboard() {
       >
         <div>
           <h2 className="text-muted-foreground text-sm uppercase tracking-widest mb-1">Fitness Tracker</h2>
-          <h1 className="text-4xl font-black italic tracking-tighter">IRON <span className="text-primary">&</span> PULSE</h1>
+          <h1 className="text-4xl font-black italic tracking-tighter">NEXT <span className="text-primary">•</span> REP</h1>
         </div>
         <div className="flex flex-col items-end gap-2">
           <button 
@@ -224,13 +224,13 @@ export default function Dashboard() {
                 onClick={() => handleStartSchema(schema.id)}
                 className="flex justify-between items-center relative z-10 cursor-pointer"
               >
-                <div className="pr-12">
+                <div className="flex-1 pr-4">
                   <h4 className="font-bold text-lg mb-1">{schema.name}</h4>
                   <p className="text-sm text-muted-foreground flex gap-2">
                     {schema.exercises.length} Exercises
                   </p>
                 </div>
-                <div className="h-10 w-10 rounded-full bg-muted/10 flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-colors">
+                <div className="h-10 w-10 rounded-full bg-muted/10 flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-colors mr-12">
                   <Play fill="currentColor" size={18} className="ml-1" />
                 </div>
               </div>

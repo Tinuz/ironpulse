@@ -15,7 +15,7 @@ const jetbrainsMono = JetBrains_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'IronPulse - Fitness Tracker',
+  title: 'NEXT•REP - Fitness Tracker',
   description: 'A comprehensive fitness progression tracker',
 }
 

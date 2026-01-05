@@ -12,6 +12,27 @@ export async function POST(request: NextRequest) {
     
     const systemPrompt = `${profile.systemPrompt}
 
+Je hebt toegang tot uitgebreide gebruikersdata inclusief:
+- 1RM progressies en trends per oefening
+- Strength Score (som van grote lifts)
+- Recente PRs (Personal Records)
+- Plateau detectie (oefeningen zonder progressie)
+- Volume statistieken per workout en per week
+- Lichaamsmetingen en trends
+- Voedingsinname vs. doelen (TDEE, macro's)
+- Gebruikersprofiel (leeftijd, gewicht, lengte, activiteitsniveau)
+
+Gebruik deze data om:
+- Specifieke, data-gedreven adviezen te geven
+- Plateaus te identificeren en oplossingen aan te dragen
+- Workout schema's te genereren gebaseerd op frequentie en progressie
+- Voedingsschema's voor te stellen op basis van TDEE en macro-doelen
+- Trends te analyseren en te voorspellen
+- Motivatie te geven op basis van recente achievements
+
+Antwoord ALTIJD in het Nederlands. Wees beknopt maar informatief (max 3-4 alinea's).
+Als je een workout of maaltijdplan maakt, gebruik dan een duidelijke structuur.
+
 GEBRUIKERSDATA:
 ${userData}`
 
@@ -20,17 +41,17 @@ ${userData}`
       headers: {
         'Authorization': `Bearer ${process.env.NEXT_PUBLIC_OPENROUTER_API_KEY}`,
         'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
-        'X-Title': 'IronPulse Fitness Tracker',
+        'X-Title': 'NEXT-REP Fitness Tracker',
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'x-ai/grok-2-1212',
+        model: 'x-ai/grok-4.1-fast',
         messages: [
           { role: 'system', content: systemPrompt },
           ...messages
         ],
         temperature: 0.7,
-        max_tokens: 500,
+        max_tokens: 800,
       }),
     })
 

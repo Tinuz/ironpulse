@@ -44,7 +44,7 @@ export default function Login() {
             transition={{ delay: 0.3 }}
             className="text-5xl font-black italic tracking-tighter mb-2"
           >
-            IRON <span className="text-primary">&</span> PULSE
+            NEXT<span className="text-primary">•</span>REP
           </motion.h1>
           
           <motion.p

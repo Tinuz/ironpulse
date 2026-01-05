@@ -72,6 +72,15 @@ export interface NutritionLog {
   items: NutritionItem[];
 }
 
+export interface UserProfile {
+  id: string;
+  age: number;
+  weight: number;
+  height: number;
+  gender: 'male' | 'female';
+  activityLevel: number;
+}
+
 interface DataContextType {
   schemas: Schema[];
   history: WorkoutLog[];
@@ -79,6 +88,7 @@ interface DataContextType {
   bodyStats: BodyStats[];
   nutritionLogs: NutritionLog[];
   coachProfile: CoachProfileType;
+  userProfile: UserProfile | null;
   addSchema: (schema: Schema) => void;
   updateSchema: (id: string, schema: Schema) => Promise<void>;
   deleteSchema: (id: string) => void;
@@ -93,6 +103,7 @@ interface DataContextType {
   addMeal: (date: string, item: Omit<NutritionItem, 'id'>) => void;
   deleteMeal: (date: string, itemId: string) => void;
   setCoachProfile: (profile: CoachProfileType) => void;
+  saveUserProfile: (profile: Omit<UserProfile, 'id'>) => Promise<void>;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -133,6 +144,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [activeWorkout, setActiveWorkout] = useState<WorkoutLog | null>(null);
   const [bodyStats, setBodyStats] = useState<BodyStats[]>([]);
   const [nutritionLogs, setNutritionLogs] = useState<NutritionLog[]>([]);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [coachProfile, setCoachProfileState] = useState<CoachProfileType>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('ironpulse_coach_profile');
@@ -244,6 +256,24 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         })));
       }
 
+      // Load user profile
+      const { data: profileData } = await supabase
+        .from('user_profile')
+        .select('*')
+        .eq('user_id', USER_ID)
+        .single();
+
+      if (profileData) {
+        setUserProfile({
+          id: profileData.id,
+          age: profileData.age,
+          weight: profileData.weight,
+          height: profileData.height,
+          gender: profileData.gender,
+          activityLevel: profileData.activity_level
+        });
+      }
+
       // Load active workout from localStorage (temporary state)
       const savedActive = localStorage.getItem('ft_active');
       setActiveWorkout(savedActive ? JSON.parse(savedActive) : null);
@@ -321,6 +351,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const startWorkout = (schema?: Schema): WorkoutLog => {
+    // Clear any existing workout first
+    localStorage.removeItem('ft_active');
+    setActiveWorkout(null);
+    
     const newWorkout: WorkoutLog = {
       id: crypto.randomUUID(),
       schemaId: schema ? schema.id : null,
@@ -350,6 +384,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const updateActiveWorkout = (workout: WorkoutLog) => {
     setActiveWorkout(workout);
+    // Also update localStorage to keep them in sync
+    localStorage.setItem('ft_active', JSON.stringify(workout));
   };
 
   const finishWorkout = async () => {
@@ -554,6 +590,73 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const saveUserProfile = async (profile: Omit<UserProfile, 'id'>) => {
+    try {
+      // Check if profile exists
+      const { data: existing } = await supabase
+        .from('user_profile')
+        .select('id')
+        .eq('user_id', USER_ID)
+        .single();
+
+      if (existing) {
+        // Update existing profile
+        const { data, error } = await supabase
+          .from('user_profile')
+          .update({
+            age: profile.age,
+            weight: profile.weight,
+            height: profile.height,
+            gender: profile.gender,
+            activity_level: profile.activityLevel,
+            updated_at: new Date().toISOString()
+          })
+          .eq('user_id', USER_ID)
+          .select()
+          .single();
+
+        if (!error && data) {
+          setUserProfile({
+            id: data.id,
+            age: data.age,
+            weight: data.weight,
+            height: data.height,
+            gender: data.gender,
+            activityLevel: data.activity_level
+          });
+        }
+      } else {
+        // Insert new profile
+        const { data, error } = await supabase
+          .from('user_profile')
+          .insert({
+            user_id: USER_ID,
+            age: profile.age,
+            weight: profile.weight,
+            height: profile.height,
+            gender: profile.gender,
+            activity_level: profile.activityLevel
+          })
+          .select()
+          .single();
+
+        if (!error && data) {
+          setUserProfile({
+            id: data.id,
+            age: data.age,
+            weight: data.weight,
+            height: data.height,
+            gender: data.gender,
+            activityLevel: data.activity_level
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error saving user profile:', error);
+      throw error;
+    }
+  };
+
   return (
     <DataContext.Provider value={{
       schemas,
@@ -562,6 +665,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       bodyStats,
       nutritionLogs,
       coachProfile,
+      userProfile,
       addSchema,
       updateSchema,
       deleteSchema,
@@ -575,7 +679,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       deleteBodyStats,
       addMeal,
       deleteMeal,
-      setCoachProfile
+      setCoachProfile,
+      saveUserProfile
     }}>
       {children}
     </DataContext.Provider>

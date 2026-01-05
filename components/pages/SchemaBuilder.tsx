@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft, Plus, Trash2, GripHorizontal, RotateCcw } from 'lucide-react'
+import { ArrowLeft, Plus, Trash2, GripHorizontal, RotateCcw, Edit2 } from 'lucide-react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useData, Schema, Exercise } from '@/components/context/DataContext'
 
@@ -16,6 +16,7 @@ export default function SchemaBuilder() {
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [isAddingEx, setIsAddingEx] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
+  const [editingExercise, setEditingExercise] = useState<Exercise | null>(null);
   
   // New Exercise Form State
   const [newExName, setNewExName] = useState('');
@@ -92,6 +93,36 @@ export default function SchemaBuilder() {
     setExercises(exercises.filter(ex => ex.id !== id));
   };
 
+  const startEditExercise = (exercise: Exercise) => {
+    setEditingExercise(exercise);
+    setNewExName(exercise.name);
+    setNewExSets(exercise.targetSets);
+    setNewExReps(exercise.targetReps);
+  };
+
+  const handleUpdateExercise = () => {
+    if (!editingExercise || !newExName.trim()) return;
+    
+    setExercises(exercises.map(ex => 
+      ex.id === editingExercise.id 
+        ? { ...ex, name: newExName, targetSets: newExSets, targetReps: newExReps }
+        : ex
+    ));
+    
+    setEditingExercise(null);
+    setNewExName('');
+    setNewExSets(3);
+    setNewExReps(10);
+  };
+
+  const cancelEdit = () => {
+    setEditingExercise(null);
+    setNewExName('');
+    setNewExSets(3);
+    setNewExReps(10);
+    setIsAddingEx(false);
+  };
+
   return (
     <div className="min-h-screen bg-background pb-24">
       {/* Header */}
@@ -149,23 +180,36 @@ export default function SchemaBuilder() {
                     </div>
                   </div>
                 </div>
-                <button 
-                  onClick={() => removeExercise(ex.id)}
-                  className="p-2 text-muted-foreground hover:text-destructive transition-colors opacity-0 group-hover:opacity-100"
-                >
-                  <Trash2 size={20} />
-                </button>
+                <div className="flex gap-2">
+                  <button 
+                    onClick={() => startEditExercise(ex)}
+                    className="p-2 text-muted-foreground hover:text-primary transition-colors opacity-0 group-hover:opacity-100"
+                  >
+                    <Edit2 size={18} />
+                  </button>
+                  <button 
+                    onClick={() => removeExercise(ex.id)}
+                    className="p-2 text-muted-foreground hover:text-destructive transition-colors opacity-0 group-hover:opacity-100"
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                </div>
               </motion.div>
             ))}
           </AnimatePresence>
 
-          {/* Add Exercise Form */}
-          {isAddingEx ? (
+          {/* Add/Edit Exercise Form */}
+          {(isAddingEx || editingExercise) ? (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               className="bg-card border border-primary/50 rounded-xl p-4 space-y-4"
             >
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="font-bold text-sm text-primary uppercase tracking-wider">
+                  {editingExercise ? 'Edit Exercise' : 'Add Exercise'}
+                </h3>
+              </div>
               <div>
                 <label className="text-[10px] uppercase font-bold text-muted-foreground">Exercise Name</label>
                 <input
@@ -197,17 +241,17 @@ export default function SchemaBuilder() {
               </div>
               <div className="flex gap-2 pt-2">
                 <button 
-                  onClick={() => setIsAddingEx(false)}
+                  onClick={cancelEdit}
                   className="flex-1 py-3 text-sm font-bold text-muted-foreground hover:text-foreground hover:bg-white/5 rounded-lg transition-colors"
                 >
                   Cancel
                 </button>
                 <button 
-                  onClick={handleAddExercise}
+                  onClick={editingExercise ? handleUpdateExercise : handleAddExercise}
                   disabled={!newExName.trim()}
                   className="flex-1 py-3 text-sm font-bold bg-primary text-background rounded-lg shadow-lg shadow-primary/20 disabled:opacity-50"
                 >
-                  Add Exercise
+                  {editingExercise ? 'Update Exercise' : 'Add Exercise'}
                 </button>
               </div>
             </motion.div>

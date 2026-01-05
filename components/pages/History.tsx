@@ -6,6 +6,7 @@ import { ArrowLeft, Calendar, Clock, Trophy, Dumbbell, Edit2, Trash2, MoreVertic
 import { useRouter } from 'next/navigation'
 import { format } from 'date-fns'
 import { useData } from '@/components/context/DataContext'
+import { getBest1RM, roundTo } from '@/components/utils/workoutCalculations'
 
 export default function History() {
   const { history, deleteWorkout } = useData();
@@ -46,7 +47,7 @@ export default function History() {
         ) : (
           <div className="space-y-4">
             {history.map((log, i) => {
-              const duration = log.endTime ? Math.round((log.endTime - log.startTime) / 60) : 0;
+              const duration = log.endTime ? Math.round((log.endTime - log.startTime) / 1000 / 60) : 0;
               const totalSets = log.exercises.reduce((acc, ex) => acc + ex.sets.filter(s => s.completed).length, 0);
               const volume = log.exercises.reduce((acc, ex) => 
                 acc + ex.sets.filter(s => s.completed).reduce((sAcc, s) => sAcc + (s.weight * s.reps), 0)
@@ -155,7 +156,10 @@ export default function History() {
                           <Trophy size={10} /> Volume
                         </div>
                         <div className="text-xl font-black tabular-nums">
-                          {(volume / 1000).toFixed(1)}k <span className="text-xs font-normal text-muted-foreground">kg</span>
+                          {volume >= 1000 
+                            ? `${(volume / 1000).toFixed(1)}k` 
+                            : volume.toFixed(0)
+                          } <span className="text-xs font-normal text-muted-foreground">kg</span>
                         </div>
                       </div>
                       <div className="bg-white/5 p-3 rounded-xl">
@@ -169,14 +173,24 @@ export default function History() {
                     </div>
 
                     <div className="space-y-2">
-                      {log.exercises.map((ex) => (
-                        <div key={ex.id} className="flex justify-between text-sm border-b border-white/5 last:border-0 pb-2 last:pb-0">
-                          <span className="font-medium text-foreground/80">{ex.name}</span>
-                          <span className="text-muted-foreground font-mono text-xs">
-                            {ex.sets.filter(s => s.completed).length} sets
-                          </span>
-                        </div>
-                      ))}
+                      {log.exercises.map((ex) => {
+                        const best = getBest1RM(ex);
+                        return (
+                          <div key={ex.id} className="flex justify-between items-center text-sm border-b border-white/5 last:border-0 pb-2 last:pb-0">
+                            <span className="font-medium text-foreground/80">{ex.name}</span>
+                            <div className="flex items-center gap-3">
+                              {best && (
+                                <span className="text-xs font-bold text-primary">
+                                  {roundTo(best.oneRM, 0.5)}kg 1RM
+                                </span>
+                              )}
+                              <span className="text-muted-foreground font-mono text-xs">
+                                {ex.sets.filter(s => s.completed).length} sets
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 </motion.div>

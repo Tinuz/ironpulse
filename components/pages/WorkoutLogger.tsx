@@ -2,10 +2,19 @@
 
 import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Plus, Check, X, Clock, Play, Trash2 } from 'lucide-react'
+import { ArrowLeft, Plus, Check, X, Clock, Play, Trash2, TrendingUp, TrendingDown, Minus, Award, Zap } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import clsx from 'clsx'
 import { useData, WorkoutSet, WorkoutExercise } from '@/components/context/DataContext'
+import { 
+  getBest1RM, 
+  calculateVolume, 
+  roundTo, 
+  getPreviousWorkoutsForExercise,
+  getExerciseFromWorkout,
+  calculateProgression,
+  generateOverloadSuggestion
+} from '@/components/utils/workoutCalculations'
 
 const SetRow = ({ 
   set, 
@@ -74,8 +83,130 @@ const SetRow = ({
   );
 };
 
+const ExerciseStats = ({ 
+  exercise, 
+  previousExercises
+}: { 
+  exercise: WorkoutExercise;
+  previousExercises: WorkoutExercise[];
+}) => {
+  const best1RM = getBest1RM(exercise);
+  const volume = calculateVolume(exercise);
+  
+  if (!best1RM) {
+    return (
+      <div className="px-4 pb-2 text-xs text-muted-foreground italic">
+        Voltooi je eerste set om statistieken te zien
+      </div>
+    );
+  }
+
+  const progression = calculateProgression(exercise, previousExercises);
+  const suggestion = generateOverloadSuggestion(exercise, progression);
+
+  return (
+    <div className="px-4 pb-4 space-y-3">
+      {/* 1RM en Volume */}
+      <div className="grid grid-cols-2 gap-3">
+        <div className="bg-white/5 rounded-lg p-3">
+          <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold mb-1">
+            Geschatte 1RM
+          </div>
+          <div className="flex items-baseline gap-1">
+            <span className="text-2xl font-black text-primary">
+              {roundTo(best1RM.oneRM, 0.5)}
+            </span>
+            <span className="text-xs text-muted-foreground font-bold">KG</span>
+          </div>
+          <div className="text-[10px] text-muted-foreground mt-1">
+            {best1RM.weight}kg × {best1RM.reps} reps
+          </div>
+        </div>
+
+        <div className="bg-white/5 rounded-lg p-3">
+          <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold mb-1">
+            Totaal Volume
+          </div>
+          <div className="flex items-baseline gap-1">
+            <span className="text-2xl font-black">
+              {Math.round(volume)}
+            </span>
+            <span className="text-xs text-muted-foreground font-bold">KG</span>
+          </div>
+          <div className="text-[10px] text-muted-foreground mt-1">
+            {exercise.sets.filter(s => s.completed).length} sets voltooid
+          </div>
+        </div>
+      </div>
+
+      {/* Progressie vs Vorige */}
+      {progression.previous1RM && (
+        <div className={clsx(
+          "rounded-lg p-3 border",
+          progression.status === 'improved' ? "bg-green-500/10 border-green-500/30" :
+          progression.status === 'declined' ? "bg-red-500/10 border-red-500/30" :
+          "bg-white/5 border-white/10"
+        )}>
+          <div className="flex items-center justify-between mb-1">
+            <div className="text-[10px] uppercase tracking-wider font-bold flex items-center gap-1">
+              {progression.status === 'improved' ? (
+                <>
+                  <TrendingUp size={12} className="text-green-500" />
+                  <span className="text-green-500">Progressie</span>
+                </>
+              ) : progression.status === 'declined' ? (
+                <>
+                  <TrendingDown size={12} className="text-red-500" />
+                  <span className="text-red-500">Afname</span>
+                </>
+              ) : (
+                <>
+                  <Minus size={12} />
+                  <span>Stabiel</span>
+                </>
+              )}
+            </div>
+            <div className={clsx(
+              "text-xs font-bold",
+              progression.status === 'improved' ? "text-green-500" :
+              progression.status === 'declined' ? "text-red-500" :
+              "text-muted-foreground"
+            )}>
+              {progression.difference >= 0 ? '+' : ''}{roundTo(progression.difference, 0.5)}kg
+              {progression.percentageChange !== 0 && (
+                <span className="ml-1">
+                  ({progression.percentageChange >= 0 ? '+' : ''}{progression.percentageChange.toFixed(1)}%)
+                </span>
+              )}
+            </div>
+          </div>
+          <div className="text-xs text-muted-foreground">
+            Vorige: {roundTo(progression.previous1RM, 0.5)}kg 1RM
+          </div>
+        </div>
+      )}
+
+      {/* Suggestie */}
+      <div className={clsx(
+        "rounded-lg p-3",
+        suggestion.type === 'new-pr' ? "bg-primary/10 border border-primary/30" :
+        suggestion.type === 'increase-weight' ? "bg-blue-500/10 border border-blue-500/30" :
+        "bg-white/5"
+      )}>
+        <div className="flex items-start gap-2">
+          {suggestion.type === 'new-pr' && <Award size={14} className="text-primary mt-0.5 flex-shrink-0" />}
+          {suggestion.type === 'increase-weight' && <Zap size={14} className="text-blue-400 mt-0.5 flex-shrink-0" />}
+          <div className="text-xs leading-relaxed">
+            {suggestion.message}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export default function WorkoutLogger() {
-  const { activeWorkout, updateActiveWorkout, finishWorkout, cancelWorkout } = useData();
+  const { activeWorkout, updateActiveWorkout, finishWorkout, cancelWorkout, history } = useData();
   const router = useRouter();
   const [elapsed, setElapsed] = useState(0);
   const [workoutData, setWorkoutData] = useState<typeof activeWorkout>(null);
@@ -279,56 +410,74 @@ export default function WorkoutLogger() {
       </div>
 
       <div className="p-4 max-w-2xl mx-auto space-y-6">
-        {workoutData.exercises.map((exercise, exerciseIndex) => (
-          <motion.div 
-            key={exercise.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: exerciseIndex * 0.1 }}
-            className="bg-card border border-white/5 rounded-2xl overflow-hidden"
-          >
-            <div className="p-4 bg-white/5 border-b border-white/5 flex justify-between items-center gap-3">
-              <input
-                type="text"
-                value={exercise.name}
-                onChange={(e) => updateExerciseName(exerciseIndex, e.target.value)}
-                className="flex-1 bg-transparent font-bold text-lg focus:outline-none focus:bg-white/5 px-2 py-1 rounded transition-colors"
-              />
-              <button 
-                onClick={() => removeExercise(exerciseIndex)}
-                className="text-red-500 hover:bg-red-500/10 p-2 rounded-lg transition-colors"
-              >
-                <Trash2 size={18} />
-              </button>
-            </div>
-            
-            <div className="p-4 space-y-2">
-              <div className="grid grid-cols-[auto_1fr_1fr_auto] gap-3 text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-2 px-1">
-                <div className="w-6 text-center">Set</div>
-                <div className="text-center">KG</div>
-                <div className="text-center">Reps</div>
-                <div className="w-8 text-center">✓</div>
+        {workoutData.exercises.map((exercise, exerciseIndex) => {
+          // Get previous exercises for progression
+          const previousWorkouts = getPreviousWorkoutsForExercise(
+            exercise.name, 
+            history,
+            workoutData.id
+          );
+          const previousExercises = previousWorkouts
+            .map(w => getExerciseFromWorkout(w, exercise.name))
+            .filter(ex => ex !== null) as WorkoutExercise[];
+
+          return (
+            <motion.div 
+              key={exercise.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: exerciseIndex * 0.1 }}
+              className="bg-card border border-white/5 rounded-2xl overflow-hidden"
+            >
+              <div className="p-4 bg-white/5 border-b border-white/5 flex justify-between items-center gap-3">
+                <input
+                  type="text"
+                  value={exercise.name}
+                  onChange={(e) => updateExerciseName(exerciseIndex, e.target.value)}
+                  className="flex-1 bg-transparent font-bold text-lg focus:outline-none focus:bg-white/5 px-2 py-1 rounded transition-colors"
+                />
+                <button 
+                  onClick={() => removeExercise(exerciseIndex)}
+                  className="text-red-500 hover:bg-red-500/10 p-2 rounded-lg transition-colors"
+                >
+                  <Trash2 size={18} />
+                </button>
+              </div>
+              
+              <div className="p-4 space-y-2">
+                <div className="grid grid-cols-[auto_1fr_1fr_auto] gap-3 text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-2 px-1">
+                  <div className="w-6 text-center">Set</div>
+                  <div className="text-center">KG</div>
+                  <div className="text-center">Reps</div>
+                  <div className="w-8 text-center">✓</div>
+                </div>
+
+                {exercise.sets.map((set, setIndex) => (
+                  <SetRow 
+                    key={set.id}
+                    set={set}
+                    index={setIndex}
+                    onUpdate={(field, val) => updateSet(exerciseIndex, setIndex, field, val)}
+                    onToggle={() => toggleSet(exerciseIndex, setIndex)}
+                  />
+                ))}
+
+                <button 
+                  onClick={() => addSet(exerciseIndex)}
+                  className="w-full py-3 mt-4 text-xs font-bold text-muted-foreground uppercase tracking-widest hover:bg-white/5 rounded-lg transition-colors flex items-center justify-center gap-2"
+                >
+                  <Plus size={14} /> Add Set
+                </button>
               </div>
 
-              {exercise.sets.map((set, setIndex) => (
-                <SetRow 
-                  key={set.id}
-                  set={set}
-                  index={setIndex}
-                  onUpdate={(field, val) => updateSet(exerciseIndex, setIndex, field, val)}
-                  onToggle={() => toggleSet(exerciseIndex, setIndex)}
-                />
-              ))}
-
-              <button 
-                onClick={() => addSet(exerciseIndex)}
-                className="w-full py-3 mt-4 text-xs font-bold text-muted-foreground uppercase tracking-widest hover:bg-white/5 rounded-lg transition-colors flex items-center justify-center gap-2"
-              >
-                <Plus size={14} /> Add Set
-              </button>
-            </div>
-          </motion.div>
-        ))}
+              {/* Stats Section */}
+              <ExerciseStats 
+                exercise={exercise}
+                previousExercises={previousExercises}
+              />
+            </motion.div>
+          );
+        })}
 
         {/* Add Exercise Button */}
         <button

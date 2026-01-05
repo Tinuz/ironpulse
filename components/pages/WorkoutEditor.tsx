@@ -3,15 +3,17 @@
 import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { ArrowLeft, Save, Plus, Trash2, Check } from 'lucide-react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import { format } from 'date-fns'
 import { useData, WorkoutLog, WorkoutExercise, WorkoutSet } from '@/components/context/DataContext'
 
 export default function WorkoutEditor() {
   const { history, updateWorkout } = useData()
   const router = useRouter()
-  const searchParams = useSearchParams()
-  const workoutId = searchParams.get('id')
+  const pathname = usePathname()
+  
+  // Get workout ID from URL path (e.g., /workout/abc123)
+  const workoutId = pathname.split('/workout/')[1]
 
   const originalWorkout = history.find(w => w.id === workoutId)
   
