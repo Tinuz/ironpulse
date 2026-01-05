@@ -3,7 +3,7 @@
 import React, { useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Search, Filter, ChevronDown } from 'lucide-react'
-import exercisesData from '@/exercises.json'
+import exercisesData from '@/exercisesv2.json'
 
 interface Exercise {
   name: string;
@@ -11,7 +11,14 @@ interface Exercise {
   group: string;
   video: string;
   images: string[];
-  groups: string[];
+  views: string;
+  comments: string;
+  meta: {
+    Type: string;
+    Equipment: string;
+    Mechanics: string;
+    'Exp. Level': string;
+  };
 }
 
 interface ExerciseBrowserProps {
@@ -21,30 +28,51 @@ interface ExerciseBrowserProps {
 }
 
 const MUSCLE_GROUPS = [
+  { id: 'abs', label: 'Abs', emoji: '🎯' },
   { id: 'chest', label: 'Chest', emoji: '💪' },
   { id: 'shoulders', label: 'Shoulders', emoji: '🔺' },
   { id: 'biceps', label: 'Biceps', emoji: '💪' },
   { id: 'triceps', label: 'Triceps', emoji: '🔨' },
   { id: 'lats', label: 'Back', emoji: '🗻' },
-  { id: 'abs', label: 'Abs', emoji: '🎯' },
+  { id: 'middle-back', label: 'Mid Back', emoji: '⬆️' },
   { id: 'quads', label: 'Quads', emoji: '🦵' },
   { id: 'hamstrings', label: 'Hamstrings', emoji: '🦴' },
   { id: 'glutes', label: 'Glutes', emoji: '🍑' },
   { id: 'calves', label: 'Calves', emoji: '👟' },
+  { id: 'forearms', label: 'Forearms', emoji: '🤜' },
 ];
 
 const EQUIPMENT = [
-  { id: 'barbell', label: 'Barbell' },
-  { id: 'dumbbell', label: 'Dumbbell' },
-  { id: 'cable', label: 'Cable' },
-  { id: 'machine', label: 'Machine' },
-  { id: 'bodyweight', label: 'Bodyweight' },
+  { id: 'Dumbbell', label: 'Dumbbell' },
+  { id: 'Bodyweight', label: 'Bodyweight' },
+  { id: 'Barbell', label: 'Barbell' },
+  { id: 'Cable', label: 'Cable' },
+  { id: 'Machine', label: 'Machine' },
+  { id: 'Kettle Bells', label: 'Kettlebell' },
+  { id: 'Bands', label: 'Bands' },
+  { id: 'Exercise Ball', label: 'Exercise Ball' },
+  { id: 'Medicine Ball', label: 'Medicine Ball' },
+  { id: 'EZ Bar', label: 'EZ Bar' },
+  { id: 'Other', label: 'Other' },
+];
+
+const MECHANICS = [
+  { id: 'Compound', label: 'Compound' },
+  { id: 'Isolation', label: 'Isolation' },
+];
+
+const EXPERIENCE_LEVELS = [
+  { id: 'Beginner', label: 'Beginner', color: 'bg-green-500/20 text-green-400' },
+  { id: 'Intermediate', label: 'Intermediate', color: 'bg-yellow-500/20 text-yellow-400' },
+  { id: 'Advanced', label: 'Advanced', color: 'bg-red-500/20 text-red-400' },
 ];
 
 export default function ExerciseBrowser({ isOpen, onClose, onSelect }: ExerciseBrowserProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedMuscle, setSelectedMuscle] = useState<string | null>(null);
   const [selectedEquipment, setSelectedEquipment] = useState<string | null>(null);
+  const [selectedMechanics, setSelectedMechanics] = useState<string | null>(null);
+  const [selectedLevel, setSelectedLevel] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
 
   const exercises = exercisesData as Exercise[];
@@ -55,17 +83,21 @@ export default function ExerciseBrowser({ isOpen, onClose, onSelect }: ExerciseB
       const matchesSearch = searchQuery === '' || 
         ex.name.toLowerCase().includes(searchQuery.toLowerCase());
       
-      // Muscle group filter
-      const matchesMuscle = !selectedMuscle || 
-        ex.groups.includes(selectedMuscle);
+      // Muscle group filter (via group field)
+      const matchesMuscle = !selectedMuscle || ex.group === selectedMuscle;
       
-      // Equipment filter
-      const matchesEquipment = !selectedEquipment || 
-        ex.groups.includes(selectedEquipment);
+      // Equipment filter (via meta.Equipment)
+      const matchesEquipment = !selectedEquipment || ex.meta.Equipment === selectedEquipment;
       
-      return matchesSearch && matchesMuscle && matchesEquipment;
+      // Mechanics filter (via meta.Mechanics)
+      const matchesMechanics = !selectedMechanics || ex.meta.Mechanics === selectedMechanics;
+      
+      // Experience level filter (via meta['Exp. Level'])
+      const matchesLevel = !selectedLevel || ex.meta['Exp. Level'] === selectedLevel;
+      
+      return matchesSearch && matchesMuscle && matchesEquipment && matchesMechanics && matchesLevel;
     });
-  }, [exercises, searchQuery, selectedMuscle, selectedEquipment]);
+  }, [exercises, searchQuery, selectedMuscle, selectedEquipment, selectedMechanics, selectedLevel]);
 
   const handleSelect = (exercise: Exercise) => {
     // Clean up the name - remove "Video Exercise Guide" suffix
@@ -81,10 +113,12 @@ export default function ExerciseBrowser({ isOpen, onClose, onSelect }: ExerciseB
   const clearFilters = () => {
     setSelectedMuscle(null);
     setSelectedEquipment(null);
+    setSelectedMechanics(null);
+    setSelectedLevel(null);
     setSearchQuery('');
   };
 
-  const activeFilterCount = [selectedMuscle, selectedEquipment].filter(Boolean).length;
+  const activeFilterCount = [selectedMuscle, selectedEquipment, selectedMechanics, selectedLevel].filter(Boolean).length;
 
   if (!isOpen) return null;
 
@@ -216,6 +250,66 @@ export default function ExerciseBrowser({ isOpen, onClose, onSelect }: ExerciseB
                   </div>
                 </div>
 
+                {/* Mechanics */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-muted-foreground uppercase">Type</label>
+                    {selectedMechanics && (
+                      <button
+                        onClick={() => setSelectedMechanics(null)}
+                        className="text-xs text-primary hover:underline"
+                      >
+                        Clear
+                      </button>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {MECHANICS.map(mech => (
+                      <button
+                        key={mech.id}
+                        onClick={() => setSelectedMechanics(selectedMechanics === mech.id ? null : mech.id)}
+                        className={`px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+                          selectedMechanics === mech.id
+                            ? 'bg-primary text-primary-foreground'
+                            : 'bg-white/5 text-muted-foreground hover:bg-white/10'
+                        }`}
+                      >
+                        {mech.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Experience Level */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-muted-foreground uppercase">Experience</label>
+                    {selectedLevel && (
+                      <button
+                        onClick={() => setSelectedLevel(null)}
+                        className="text-xs text-primary hover:underline"
+                      >
+                        Clear
+                      </button>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {EXPERIENCE_LEVELS.map(level => (
+                      <button
+                        key={level.id}
+                        onClick={() => setSelectedLevel(selectedLevel === level.id ? null : level.id)}
+                        className={`px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+                          selectedLevel === level.id
+                            ? 'bg-primary text-primary-foreground'
+                            : 'bg-white/5 text-muted-foreground hover:bg-white/10'
+                        }`}
+                      >
+                        {level.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 {activeFilterCount > 0 && (
                   <button
                     onClick={clearFilters}
@@ -245,13 +339,8 @@ export default function ExerciseBrowser({ isOpen, onClose, onSelect }: ExerciseB
                 {filteredExercises.length} exercise{filteredExercises.length !== 1 ? 's' : ''} found
               </div>
               {filteredExercises.map((exercise, idx) => {
-                const muscleGroups = exercise.groups.filter(g => 
-                  MUSCLE_GROUPS.some(mg => mg.id === g)
-                );
-                const equipment = exercise.groups.filter(g => 
-                  EQUIPMENT.some(eq => eq.id === g)
-                );
-
+                const levelConfig = EXPERIENCE_LEVELS.find(l => l.id === exercise.meta['Exp. Level']);
+                
                 return (
                   <motion.button
                     key={idx}
@@ -261,26 +350,38 @@ export default function ExerciseBrowser({ isOpen, onClose, onSelect }: ExerciseB
                     onClick={() => handleSelect(exercise)}
                     className="w-full bg-card border border-white/5 rounded-xl p-4 text-left hover:bg-white/5 active:scale-[0.98] transition-all group"
                   >
-                    <h4 className="font-bold text-sm leading-tight mb-2 group-hover:text-primary transition-colors">
-                      {exercise.name.replace(/Video Exercise Guide$/i, '').replace(/\(AKA [^)]+\)/g, '').trim()}
-                    </h4>
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <h4 className="font-bold text-sm leading-tight group-hover:text-primary transition-colors flex-1">
+                        {exercise.name.replace(/Video Exercise Guide$/i, '').replace(/\(AKA [^)]+\)/g, '').trim()}
+                      </h4>
+                      {levelConfig && (
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase flex-shrink-0 ${levelConfig.color}`}>
+                          {levelConfig.label}
+                        </span>
+                      )}
+                    </div>
                     <div className="flex flex-wrap gap-1.5">
-                      {muscleGroups.slice(0, 3).map(group => (
-                        <span
-                          key={group}
-                          className="px-2 py-0.5 bg-primary/20 text-primary rounded text-[10px] font-bold uppercase"
-                        >
-                          {group}
+                      {/* Muscle Group */}
+                      <span className="px-2 py-0.5 bg-primary/20 text-primary rounded text-[10px] font-bold uppercase">
+                        {exercise.group}
+                      </span>
+                      
+                      {/* Equipment */}
+                      <span className="px-2 py-0.5 bg-blue-500/20 text-blue-400 rounded text-[10px] font-medium">
+                        {exercise.meta.Equipment}
+                      </span>
+                      
+                      {/* Mechanics */}
+                      <span className="px-2 py-0.5 bg-white/10 text-muted-foreground rounded text-[10px] font-medium">
+                        {exercise.meta.Mechanics}
+                      </span>
+                      
+                      {/* Views indicator */}
+                      {exercise.views && (
+                        <span className="px-2 py-0.5 bg-purple-500/10 text-purple-400 rounded text-[10px] font-medium">
+                          {exercise.views} views
                         </span>
-                      ))}
-                      {equipment.slice(0, 2).map(equip => (
-                        <span
-                          key={equip}
-                          className="px-2 py-0.5 bg-white/10 text-muted-foreground rounded text-[10px] font-medium"
-                        >
-                          {equip}
-                        </span>
-                      ))}
+                      )}
                     </div>
                   </motion.button>
                 );
