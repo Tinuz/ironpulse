@@ -379,13 +379,6 @@ export default function ExerciseBrowser({ isOpen, onClose, onSelect }: ExerciseB
                           {exercise.meta.Mechanics}
                         </span>
                       )}
-                      
-                      {/* Views indicator */}
-                      {exercise.views && (
-                        <span className="px-2 py-0.5 bg-purple-500/10 text-purple-400 rounded text-[10px] font-medium">
-                          {exercise.views} views
-                        </span>
-                      )}
                     </div>
                   </motion.button>
                 );
