@@ -2,9 +2,10 @@
 
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft, Plus, Trash2, GripHorizontal, RotateCcw, Edit2 } from 'lucide-react'
+import { ArrowLeft, Plus, Trash2, GripHorizontal, RotateCcw, Edit2, Search } from 'lucide-react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useData, Schema, Exercise } from '@/components/context/DataContext'
+import ExerciseBrowser from '@/components/ExerciseBrowser'
 
 export default function SchemaBuilder() {
   const { addSchema, schemas, updateSchema } = useData();
@@ -17,6 +18,7 @@ export default function SchemaBuilder() {
   const [isAddingEx, setIsAddingEx] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editingExercise, setEditingExercise] = useState<Exercise | null>(null);
+  const [showBrowser, setShowBrowser] = useState(false);
   
   // New Exercise Form State
   const [newExName, setNewExName] = useState('');
@@ -218,7 +220,16 @@ export default function SchemaBuilder() {
                 </h3>
               </div>
               <div>
-                <label className="text-[10px] uppercase font-bold text-muted-foreground">Exercise Name</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-[10px] uppercase font-bold text-muted-foreground">Exercise Name</label>
+                  <button
+                    onClick={() => setShowBrowser(true)}
+                    className="flex items-center gap-1 text-xs font-bold text-primary hover:underline"
+                  >
+                    <Search size={12} />
+                    Browse
+                  </button>
+                </div>
                 <input
                   autoFocus
                   type="text"
@@ -289,6 +300,19 @@ export default function SchemaBuilder() {
           )}
         </div>
       </div>
+
+      {/* Exercise Browser Modal */}
+      <ExerciseBrowser
+        isOpen={showBrowser}
+        onClose={() => setShowBrowser(false)}
+        onSelect={(exerciseName) => {
+          setNewExName(exerciseName);
+          // Auto-open add form if not already adding/editing
+          if (!isAddingEx && !editingExercise) {
+            setIsAddingEx(true);
+          }
+        }}
+      />
     </div>
   );
 }
