@@ -1,8 +1,8 @@
 'use client'
 
-import React from 'react'
+import React, { useState } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Calendar, Clock, Trophy, Dumbbell, Edit2, BarChart3, Award } from 'lucide-react'
+import { ArrowLeft, Calendar, Clock, Trophy, Dumbbell, Edit2, BarChart3, Award, Trash2 } from 'lucide-react'
 import { useRouter, usePathname } from 'next/navigation'
 import { format } from 'date-fns'
 import { useData } from '@/components/context/DataContext'
@@ -15,14 +15,28 @@ import {
 } from '@/components/utils/workoutCalculations'
 
 export default function WorkoutDetail() {
-  const { history } = useData();
+  const { history, deleteWorkout } = useData();
   const router = useRouter()
   const pathname = usePathname()
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   
   // Get workout ID from URL path (e.g., /workout/abc123)
   const workoutId = pathname.split('/workout/')[1]
 
   const workout = history.find(w => w.id === workoutId);
+
+  const handleDelete = async () => {
+    if (!workoutId) return;
+    setIsDeleting(true);
+    try {
+      await deleteWorkout(workoutId);
+      router.push('/history');
+    } catch (error) {
+      console.error('Error deleting workout:', error);
+      setIsDeleting(false);
+    }
+  };
 
   if (!workout) {
     return (
@@ -58,12 +72,20 @@ export default function WorkoutDetail() {
           <ArrowLeft size={24} />
         </button>
         <h1 className="font-bold text-lg">Workout Details</h1>
-        <button 
-          onClick={() => router.push(`/workout/${workoutId}?edit=true`)}
-          className="p-2 -mr-2 text-primary hover:text-primary/80"
-        >
-          <Edit2 size={20} />
-        </button>
+        <div className="flex gap-2">
+          <button 
+            onClick={() => setShowDeleteConfirm(true)}
+            className="p-2 text-muted-foreground hover:text-destructive"
+          >
+            <Trash2 size={20} />
+          </button>
+          <button 
+            onClick={() => router.push(`/workout/${workoutId}?edit=true`)}
+            className="p-2 -mr-2 text-primary hover:text-primary/80"
+          >
+            <Edit2 size={20} />
+          </button>
+        </div>
       </div>
 
       <div className="p-4 max-w-2xl mx-auto space-y-6">
@@ -231,6 +253,51 @@ export default function WorkoutDetail() {
           })}
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-card border border-white/10 rounded-2xl p-6 max-w-sm w-full space-y-4"
+          >
+            <div className="flex items-center gap-3">
+              <div className="h-12 w-12 rounded-full bg-destructive/20 flex items-center justify-center">
+                <Trash2 size={24} className="text-destructive" />
+              </div>
+              <div>
+                <h3 className="font-bold text-lg">Workout verwijderen?</h3>
+                <p className="text-sm text-muted-foreground">Deze actie kan niet ongedaan worden.</p>
+              </div>
+            </div>
+            
+            <div className="bg-white/5 rounded-lg p-3">
+              <p className="text-sm font-medium">{workout.name}</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {format(new Date(workout.date), 'EEEE, d MMMM yyyy')}
+              </p>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                disabled={isDeleting}
+                className="flex-1 py-3 rounded-lg font-bold bg-white/5 hover:bg-white/10 transition-colors disabled:opacity-50"
+              >
+                Annuleren
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={isDeleting}
+                className="flex-1 py-3 rounded-lg font-bold bg-destructive text-white hover:bg-destructive/90 transition-colors disabled:opacity-50"
+              >
+                {isDeleting ? 'Verwijderen...' : 'Verwijderen'}
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </div>
   )
 }
