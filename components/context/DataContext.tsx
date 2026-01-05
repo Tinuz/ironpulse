@@ -10,6 +10,7 @@ export interface Exercise {
   name: string;
   targetSets: number;
   targetReps: number;
+  startWeight?: number;
 }
 
 export interface Schema {
@@ -368,7 +369,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         name: e.name,
         sets: Array(e.targetSets).fill(null).map(() => ({
           id: crypto.randomUUID(),
-          weight: 0,
+          weight: e.startWeight ?? 0,
           reps: e.targetReps,
           completed: false
         }))

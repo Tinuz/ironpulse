@@ -22,6 +22,7 @@ export default function SchemaBuilder() {
   const [newExName, setNewExName] = useState('');
   const [newExSets, setNewExSets] = useState(3);
   const [newExReps, setNewExReps] = useState(10);
+  const [newExStartWeight, setNewExStartWeight] = useState<number | undefined>(undefined);
 
   // Load schema for editing
   useEffect(() => {
@@ -42,13 +43,15 @@ export default function SchemaBuilder() {
       id: crypto.randomUUID(),
       name: newExName,
       targetSets: newExSets,
-      targetReps: newExReps
+      targetReps: newExReps,
+      startWeight: newExStartWeight
     };
     
     setExercises([...exercises, exercise]);
     setNewExName('');
     setNewExSets(3);
     setNewExReps(10);
+    setNewExStartWeight(undefined);
     setIsAddingEx(false);
   };
 
@@ -98,6 +101,7 @@ export default function SchemaBuilder() {
     setNewExName(exercise.name);
     setNewExSets(exercise.targetSets);
     setNewExReps(exercise.targetReps);
+    setNewExStartWeight(exercise.startWeight);
   };
 
   const handleUpdateExercise = () => {
@@ -105,7 +109,7 @@ export default function SchemaBuilder() {
     
     setExercises(exercises.map(ex => 
       ex.id === editingExercise.id 
-        ? { ...ex, name: newExName, targetSets: newExSets, targetReps: newExReps }
+        ? { ...ex, name: newExName, targetSets: newExSets, targetReps: newExReps, startWeight: newExStartWeight }
         : ex
     ));
     
@@ -113,6 +117,7 @@ export default function SchemaBuilder() {
     setNewExName('');
     setNewExSets(3);
     setNewExReps(10);
+    setNewExStartWeight(undefined);
   };
 
   const cancelEdit = () => {
@@ -120,6 +125,7 @@ export default function SchemaBuilder() {
     setNewExName('');
     setNewExSets(3);
     setNewExReps(10);
+    setNewExStartWeight(undefined);
     setIsAddingEx(false);
   };
 
@@ -177,6 +183,7 @@ export default function SchemaBuilder() {
                     <div className="flex gap-3 text-xs text-muted-foreground mt-1 font-mono">
                       <span className="flex items-center gap-1"><GripHorizontal size={12}/> {ex.targetSets} Sets</span>
                       <span className="flex items-center gap-1"><RotateCcw size={12}/> {ex.targetReps} Reps</span>
+                      {ex.startWeight && <span className="text-primary">@ {ex.startWeight}kg</span>}
                     </div>
                   </div>
                 </div>
@@ -238,6 +245,19 @@ export default function SchemaBuilder() {
                     <button onClick={() => setNewExReps(r => r + 1)} className="p-2 hover:bg-white/10">+</button>
                   </div>
                 </div>
+              </div>
+              <div>
+                <label className="text-[10px] uppercase font-bold text-muted-foreground">Start Weight (kg) - Optioneel</label>
+                <input
+                  type="number"
+                  value={newExStartWeight ?? ''}
+                  onChange={(e) => setNewExStartWeight(e.target.value ? parseFloat(e.target.value) : undefined)}
+                  className="w-full bg-white/5 rounded-lg px-3 py-2 mt-1 focus:outline-none focus:ring-1 focus:ring-primary font-mono font-bold"
+                  placeholder="20"
+                  step="0.5"
+                  min="0"
+                />
+                <p className="text-[9px] text-muted-foreground mt-1 px-1">Dit wordt automatisch ingevuld bij nieuwe workouts</p>
               </div>
               <div className="flex gap-2 pt-2">
                 <button 
