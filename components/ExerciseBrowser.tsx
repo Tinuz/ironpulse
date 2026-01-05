@@ -13,7 +13,7 @@ interface Exercise {
   images: string[];
   views: string;
   comments: string;
-  meta: {
+  meta?: {
     Type: string;
     Equipment: string;
     Mechanics: string;
@@ -87,13 +87,13 @@ export default function ExerciseBrowser({ isOpen, onClose, onSelect }: ExerciseB
       const matchesMuscle = !selectedMuscle || ex.group === selectedMuscle;
       
       // Equipment filter (via meta.Equipment)
-      const matchesEquipment = !selectedEquipment || ex.meta.Equipment === selectedEquipment;
+      const matchesEquipment = !selectedEquipment || (ex.meta && ex.meta.Equipment === selectedEquipment);
       
       // Mechanics filter (via meta.Mechanics)
-      const matchesMechanics = !selectedMechanics || ex.meta.Mechanics === selectedMechanics;
+      const matchesMechanics = !selectedMechanics || (ex.meta && ex.meta.Mechanics === selectedMechanics);
       
       // Experience level filter (via meta['Exp. Level'])
-      const matchesLevel = !selectedLevel || ex.meta['Exp. Level'] === selectedLevel;
+      const matchesLevel = !selectedLevel || (ex.meta && ex.meta['Exp. Level'] === selectedLevel);
       
       return matchesSearch && matchesMuscle && matchesEquipment && matchesMechanics && matchesLevel;
     });
@@ -339,7 +339,7 @@ export default function ExerciseBrowser({ isOpen, onClose, onSelect }: ExerciseB
                 {filteredExercises.length} exercise{filteredExercises.length !== 1 ? 's' : ''} found
               </div>
               {filteredExercises.map((exercise, idx) => {
-                const levelConfig = EXPERIENCE_LEVELS.find(l => l.id === exercise.meta['Exp. Level']);
+                const levelConfig = exercise.meta ? EXPERIENCE_LEVELS.find(l => l.id === exercise.meta!['Exp. Level']) : null;
                 
                 return (
                   <motion.button
@@ -367,14 +367,18 @@ export default function ExerciseBrowser({ isOpen, onClose, onSelect }: ExerciseB
                       </span>
                       
                       {/* Equipment */}
-                      <span className="px-2 py-0.5 bg-blue-500/20 text-blue-400 rounded text-[10px] font-medium">
-                        {exercise.meta.Equipment}
-                      </span>
+                      {exercise.meta?.Equipment && (
+                        <span className="px-2 py-0.5 bg-blue-500/20 text-blue-400 rounded text-[10px] font-medium">
+                          {exercise.meta.Equipment}
+                        </span>
+                      )}
                       
                       {/* Mechanics */}
-                      <span className="px-2 py-0.5 bg-white/10 text-muted-foreground rounded text-[10px] font-medium">
-                        {exercise.meta.Mechanics}
-                      </span>
+                      {exercise.meta?.Mechanics && (
+                        <span className="px-2 py-0.5 bg-white/10 text-muted-foreground rounded text-[10px] font-medium">
+                          {exercise.meta.Mechanics}
+                        </span>
+                      )}
                       
                       {/* Views indicator */}
                       {exercise.views && (
