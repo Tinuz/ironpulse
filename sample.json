@@ -1,0 +1,59 @@
+﻿{
+    "name":  "Lying Floor Leg Raise Video Exercise Guide",
+    "url":  "https://www.muscleandstrength.com/exercises/lying-floor-leg-raise.html",
+    "group":  "abs",
+    "profile":  {
+                    "targetMuscleGroup":  "Abs",
+                    "exerciseType":  "Strength",
+                    "equipmentRequired":  "Bodyweight",
+                    "mechanics":  "Isolation",
+                    "forceType":  "Pull (Bilateral)",
+                    "experienceLevel":  "Beginner",
+                    "secondaryMuscles":  [
+                                             "None"
+                                         ]
+                },
+    "instructions":  [
+                         "Lay supine in a relaxed position with your legs straight and your hands underneath your low back for support.",
+                         "Keep your legs straight and raise them towards your forehead while contracting your abdominals and exhaling.",
+                         "Once your abs are fully contracted and your legs are slightly above parallel, slowly lower your legs back to the starting position.",
+                         "Complete for the assigned number of repetitions."
+                     ],
+    "video":  "https://www.youtube.com/embed/r24ntO4IvKc?rel=0",
+    "images":  [
+                   "https://cdn.muscleandstrength.com/sites/default/files/lying-leg-raise-1.jpg"
+               ],
+    "tips":  [
+                 "Exhale hard like youâ€™re blowing out candles on a cake and hold the contraction for a second in order to improve mind muscle connection.",
+                 "If your lower back bothers you during this exercise, choose more anti extension and anti rotation based movements.",
+                 "Avoid putting the hands behind the head as this can lead to excess strain upon the neck."
+             ],
+    "views":  "1.8M",
+    "comments":  "25",
+    "meta":  {
+                 "Type":  "Strength",
+                 "Equipment":  "Bodyweight",
+                 "Mechanics":  "Isolation",
+                 "Exp. Level":  "Beginner"
+             },
+    "groups":  [
+                   "abs",
+                   "bodyweight",
+                   "isolation"
+               ],
+    "image":  "https://cdn.muscleandstrength.com/sites/default/files/lying-leg-raise-1.jpg",
+    "overview":  "The lying floor leg raise is a variation of the abdominal crunch and an exercise used to isolate the muscles of the abdomen.\n\nThe lying floor leg raise is a flexion based exercise which keeps the lower abdominal muscles under constant tension during the entire range of motion.",
+    "overviewParagraphs":  [
+                               "The lying floor leg raise is a variation of the abdominal crunch and an exercise used to isolate the muscles of the abdomen.",
+                               "The lying floor leg raise is a flexion based exercise which keeps the lower abdominal muscles under constant tension during the entire range of motion."
+                           ],
+    "anatomy":  {
+                    "muscleGroup":  "Abs",
+                    "image":  "https://cdn.muscleandstrength.com/sites/all/themes/mnsnew/images/taxonomy/exercises/muscle-groups/full/Abs.jpg",
+                    "alt":  "Abs Muscle Anatomy Diagram"
+                },
+    "media":  {
+                  "heroImage":  "https://cdn.muscleandstrength.com/sites/default/files/lying-leg-raise-1.jpg",
+                  "videoThumb":  "https://i.ytimg.com/vi/r24ntO4IvKc/maxresdefault.jpg"
+              }
+}

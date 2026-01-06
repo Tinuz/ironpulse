@@ -16,7 +16,7 @@ FitnessTracker is a comprehensive mobile-first web application designed to help 
 - **Main Component**: `components/FitnessTracker.tsx` - Main application wrapper containing DataProvider and routing logic
 - **State Management**: `components/context/DataContext.tsx` - Centralized state using React Context API. Handles persistence via LocalStorage.
 - **Navigation**: `components/Navigation.tsx` - Bottom tab navigation for mobile accessibility.
-components/pages/Dashboard.tsx` - Main overview, quick actions, and daily summary.
+- **Dashboard** (`/`): `components/pages/Dashboard.tsx` - Main overview, quick actions, and daily summary.
 - **Schema Builder** (`/schema`): `components/pages/SchemaBuilder.tsx` - Create and manage workout routines.
 - **Workout Logger** (`/workout/:schemaId?`): `components/pages/WorkoutLogger.tsx` - Active workout session tracker.
 - **History** (`/history`): `components/pages/History.tsx` - Log of past workouts.
