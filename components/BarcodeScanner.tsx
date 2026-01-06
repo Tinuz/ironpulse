@@ -211,9 +211,9 @@ export default function BarcodeScanner({ onProductScanned, onClose }: BarcodeSca
       exit={{ opacity: 0 }}
       className="fixed inset-0 bg-black/95 z-50 flex items-center justify-center p-4"
     >
-      <div className="w-full max-w-lg space-y-4">
+      <div className="w-full max-w-lg max-h-[90vh] overflow-y-auto space-y-3">
         {/* Header */}
-        <div className="flex justify-between items-center">
+        <div className="flex justify-between items-center sticky top-0 bg-black/95 pb-3 z-10">
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center">
               <Scan size={20} className="text-primary" />
@@ -504,7 +504,7 @@ export default function BarcodeScanner({ onProductScanned, onClose }: BarcodeSca
               </div>
             )}
             
-            <div className="p-6 space-y-4">
+            <div className="p-5 space-y-3">
               <div>
                 <div className="flex items-start gap-3 mb-2">
                   <Package size={24} className="text-primary mt-1" />
@@ -518,7 +518,7 @@ export default function BarcodeScanner({ onProductScanned, onClose }: BarcodeSca
                 <p className="text-xs text-muted-foreground">Barcode: {productData.barcode}</p>
               </div>
 
-              <div className="bg-background/50 rounded-2xl p-4 space-y-3">
+              <div className="bg-background/50 rounded-2xl p-3 space-y-2">
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-muted-foreground">Calorieën</span>
                   <span className="text-lg font-bold">{productData.calories} kcal</span>
@@ -541,7 +541,7 @@ export default function BarcodeScanner({ onProductScanned, onClose }: BarcodeSca
               </div>
 
               {/* Portion Size Input */}
-              <div className="bg-background/50 rounded-2xl p-4">
+              <div className="bg-background/50 rounded-2xl p-3">
                 <label className="text-xs font-bold text-muted-foreground uppercase mb-2 block">
                   Portiegrootte (gram)
                 </label>
@@ -558,7 +558,7 @@ export default function BarcodeScanner({ onProductScanned, onClose }: BarcodeSca
                 </p>
               </div>
 
-              <div className="flex gap-3 pt-2">
+              <div className="flex gap-3 pt-1 pb-2">
                 <button
                   onClick={handleRescan}
                   className="px-6 py-4 bg-white/5 text-white rounded-xl font-semibold hover:bg-white/10 transition-all border border-white/10"
