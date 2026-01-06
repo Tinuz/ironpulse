@@ -36,10 +36,10 @@ export default function Nutrition() {
   });
 
   const totals = items.reduce((acc, item) => ({
-    calories: acc.calories + item.calories,
-    protein: acc.protein + item.protein,
-    carbs: acc.carbs + item.carbs,
-    fats: acc.fats + item.fats,
+    calories: Math.round(acc.calories + item.calories),
+    protein: Math.round((acc.protein + item.protein) * 10) / 10,
+    carbs: Math.round((acc.carbs + item.carbs) * 10) / 10,
+    fats: Math.round((acc.fats + item.fats) * 10) / 10,
   }), { calories: 0, protein: 0, carbs: 0, fats: 0 });
 
   // Calculate targets from user profile
