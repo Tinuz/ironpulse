@@ -201,7 +201,54 @@ export default function BarcodeScanner({ onProductScanned, onClose }: BarcodeSca
     setProductData(null)
     setError(null)
     setIsLoading(false)
-    window.location.reload() // Simple reset - kan later eleganter
+    setScanDetected(false)
+    isScanning.current = false
+    
+    // Reinitialize scanner without page reload
+    const scanner = new Html5QrcodeScanner(
+      "reader",
+      {
+        fps: 10,
+        qrbox: { width: 250, height: 250 },
+        formatsToSupport: [
+          Html5QrcodeSupportedFormats.EAN_13,
+          Html5QrcodeSupportedFormats.EAN_8,
+          Html5QrcodeSupportedFormats.UPC_A,
+          Html5QrcodeSupportedFormats.UPC_E,
+          Html5QrcodeSupportedFormats.CODE_128,
+          Html5QrcodeSupportedFormats.CODE_39,
+        ],
+        showTorchButtonIfSupported: true,
+        rememberLastUsedCamera: true,
+      },
+      false
+    )
+    scannerRef.current = scanner
+
+    scanner.render(
+      async (decodedText) => {
+        if (isScanning.current) return
+        isScanning.current = true
+        
+        setScanDetected(true)
+        console.log('🔍 Barcode detected:', decodedText)
+        
+        setScannedCode(decodedText)
+        
+        if (scanner) {
+          scanner.clear().catch(err => {
+            console.warn('⚠️ Scanner clear warning:', err)
+          })
+        }
+        
+        await fetchProductData(decodedText)
+        isScanning.current = false
+        setScanDetected(false)
+      },
+      (_errorMessage) => {
+        // Quiet scan errors
+      }
+    )
   }
 
   return (
