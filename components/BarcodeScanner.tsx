@@ -114,10 +114,32 @@ export default function BarcodeScanner({ onProductScanned, onClose }: BarcodeSca
     initScanner()
 
     return () => {
-      if (scanner && scannerRef.current) {
-        scanner.stop().then(() => {
-          scanner?.clear()
-        }).catch(console.error)
+      if (!scanner || !scannerRef.current) return
+      
+      const state = scanner.getState()
+      console.log('🧹 Scanner cleanup, current state:', state)
+      
+      // Stop scanner if it's running (state = 2 is SCANNING)
+      if (state === 2) {
+        scanner.stop()
+          .then(() => {
+            console.log('✅ Scanner stopped successfully')
+            if (scanner) {
+              scanner.clear()
+              console.log('✅ Scanner cleared successfully')
+            }
+          })
+          .catch((err) => {
+            console.warn('⚠️ Scanner cleanup warning:', err)
+          })
+      } else {
+        // If not scanning, just clear
+        try {
+          scanner.clear()
+          console.log('✅ Scanner cleared (was not running)')
+        } catch (err) {
+          console.warn('⚠️ Clear warning:', err)
+        }
       }
     }
   }, [])
