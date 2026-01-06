@@ -239,79 +239,180 @@ export default function BarcodeScanner({ onProductScanned, onClose }: BarcodeSca
             className="bg-card/50 backdrop-blur-sm border border-white/10 rounded-3xl overflow-hidden"
           >
             <style jsx global>{`
+              /* Container styling */
               #reader {
-                border: none !important;
-              }
-              #reader > div {
-                border: none !important;
-              }
-              #reader__scan_region {
-                border-radius: 1.5rem !important;
-              }
-              #reader__scan_region video {
-                border-radius: 1.5rem !important;
-              }
-              #reader__dashboard {
                 border: none !important;
                 background: transparent !important;
               }
+              
+              /* Scan region - video container */
+              #reader__scan_region {
+                border-radius: 1.5rem !important;
+                border: none !important;
+                background: black !important;
+                min-height: 300px !important;
+              }
+              
+              #reader__scan_region video {
+                border-radius: 1.5rem !important;
+                object-fit: cover !important;
+              }
+              
+              /* Hide the default overlay box */
+              #reader__scan_region img {
+                opacity: 0.3 !important;
+              }
+              
+              /* Dashboard section */
+              #reader__dashboard {
+                background: transparent !important;
+                border: none !important;
+                padding: 0 !important;
+              }
+              
               #reader__dashboard_section {
-                background: rgba(17, 24, 39, 0.5) !important;
-                border: 1px solid rgba(255, 255, 255, 0.1) !important;
+                background: transparent !important;
+                border: none !important;
+                padding: 1rem 1.5rem !important;
+                margin: 0 !important;
+              }
+              
+              /* Camera controls section */
+              #reader__dashboard_section_csr {
+                background: rgba(17, 24, 39, 0.4) !important;
+                border: 1px solid rgba(255, 255, 255, 0.05) !important;
                 border-radius: 1rem !important;
                 padding: 1rem !important;
-                margin: 1rem !important;
+                margin: 0.75rem 0 !important;
               }
-              #reader__dashboard_section_csr button,
-              #reader__dashboard_section_fsr button {
-                background: rgb(239, 68, 68) !important;
-                color: white !important;
-                border: none !important;
-                border-radius: 0.75rem !important;
-                padding: 0.75rem 1.5rem !important;
-                font-weight: 600 !important;
-                cursor: pointer !important;
-                transition: all 0.2s !important;
+              
+              /* File selection section */
+              #reader__dashboard_section_fsr {
+                background: rgba(17, 24, 39, 0.4) !important;
+                border: 1px solid rgba(255, 255, 255, 0.05) !important;
+                border-radius: 1rem !important;
+                padding: 1rem !important;
+                margin: 0.75rem 0 !important;
               }
-              #reader__dashboard_section_csr button:hover,
-              #reader__dashboard_section_fsr button:hover {
-                background: rgb(220, 38, 38) !important;
-              }
-              #reader__camera_selection select,
-              #reader__camera_permission_button {
-                background: rgba(17, 24, 39, 0.8) !important;
-                border: 1px solid rgba(255, 255, 255, 0.1) !important;
-                color: white !important;
-                border-radius: 0.75rem !important;
-                padding: 0.5rem 1rem !important;
-              }
+              
+              /* All buttons */
               #html5-qrcode-button-camera-permission,
               #html5-qrcode-button-camera-start,
               #html5-qrcode-button-camera-stop,
               #html5-qrcode-button-file-selection {
-                background: rgb(239, 68, 68) !important;
+                background: linear-gradient(135deg, rgb(239, 68, 68) 0%, rgb(220, 38, 38) 100%) !important;
                 color: white !important;
                 border: none !important;
                 border-radius: 0.75rem !important;
-                padding: 0.75rem 1.5rem !important;
+                padding: 0.875rem 1.75rem !important;
                 font-weight: 600 !important;
-                margin: 0.5rem !important;
+                font-size: 0.875rem !important;
+                cursor: pointer !important;
+                transition: all 0.2s ease !important;
+                box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3) !important;
+                width: 100% !important;
+                margin: 0.25rem 0 !important;
+                text-transform: none !important;
+                letter-spacing: 0.02em !important;
               }
+              
               #html5-qrcode-button-camera-permission:hover,
               #html5-qrcode-button-camera-start:hover,
               #html5-qrcode-button-camera-stop:hover,
               #html5-qrcode-button-file-selection:hover {
-                background: rgb(220, 38, 38) !important;
+                background: linear-gradient(135deg, rgb(220, 38, 38) 0%, rgb(185, 28, 28) 100%) !important;
+                box-shadow: 0 6px 16px rgba(239, 68, 68, 0.4) !important;
+                transform: translateY(-1px) !important;
               }
+              
+              /* Camera selection dropdown */
+              #reader__camera_selection select {
+                background: rgba(17, 24, 39, 0.8) !important;
+                border: 1px solid rgba(255, 255, 255, 0.1) !important;
+                color: white !important;
+                border-radius: 0.75rem !important;
+                padding: 0.75rem 1rem !important;
+                font-size: 0.875rem !important;
+                cursor: pointer !important;
+                width: 100% !important;
+                margin: 0.5rem 0 !important;
+              }
+              
+              #reader__camera_selection select:focus {
+                outline: none !important;
+                border-color: rgb(239, 68, 68) !important;
+                box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1) !important;
+              }
+              
+              #reader__camera_selection label {
+                color: rgba(255, 255, 255, 0.7) !important;
+                font-size: 0.75rem !important;
+                font-weight: 600 !important;
+                text-transform: uppercase !important;
+                letter-spacing: 0.05em !important;
+                margin-bottom: 0.5rem !important;
+                display: block !important;
+              }
+              
+              /* Status text */
+              #reader__status_span {
+                color: rgba(255, 255, 255, 0.6) !important;
+                font-size: 0.75rem !important;
+                padding: 0.5rem 0 !important;
+                text-align: center !important;
+              }
+              
+              /* File input section */
+              #reader__dashboard_section_fsr input[type="file"] {
+                display: none !important;
+              }
+              
+              /* Swap link between camera/file */
               #reader__dashboard_section_swaplink {
                 color: rgb(239, 68, 68) !important;
                 text-decoration: none !important;
+                font-size: 0.875rem !important;
+                font-weight: 500 !important;
+                display: inline-block !important;
+                margin: 0.75rem 0 !important;
+                transition: all 0.2s !important;
               }
-              #reader__status_span {
-                color: rgba(255, 255, 255, 0.6) !important;
+              
+              #reader__dashboard_section_swaplink:hover {
+                color: rgb(220, 38, 38) !important;
+                text-decoration: underline !important;
               }
+              
+              /* Header text */
+              #reader__header_message {
+                color: white !important;
+                font-size: 0.875rem !important;
+                font-weight: 500 !important;
+                padding: 0.5rem 0 !important;
+              }
+              
+              /* Info icon */
               #reader img[alt="Info icon"] {
-                filter: invert(1) opacity(0.6);
+                filter: invert(1) opacity(0.5) !important;
+              }
+              
+              /* Hide extra borders */
+              #reader > div {
+                border: none !important;
+              }
+              
+              /* Torch button styling (if present) */
+              button[title*="torch"],
+              button[title*="Torch"],
+              button[title*="flash"],
+              button[title*="Flash"] {
+                background: rgba(17, 24, 39, 0.8) !important;
+                border: 1px solid rgba(255, 255, 255, 0.2) !important;
+                border-radius: 50% !important;
+                width: 48px !important;
+                height: 48px !important;
+                padding: 0 !important;
+                margin: 0.5rem !important;
               }
             `}</style>
             
