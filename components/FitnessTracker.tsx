@@ -17,6 +17,7 @@ import WorkoutEditor from '@/components/pages/WorkoutEditor'
 import ExerciseProgress from '@/components/pages/ExerciseProgress'
 import { DataProvider } from '@/components/context/DataContext'
 import { AuthProvider, useAuth } from '@/components/context/AuthContext'
+import { LanguageProvider } from '@/components/context/LanguageContext'
 import Navigation from '@/components/Navigation'
 import { Loader2 } from 'lucide-react'
 
@@ -80,9 +81,11 @@ const ProtectedLayout = () => {
 export function FitnessTracker() {
   return (
     <AuthProvider>
-      <DataProvider>
-        <ProtectedLayout />
-      </DataProvider>
+      <LanguageProvider>
+        <DataProvider>
+          <ProtectedLayout />
+        </DataProvider>
+      </LanguageProvider>
     </AuthProvider>
   )
 }

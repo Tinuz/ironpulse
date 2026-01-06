@@ -2,16 +2,18 @@
 
 import React from 'react'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Bot, Check, LogOut, User } from 'lucide-react'
+import { ArrowLeft, Bot, Check, LogOut, User, Languages } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useData } from '@/components/context/DataContext'
 import { useAuth } from '@/components/context/AuthContext'
+import { useLanguage } from '@/components/context/LanguageContext'
 import { COACH_PROFILES } from '@/components/utils/coachProfiles'
 
 export default function Settings() {
   const router = useRouter()
   const { coachProfile, setCoachProfile } = useData()
   const { user, signOut } = useAuth()
+  const { language, setLanguage, t } = useLanguage()
 
   const handleSignOut = async () => {
     try {
@@ -29,7 +31,7 @@ export default function Settings() {
         <button onClick={() => router.push('/')} className="p-2 -ml-2 text-muted-foreground hover:text-foreground">
           <ArrowLeft size={24} />
         </button>
-        <h1 className="text-xl font-bold">Instellingen</h1>
+        <h1 className="text-xl font-bold">{t.settings.title}</h1>
         <div className="w-10" />
       </div>
 
@@ -38,7 +40,7 @@ export default function Settings() {
         <div>
           <div className="flex items-center gap-2 mb-4">
             <User className="text-primary" size={20} />
-            <h2 className="text-lg font-bold">Account</h2>
+            <h2 className="text-lg font-bold">{t.settings.account}</h2>
           </div>
           
           <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-3">
@@ -54,9 +56,73 @@ export default function Settings() {
                 className="w-full bg-red-500/10 hover:bg-red-500/20 text-red-500 font-semibold py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-all border border-red-500/20"
               >
                 <LogOut size={18} />
-                <span>Uitloggen</span>
+                <span>{t.settings.logout}</span>
               </motion.button>
             </div>
+          </div>
+        </div>
+
+        {/* Language Section */}
+        <div>
+          <div className="flex items-center gap-2 mb-4">
+            <Languages className="text-primary" size={20} />
+            <h2 className="text-lg font-bold">{t.settings.language}</h2>
+          </div>
+          
+          <div className="space-y-2">
+            <motion.button
+              onClick={() => setLanguage('nl')}
+              className={`w-full p-4 rounded-2xl border-2 transition-all text-left flex items-center justify-between ${
+                language === 'nl'
+                  ? 'border-primary bg-primary/10'
+                  : 'border-white/10 bg-white/5 hover:border-white/20'
+              }`}
+              whileTap={{ scale: 0.98 }}
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">🇳🇱</span>
+                <div>
+                  <h3 className="font-bold">{t.settings.dutch}</h3>
+                  <p className="text-xs text-muted-foreground">Nederlands</p>
+                </div>
+              </div>
+              {language === 'nl' && (
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  className="flex-shrink-0 w-6 h-6 rounded-full bg-primary flex items-center justify-center"
+                >
+                  <Check size={14} className="text-primary-foreground" />
+                </motion.div>
+              )}
+            </motion.button>
+
+            <motion.button
+              onClick={() => setLanguage('en')}
+              className={`w-full p-4 rounded-2xl border-2 transition-all text-left flex items-center justify-between ${
+                language === 'en'
+                  ? 'border-primary bg-primary/10'
+                  : 'border-white/10 bg-white/5 hover:border-white/20'
+              }`}
+              whileTap={{ scale: 0.98 }}
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">🇬🇧</span>
+                <div>
+                  <h3 className="font-bold">{t.settings.english}</h3>
+                  <p className="text-xs text-muted-foreground">English</p>
+                </div>
+              </div>
+              {language === 'en' && (
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  className="flex-shrink-0 w-6 h-6 rounded-full bg-primary flex items-center justify-center"
+                >
+                  <Check size={14} className="text-primary-foreground" />
+                </motion.div>
+              )}
+            </motion.button>
           </div>
         </div>
 

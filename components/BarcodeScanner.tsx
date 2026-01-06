@@ -4,6 +4,7 @@ import React, { useEffect, useState, useRef } from 'react'
 import { Html5QrcodeScanner, Html5QrcodeSupportedFormats } from 'html5-qrcode'
 import { motion } from 'framer-motion'
 import { Camera, Loader2, X, AlertCircle, Package, Scan, Image } from 'lucide-react'
+import { useLanguage } from '@/components/context/LanguageContext'
 
 interface ProductData {
   name: string
@@ -23,6 +24,7 @@ interface BarcodeScannerProps {
 }
 
 export default function BarcodeScanner({ onProductScanned, onClose }: BarcodeScannerProps) {
+  const { t } = useLanguage()
   const [scannedCode, setScannedCode] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -85,7 +87,7 @@ export default function BarcodeScanner({ onProductScanned, onClose }: BarcodeSca
         )
       } catch (err) {
         console.error("Scanner init error:", err)
-        setError("Kon scanner niet starten. Geef camera-toegang in je browserinstellingen.")
+        setError(t.scanner.cameraError)
       }
     }
 
@@ -132,7 +134,7 @@ export default function BarcodeScanner({ onProductScanned, onClose }: BarcodeSca
 
       if (data.status === 0 || !data.product) {
         console.warn('⚠️ Product not found in OpenFoodFacts database')
-        setError('Product niet gevonden in database. Probeer een ander product of voeg handmatig toe.')
+        setError(t.scanner.productNotFound)
         setIsLoading(false)
         return
       }
@@ -171,7 +173,7 @@ export default function BarcodeScanner({ onProductScanned, onClose }: BarcodeSca
         message: err instanceof Error ? err.message : 'Unknown error',
         stack: err instanceof Error ? err.stack : undefined
       })
-      setError('Kon productgegevens niet ophalen. Controleer je internetverbinding.')
+      setError(t.scanner.networkError)
       setIsLoading(false)
     }
   }
@@ -266,8 +268,8 @@ export default function BarcodeScanner({ onProductScanned, onClose }: BarcodeSca
               <Scan size={20} className="text-primary" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-white">Barcode Scanner</h2>
-              <p className="text-xs text-gray-400">Scan een product barcode</p>
+              <h2 className="text-xl font-bold text-white">{t.scanner.title}</h2>
+              <p className="text-xs text-gray-400">{t.scanner.subtitle}</p>
             </div>
           </div>
           <button
@@ -475,7 +477,7 @@ export default function BarcodeScanner({ onProductScanned, onClose }: BarcodeSca
                 <div className="flex items-center justify-center gap-3">
                   <Scan size={20} className="text-primary" />
                   <p className="text-sm font-bold text-primary">
-                    Barcode gedetecteerd! Product ophalen...
+                    {t.scanner.detected}
                   </p>
                 </div>
               </motion.div>
@@ -485,16 +487,16 @@ export default function BarcodeScanner({ onProductScanned, onClose }: BarcodeSca
               <div className="flex items-center justify-center gap-4 mb-3">
                 <div className="flex items-center gap-2">
                   <Camera size={18} className="text-primary" />
-                  <p className="text-xs text-muted-foreground">Camera</p>
+                  <p className="text-xs text-muted-foreground">{t.scanner.camera}</p>
                 </div>
                 <span className="text-muted-foreground">•</span>
                 <div className="flex items-center gap-2">
                   <Image size={18} className="text-primary" />
-                  <p className="text-xs text-muted-foreground">Foto uploaden</p>
+                  <p className="text-xs text-muted-foreground">{t.scanner.uploadPhoto}</p>
                 </div>
               </div>
               <p className="text-xs text-muted-foreground">
-                Ondersteunt EAN-13, UPC-A, UPC-E en meer
+                {t.scanner.supports}
               </p>
             </div>
           </motion.div>
@@ -508,8 +510,8 @@ export default function BarcodeScanner({ onProductScanned, onClose }: BarcodeSca
             className="bg-card border border-white/10 rounded-3xl p-8 text-center"
           >
             <Loader2 size={48} className="mx-auto text-primary animate-spin mb-4" />
-            <p className="text-lg font-semibold">Product ophalen...</p>
-            <p className="text-sm text-muted-foreground mt-2">Barcode: {scannedCode}</p>
+            <p className="text-lg font-semibold">{t.scanner.fetchingProduct}</p>
+            <p className="text-sm text-muted-foreground mt-2">{t.scanner.barcode}: {scannedCode}</p>
           </motion.div>
         )}
 
@@ -523,13 +525,13 @@ export default function BarcodeScanner({ onProductScanned, onClose }: BarcodeSca
             <div className="h-16 w-16 rounded-full bg-red-500/20 flex items-center justify-center mx-auto mb-4">
               <AlertCircle size={32} className="text-red-500" />
             </div>
-            <p className="text-lg font-semibold mb-2">Oeps!</p>
+            <p className="text-lg font-semibold mb-2">{t.scanner.oops}</p>
             <p className="text-sm text-muted-foreground mb-6">{error}</p>
             <button
               onClick={handleRescan}
               className="px-6 py-3 bg-primary text-white rounded-xl font-semibold hover:bg-primary/90 transition-colors"
             >
-              Opnieuw scannen
+              {t.scanner.rescanButton}
             </button>
           </motion.div>
         )}
@@ -562,35 +564,35 @@ export default function BarcodeScanner({ onProductScanned, onClose }: BarcodeSca
                     )}
                   </div>
                 </div>
-                <p className="text-xs text-muted-foreground">Barcode: {productData.barcode}</p>
+                <p className="text-xs text-muted-foreground">{t.scanner.barcode}: {productData.barcode}</p>
               </div>
 
               <div className="bg-background/50 rounded-2xl p-3 space-y-2">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">Calorieën</span>
-                  <span className="text-lg font-bold">{productData.calories} kcal</span>
+                  <span className="text-sm text-muted-foreground">{t.nutrition.calories}</span>
+                  <span className="text-lg font-bold">{productData.calories} {t.nutrition.kcal}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">Eiwitten</span>
+                  <span className="text-sm text-muted-foreground">{t.nutrition.protein}</span>
                   <span className="text-lg font-bold text-pink-500">{productData.protein}g</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">Koolhydraten</span>
+                  <span className="text-sm text-muted-foreground">{t.nutrition.carbs}</span>
                   <span className="text-lg font-bold text-blue-500">{productData.carbs}g</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">Vetten</span>
+                  <span className="text-sm text-muted-foreground">{t.nutrition.fats}</span>
                   <span className="text-lg font-bold text-amber-500">{productData.fats}g</span>
                 </div>
                 <p className="text-xs text-muted-foreground text-center pt-2 border-t border-white/5">
-                  Per 100g
+                  {t.nutrition.per100g}
                 </p>
               </div>
 
               {/* Portion Size Input */}
               <div className="bg-background/50 rounded-2xl p-3">
                 <label className="text-xs font-bold text-muted-foreground uppercase mb-2 block">
-                  Portiegrootte (gram)
+                  {t.nutrition.portionSize}
                 </label>
                 <input
                   type="number"
@@ -601,7 +603,7 @@ export default function BarcodeScanner({ onProductScanned, onClose }: BarcodeSca
                   step="1"
                 />
                 <p className="text-xs text-muted-foreground text-center mt-2">
-                  Dit geeft {Math.round(productData.calories * (parseFloat(portionSize) || 100) / 100)} kcal
+                  {t.nutrition.thisGives} {Math.round(productData.calories * (parseFloat(portionSize) || 100) / 100)} {t.nutrition.kcal}
                 </p>
               </div>
 
@@ -610,13 +612,13 @@ export default function BarcodeScanner({ onProductScanned, onClose }: BarcodeSca
                   onClick={handleRescan}
                   className="px-5 py-3 bg-white/5 text-white rounded-xl font-semibold hover:bg-white/10 transition-all border border-white/10 text-sm"
                 >
-                  Opnieuw
+                  {t.scanner.rescan}
                 </button>
                 <button
                   onClick={handleUseProduct}
                   className="flex-1 px-6 py-3 bg-gradient-to-r from-primary to-red-600 text-white rounded-xl font-bold hover:from-red-600 hover:to-red-700 transition-all shadow-lg shadow-primary/50 hover:shadow-xl hover:shadow-primary/60 hover:scale-[1.02]"
                 >
-                  Gebruiken →
+                  {t.scanner.use} →
                 </button>
               </div>
             </div>
