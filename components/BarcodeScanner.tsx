@@ -1,9 +1,9 @@
 'use client'
 
 import React, { useEffect, useState, useRef } from 'react'
-import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode'
+import { Html5QrcodeScanner, Html5QrcodeSupportedFormats } from 'html5-qrcode'
 import { motion } from 'framer-motion'
-import { Camera, Loader2, X, AlertCircle, Package, Scan, Flashlight, FlashlightOff } from 'lucide-react'
+import { Camera, Loader2, X, AlertCircle, Package, Scan, Image } from 'lucide-react'
 
 interface ProductData {
   name: string
@@ -28,61 +28,51 @@ export default function BarcodeScanner({ onProductScanned, onClose }: BarcodeSca
   const [error, setError] = useState<string | null>(null)
   const [productData, setProductData] = useState<ProductData | null>(null)
   const [portionSize, setPortionSize] = useState<string>('100')
-  const [isScannerActive, setIsScannerActive] = useState(true)
   const [scanDetected, setScanDetected] = useState(false)
-  const [torchEnabled, setTorchEnabled] = useState(false)
-  const [torchSupported, setTorchSupported] = useState(false)
-  const scannerRef = useRef<Html5Qrcode | null>(null)
+  const scannerRef = useRef<Html5QrcodeScanner | null>(null)
   const isScanning = useRef(false)
 
   useEffect(() => {
-    let scanner: Html5Qrcode | null = null
+    let scanner: Html5QrcodeScanner | null = null
 
-    const initScanner = async () => {
+    const initScanner = () => {
       try {
-        scanner = new Html5Qrcode("reader", {
-          formatsToSupport: [
-            Html5QrcodeSupportedFormats.EAN_13,
-            Html5QrcodeSupportedFormats.EAN_8,
-            Html5QrcodeSupportedFormats.UPC_A,
-            Html5QrcodeSupportedFormats.UPC_E,
-            Html5QrcodeSupportedFormats.CODE_128,
-            Html5QrcodeSupportedFormats.CODE_39,
-          ],
-          verbose: false
-        })
+        scanner = new Html5QrcodeScanner(
+          "reader",
+          {
+            fps: 10,
+            qrbox: { width: 250, height: 250 },
+            formatsToSupport: [
+              Html5QrcodeSupportedFormats.EAN_13,
+              Html5QrcodeSupportedFormats.EAN_8,
+              Html5QrcodeSupportedFormats.UPC_A,
+              Html5QrcodeSupportedFormats.UPC_E,
+              Html5QrcodeSupportedFormats.CODE_128,
+              Html5QrcodeSupportedFormats.CODE_39,
+            ],
+            showTorchButtonIfSupported: true,
+            rememberLastUsedCamera: true,
+          },
+          false // verbose
+        )
         scannerRef.current = scanner
 
-        const config = {
-          fps: 10,
-          qrbox: { width: 250, height: 250 },
-          aspectRatio: 1.0,
-        }
-
-        await scanner.start(
-          { 
-            facingMode: "environment"
-          },
-          config,
+        scanner.render(
           async (decodedText) => {
             if (isScanning.current) return
             isScanning.current = true
             
             // Visual feedback: barcode detected!
             setScanDetected(true)
+            console.log('🔍 Barcode detected:', decodedText)
             
             setScannedCode(decodedText)
-            setIsScannerActive(false)
             
-            // Stop scanner before fetching - with proper check
-            try {
-              if (scanner && scanner.isScanning) {
-                await scanner.stop()
-                console.log('✅ Scanner stopped successfully')
-              }
-            } catch (err) {
-              console.warn('⚠️ Scanner stop warning:', err)
-              // Continue anyway, scanner might already be stopped
+            // Clear scanner UI
+            if (scanner) {
+              scanner.clear().catch(err => {
+                console.warn('⚠️ Scanner clear warning:', err)
+              })
             }
             
             await fetchProductData(decodedText)
@@ -93,70 +83,22 @@ export default function BarcodeScanner({ onProductScanned, onClose }: BarcodeSca
             // Quiet scan errors - happens continuously when not detecting
           }
         )
-        
-        // Check torch support
-        try {
-          const capabilities = await scanner.getRunningTrackCameraCapabilities()
-          setTorchSupported(capabilities.torchFeature().isSupported())
-          console.log('🔦 Torch supported:', capabilities.torchFeature().isSupported())
-        } catch (err) {
-          console.warn('Could not check torch support:', err)
-        }
-        
-        setIsScannerActive(true)
       } catch (err) {
         console.error("Scanner init error:", err)
-        setError("Kon camera niet starten. Geef camera-toegang in je browserinstellingen.")
-        setIsScannerActive(false)
+        setError("Kon scanner niet starten. Geef camera-toegang in je browserinstellingen.")
       }
     }
 
     initScanner()
 
     return () => {
-      if (!scanner || !scannerRef.current) return
-      
-      const state = scanner.getState()
-      console.log('🧹 Scanner cleanup, current state:', state)
-      
-      // Stop scanner if it's running (state = 2 is SCANNING)
-      if (state === 2) {
-        scanner.stop()
-          .then(() => {
-            console.log('✅ Scanner stopped successfully')
-            if (scanner) {
-              scanner.clear()
-              console.log('✅ Scanner cleared successfully')
-            }
-          })
-          .catch((err) => {
-            console.warn('⚠️ Scanner cleanup warning:', err)
-          })
-      } else {
-        // If not scanning, just clear
-        try {
-          scanner.clear()
-          console.log('✅ Scanner cleared (was not running)')
-        } catch (err) {
-          console.warn('⚠️ Clear warning:', err)
-        }
+      if (scanner) {
+        scanner.clear().catch((err) => {
+          console.warn('⚠️ Scanner cleanup warning:', err)
+        })
       }
     }
   }, [])
-
-  const toggleTorch = async () => {
-    if (!scannerRef.current || !torchSupported) return
-    
-    try {
-      await scannerRef.current.applyVideoConstraints({
-        advanced: [{ torch: !torchEnabled } as any]
-      })
-      setTorchEnabled(!torchEnabled)
-      console.log('🔦 Torch toggled:', !torchEnabled)
-    } catch (err) {
-      console.error('Failed to toggle torch:', err)
-    }
-  }
 
   const fetchProductData = async (barcode: string) => {
     setIsLoading(true)
@@ -290,133 +232,122 @@ export default function BarcodeScanner({ onProductScanned, onClose }: BarcodeSca
         </div>
 
         {/* Scanner View */}
-        {!scannedCode && !error && isScannerActive && (
+        {!scannedCode && !error && (
           <motion.div
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className="bg-card/50 backdrop-blur-sm border border-white/10 rounded-3xl overflow-hidden relative"
+            className="bg-card/50 backdrop-blur-sm border border-white/10 rounded-3xl overflow-hidden"
           >
-            <style jsx>{`
-              #reader :global(video) {
-                border-radius: 1.5rem;
+            <style jsx global>{`
+              #reader {
+                border: none !important;
               }
-              #reader :global(div[style*="position: absolute"]) {
-                display: none !important;
+              #reader > div {
+                border: none !important;
+              }
+              #reader__scan_region {
+                border-radius: 1.5rem !important;
+              }
+              #reader__scan_region video {
+                border-radius: 1.5rem !important;
+              }
+              #reader__dashboard {
+                border: none !important;
+                background: transparent !important;
+              }
+              #reader__dashboard_section {
+                background: rgba(17, 24, 39, 0.5) !important;
+                border: 1px solid rgba(255, 255, 255, 0.1) !important;
+                border-radius: 1rem !important;
+                padding: 1rem !important;
+                margin: 1rem !important;
+              }
+              #reader__dashboard_section_csr button,
+              #reader__dashboard_section_fsr button {
+                background: rgb(239, 68, 68) !important;
+                color: white !important;
+                border: none !important;
+                border-radius: 0.75rem !important;
+                padding: 0.75rem 1.5rem !important;
+                font-weight: 600 !important;
+                cursor: pointer !important;
+                transition: all 0.2s !important;
+              }
+              #reader__dashboard_section_csr button:hover,
+              #reader__dashboard_section_fsr button:hover {
+                background: rgb(220, 38, 38) !important;
+              }
+              #reader__camera_selection select,
+              #reader__camera_permission_button {
+                background: rgba(17, 24, 39, 0.8) !important;
+                border: 1px solid rgba(255, 255, 255, 0.1) !important;
+                color: white !important;
+                border-radius: 0.75rem !important;
+                padding: 0.5rem 1rem !important;
+              }
+              #html5-qrcode-button-camera-permission,
+              #html5-qrcode-button-camera-start,
+              #html5-qrcode-button-camera-stop,
+              #html5-qrcode-button-file-selection {
+                background: rgb(239, 68, 68) !important;
+                color: white !important;
+                border: none !important;
+                border-radius: 0.75rem !important;
+                padding: 0.75rem 1.5rem !important;
+                font-weight: 600 !important;
+                margin: 0.5rem !important;
+              }
+              #html5-qrcode-button-camera-permission:hover,
+              #html5-qrcode-button-camera-start:hover,
+              #html5-qrcode-button-camera-stop:hover,
+              #html5-qrcode-button-file-selection:hover {
+                background: rgb(220, 38, 38) !important;
+              }
+              #reader__dashboard_section_swaplink {
+                color: rgb(239, 68, 68) !important;
+                text-decoration: none !important;
+              }
+              #reader__status_span {
+                color: rgba(255, 255, 255, 0.6) !important;
+              }
+              #reader img[alt="Info icon"] {
+                filter: invert(1) opacity(0.6);
               }
             `}</style>
-            <div id="reader" className="w-full relative" />
             
-            {/* Torch Button */}
-            {torchSupported && (
-              <motion.button
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                onClick={toggleTorch}
-                className="absolute top-4 right-4 z-20 p-3 bg-black/50 backdrop-blur-sm rounded-full border border-white/20 hover:bg-black/70 transition-colors"
+            <div id="reader" className="w-full" />
+            
+            {scanDetected && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                className="p-4 bg-primary/20 border-t border-primary/30"
               >
-                {torchEnabled ? (
-                  <Flashlight size={24} className="text-yellow-400" />
-                ) : (
-                  <FlashlightOff size={24} className="text-white" />
-                )}
-              </motion.button>
+                <div className="flex items-center justify-center gap-3">
+                  <Scan size={20} className="text-primary" />
+                  <p className="text-sm font-bold text-primary">
+                    Barcode gedetecteerd! Product ophalen...
+                  </p>
+                </div>
+              </motion.div>
             )}
             
-            {/* Overlay container - positioned over the video */}
-            <div className="absolute inset-0 pointer-events-none z-10">
-              {/* Detection Flash Effect */}
-              {scanDetected && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: [0, 1, 0] }}
-                  transition={{ duration: 0.5 }}
-                  className="absolute inset-0 bg-primary/30"
-                />
-              )}
-
-              {/* Center the scan area overlay */}
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="relative" style={{ width: '250px', height: '250px' }}>
-                  {/* Scan Line Animation - moves within the 250x250 box */}
-                  <motion.div
-                    animate={{
-                      y: [0, 250],
-                    }}
-                    transition={{
-                      duration: 2,
-                      repeat: Infinity,
-                      ease: "linear"
-                    }}
-                    className="absolute w-full h-0.5 bg-gradient-to-r from-transparent via-primary to-transparent shadow-[0_0_15px_rgba(239,68,68,0.8)]"
-                    style={{ left: 0 }}
-                  />
-                  
-                  {/* Corner Guides - exactly 250x250 */}
-                  <div className="absolute inset-0">
-                    {/* Top Left */}
-                    <div className="absolute top-0 left-0 w-12 h-12 border-t-4 border-l-4 border-primary rounded-tl-xl" />
-                    {/* Top Right */}
-                    <div className="absolute top-0 right-0 w-12 h-12 border-t-4 border-r-4 border-primary rounded-tr-xl" />
-                    {/* Bottom Left */}
-                    <div className="absolute bottom-0 left-0 w-12 h-12 border-b-4 border-l-4 border-primary rounded-bl-xl" />
-                    {/* Bottom Right */}
-                    <div className="absolute bottom-0 right-0 w-12 h-12 border-b-4 border-r-4 border-primary rounded-br-xl" />
-                  </div>
+            <div className="p-6 text-center bg-card/30 border-t border-white/5">
+              <div className="flex items-center justify-center gap-4 mb-3">
+                <div className="flex items-center gap-2">
+                  <Camera size={18} className="text-primary" />
+                  <p className="text-xs text-muted-foreground">Camera</p>
+                </div>
+                <span className="text-muted-foreground">•</span>
+                <div className="flex items-center gap-2">
+                  <Image size={18} className="text-primary" />
+                  <p className="text-xs text-muted-foreground">Foto uploaden</p>
                 </div>
               </div>
-            </div>
-            
-            <div className="p-6 text-center relative">
-              {scanDetected ? (
-                <motion.div
-                  initial={{ scale: 0.8, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  className="flex items-center justify-center gap-3"
-                >
-                  <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center">
-                    <Scan size={18} className="text-primary" />
-                  </div>
-                  <p className="text-lg font-bold text-primary">
-                    Barcode gedetecteerd! 
-                  </p>
-                </motion.div>
-              ) : (
-                <>
-                  <motion.div
-                    animate={{ 
-                      scale: [1, 1.1, 1],
-                    }}
-                    transition={{ 
-                      duration: 2,
-                      repeat: Infinity,
-                      ease: "easeInOut"
-                    }}
-                  >
-                    <Camera size={32} className="mx-auto text-primary mb-3" />
-                  </motion.div>
-                  <p className="text-sm text-muted-foreground">
-                    Houd de barcode voor de camera
-                  </p>
-                  <div className="mt-3 flex items-center justify-center gap-2">
-                    <motion.div
-                      animate={{ opacity: [0.3, 1, 0.3] }}
-                      transition={{ duration: 1.5, repeat: Infinity }}
-                      className="h-2 w-2 rounded-full bg-primary"
-                    />
-                    <p className="text-xs text-primary font-semibold">
-                      Aan het scannen...
-                    </p>
-                    <motion.div
-                      animate={{ opacity: [0.3, 1, 0.3] }}
-                      transition={{ duration: 1.5, repeat: Infinity, delay: 0.5 }}
-                      className="h-2 w-2 rounded-full bg-primary"
-                    />
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-3">
-                    EAN-13, UPC-A en UPC-E formaten worden ondersteund
-                  </p>
-                </>
-              )}
+              <p className="text-xs text-muted-foreground">
+                Ondersteunt EAN-13, UPC-A, UPC-E en meer
+              </p>
             </div>
           </motion.div>
         )}
