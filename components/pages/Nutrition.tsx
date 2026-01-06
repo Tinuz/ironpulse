@@ -502,9 +502,9 @@ export default function Nutrition() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-3 gap-3">
                 <div className="bg-pink-500/10 p-3 rounded-xl border border-pink-500/20">
-                  <div className="text-[10px] text-pink-400 font-bold uppercase flex items-center gap-1">
+                  <div className="text-[10px] text-pink-400 font-bold uppercase flex items-center gap-1 mb-1">
                     Protein
                     {nutritionStatus && nutritionStatus.protein.status === 'low' && (
                       <TrendingDown size={10} className="text-amber-500" />
@@ -513,7 +513,7 @@ export default function Nutrition() {
                       <TrendingUp size={10} className="text-red-500" />
                     )}
                   </div>
-                  <div className="text-xl font-bold">{totals.protein}g</div>
+                  <div className="text-lg font-bold tabular-nums">{totals.protein}g</div>
                   {targets && (
                     <div className="text-[9px] text-muted-foreground mt-1">
                       doel: {targets.protein}g
@@ -521,7 +521,7 @@ export default function Nutrition() {
                   )}
                 </div>
                 <div className="bg-blue-500/10 p-3 rounded-xl border border-blue-500/20">
-                  <div className="text-[10px] text-blue-400 font-bold uppercase flex items-center gap-1">
+                  <div className="text-[10px] text-blue-400 font-bold uppercase flex items-center gap-1 mb-1">
                     Carbs
                     {nutritionStatus && nutritionStatus.carbs.status === 'low' && (
                       <TrendingDown size={10} className="text-amber-500" />
@@ -530,7 +530,7 @@ export default function Nutrition() {
                       <TrendingUp size={10} className="text-red-500" />
                     )}
                   </div>
-                  <div className="text-xl font-bold">{totals.carbs}g</div>
+                  <div className="text-lg font-bold tabular-nums">{totals.carbs}g</div>
                   {targets && (
                     <div className="text-[9px] text-muted-foreground mt-1">
                       doel: {targets.carbs}g
@@ -538,7 +538,7 @@ export default function Nutrition() {
                   )}
                 </div>
                 <div className="bg-amber-500/10 p-3 rounded-xl border border-amber-500/20">
-                  <div className="text-[10px] text-amber-400 font-bold uppercase flex items-center gap-1">
+                  <div className="text-[10px] text-amber-400 font-bold uppercase flex items-center gap-1 mb-1">
                     Fats
                     {nutritionStatus && nutritionStatus.fats.status === 'low' && (
                       <TrendingDown size={10} className="text-amber-500" />
@@ -547,7 +547,7 @@ export default function Nutrition() {
                       <TrendingUp size={10} className="text-red-500" />
                     )}
                   </div>
-                  <div className="text-xl font-bold">{totals.fats}g</div>
+                  <div className="text-lg font-bold tabular-nums">{totals.fats}g</div>
                   {targets && (
                     <div className="text-[9px] text-muted-foreground mt-1">
                       doel: {targets.fats}g
