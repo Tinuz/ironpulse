@@ -561,15 +561,15 @@ export default function BarcodeScanner({ onProductScanned, onClose }: BarcodeSca
               <div className="flex gap-3 pt-2">
                 <button
                   onClick={handleRescan}
-                  className="flex-1 px-6 py-3 bg-white/5 text-white rounded-xl font-semibold hover:bg-white/10 transition-colors"
+                  className="px-6 py-4 bg-white/5 text-white rounded-xl font-semibold hover:bg-white/10 transition-all border border-white/10"
                 >
                   Opnieuw scannen
                 </button>
                 <button
                   onClick={handleUseProduct}
-                  className="flex-1 px-6 py-3 bg-primary text-white rounded-xl font-semibold hover:bg-primary/90 transition-colors"
+                  className="flex-1 px-8 py-4 bg-gradient-to-r from-primary to-red-600 text-white rounded-xl font-bold text-lg hover:from-red-600 hover:to-red-700 transition-all shadow-lg shadow-primary/50 hover:shadow-xl hover:shadow-primary/60 hover:scale-[1.02]"
                 >
-                  Gebruiken
+                  Gebruiken →
                 </button>
               </div>
             </div>
