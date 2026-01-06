@@ -17,13 +17,14 @@ import WorkoutEditor from '@/components/pages/WorkoutEditor'
 import ExerciseProgress from '@/components/pages/ExerciseProgress'
 import { DataProvider } from '@/components/context/DataContext'
 import { AuthProvider, useAuth } from '@/components/context/AuthContext'
-import { LanguageProvider } from '@/components/context/LanguageContext'
+import { LanguageProvider, useLanguage } from '@/components/context/LanguageContext'
 import Navigation from '@/components/Navigation'
 import { Loader2 } from 'lucide-react'
 
 // Protected Layout component with auth check
 const ProtectedLayout = () => {
   const { user, loading } = useAuth()
+  const { t } = useLanguage()
   const pathname = usePathname()
   const searchParams = useSearchParams()
   
@@ -33,7 +34,7 @@ const ProtectedLayout = () => {
       <div className="flex items-center justify-center min-h-screen bg-background">
         <div className="text-center">
           <Loader2 size={48} className="text-primary animate-spin mx-auto mb-4" />
-          <p className="text-muted-foreground">Aan het laden...</p>
+          <p className="text-muted-foreground">{t.common.loading}</p>
         </div>
       </div>
     )

@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { ArrowLeft, Plus, Trash2, Utensils, Flame, Droplet, Check, Scan, AlertTriangle, TrendingUp, TrendingDown, Target, ChevronLeft, ChevronRight, Calendar, BarChart3, Clock } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useData, NutritionItem } from '@/components/context/DataContext'
+import { useLanguage } from '@/components/context/LanguageContext'
 import { format, addDays, subDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth, eachDayOfInterval } from 'date-fns'
 import { nl } from 'date-fns/locale'
 import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts'
@@ -14,6 +15,7 @@ type ViewMode = 'day' | 'week' | 'month';
 
 export default function Nutrition() {
   const router = useRouter()
+  const { t, language } = useLanguage()
   const { nutritionLogs, addMeal, deleteMeal, userProfile } = useData()
   const [isAdding, setIsAdding] = useState(false);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
@@ -263,7 +265,7 @@ export default function Nutrition() {
             >
               <ArrowLeft size={24} />
             </button>
-            <h1 className="text-2xl font-bold">Nutrition</h1>
+            <h1 className="text-2xl font-bold">{t.nutrition.title}</h1>
           </div>
           <button
             onClick={() => setShowHistory(!showHistory)}
@@ -281,7 +283,7 @@ export default function Nutrition() {
               viewMode === 'day' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'
             }`}
           >
-            Dag
+            {t.nutrition.day}
           </button>
           <button
             onClick={() => { setViewMode('week'); setShowHistory(true); }}
@@ -289,7 +291,7 @@ export default function Nutrition() {
               viewMode === 'week' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'
             }`}
           >
-            Week
+            {t.nutrition.week}
           </button>
           <button
             onClick={() => { setViewMode('month'); setShowHistory(true); }}
@@ -297,7 +299,7 @@ export default function Nutrition() {
               viewMode === 'month' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'
             }`}
           >
-            Maand
+            {t.nutrition.month}
           </button>
         </div>
 
@@ -323,7 +325,7 @@ export default function Nutrition() {
                   onClick={() => setSelectedDate(new Date())}
                   className="text-xs text-primary hover:underline"
                 >
-                  Terug naar vandaag
+                  {t.nutrition.backToToday}
                 </button>
               )}
             </div>
@@ -345,7 +347,7 @@ export default function Nutrition() {
             exit={{ opacity: 0, height: 0 }}
             className="bg-card border border-white/5 rounded-2xl p-6 space-y-6"
           >
-            <h3 className="font-bold text-lg">Calorie Historie</h3>
+            <h3 className="font-bold text-lg">{t.nutrition.calorieHistory}</h3>
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={historyData}>
@@ -387,22 +389,22 @@ export default function Nutrition() {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <h4 className="font-bold text-sm mb-3 text-muted-foreground uppercase">Macros Gemiddeld</h4>
+                <h4 className="font-bold text-sm mb-3 text-muted-foreground uppercase">{t.nutrition.averageMacros}</h4>
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span>Eiwit:</span>
+                    <span>{t.nutrition.protein}:</span>
                     <span className="font-bold">
                       {Math.round(historyData.reduce((sum, d) => sum + d.protein, 0) / historyData.length)}g
                     </span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span>Koolhydraten:</span>
+                    <span>{t.nutrition.carbs}:</span>
                     <span className="font-bold">
                       {Math.round(historyData.reduce((sum, d) => sum + d.carbs, 0) / historyData.length)}g
                     </span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span>Vetten:</span>
+                    <span>{t.nutrition.fats}:</span>
                     <span className="font-bold">
                       {Math.round(historyData.reduce((sum, d) => sum + d.fats, 0) / historyData.length)}g
                     </span>
@@ -410,22 +412,22 @@ export default function Nutrition() {
                 </div>
               </div>
               <div>
-                <h4 className="font-bold text-sm mb-3 text-muted-foreground uppercase">Statistieken</h4>
+                <h4 className="font-bold text-sm mb-3 text-muted-foreground uppercase">{t.nutrition.statistics}</h4>
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span>Gem. calorieën:</span>
+                    <span>{t.nutrition.avgCalories}:</span>
                     <span className="font-bold">
                       {Math.round(historyData.reduce((sum, d) => sum + d.calories, 0) / historyData.length) || 0}
                     </span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span>Hoogste dag:</span>
+                    <span>{t.nutrition.highestDay}:</span>
                     <span className="font-bold">
                       {Math.max(...historyData.map(d => d.calories), 0)}
                     </span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span>Laagste dag:</span>
+                    <span>{t.nutrition.lowestDay}:</span>
                     <span className="font-bold">
                       {Math.min(...historyData.map(d => d.calories).filter(c => c > 0), 9999) === 9999 ? 0 : Math.min(...historyData.map(d => d.calories).filter(c => c > 0))}
                     </span>
@@ -442,7 +444,7 @@ export default function Nutrition() {
             <div className="bg-card border border-white/5 rounded-3xl p-6 relative overflow-hidden">
               <div className="flex justify-between items-start mb-6">
                 <div className="flex-1">
-                  <div className="text-muted-foreground text-sm font-bold uppercase tracking-wider mb-1">Calorieën {isToday ? 'Vandaag' : format(selectedDate, 'd MMM', { locale: nl })}</div>
+                  <div className="text-muted-foreground text-sm font-bold uppercase tracking-wider mb-1">{t.nutrition.calories} {isToday ? t.nutrition.today : format(selectedDate, 'd MMM', { locale: language === 'nl' ? nl : undefined })}</div>
                   <div className="flex items-baseline gap-3">
                     <div className="text-5xl font-black tabular-nums">{totals.calories}</div>
                     {targets && (
@@ -454,7 +456,7 @@ export default function Nutrition() {
                   {targets && nutritionStatus && (
                     <div className="mt-3">
                       <div className="flex items-center justify-between text-xs mb-1">
-                        <span className="text-muted-foreground">Voortgang</span>
+                        <span className="text-muted-foreground">{t.nutrition.progress}</span>
                         <span className={`font-bold ${
                           nutritionStatus.calories.status === 'low' ? 'text-amber-500' :
                           nutritionStatus.calories.status === 'high' ? 'text-red-500' :
@@ -505,7 +507,7 @@ export default function Nutrition() {
               <div className="grid grid-cols-3 gap-3">
                 <div className="bg-pink-500/10 p-3 rounded-xl border border-pink-500/20">
                   <div className="text-[10px] text-pink-400 font-bold uppercase flex items-center gap-1 mb-1">
-                    Protein
+                    {t.nutrition.protein}
                     {nutritionStatus && nutritionStatus.protein.status === 'low' && (
                       <TrendingDown size={10} className="text-amber-500" />
                     )}
@@ -516,13 +518,13 @@ export default function Nutrition() {
                   <div className="text-lg font-bold tabular-nums">{totals.protein}g</div>
                   {targets && (
                     <div className="text-[9px] text-muted-foreground mt-1">
-                      doel: {targets.protein}g
+                      {t.nutrition.goal}: {targets.protein}g
                     </div>
                   )}
                 </div>
                 <div className="bg-blue-500/10 p-3 rounded-xl border border-blue-500/20">
                   <div className="text-[10px] text-blue-400 font-bold uppercase flex items-center gap-1 mb-1">
-                    Carbs
+                    {t.nutrition.carbs}
                     {nutritionStatus && nutritionStatus.carbs.status === 'low' && (
                       <TrendingDown size={10} className="text-amber-500" />
                     )}
@@ -533,13 +535,13 @@ export default function Nutrition() {
                   <div className="text-lg font-bold tabular-nums">{totals.carbs}g</div>
                   {targets && (
                     <div className="text-[9px] text-muted-foreground mt-1">
-                      doel: {targets.carbs}g
+                      {t.nutrition.goal}: {targets.carbs}g
                     </div>
                   )}
                 </div>
                 <div className="bg-amber-500/10 p-3 rounded-xl border border-amber-500/20">
                   <div className="text-[10px] text-amber-400 font-bold uppercase flex items-center gap-1 mb-1">
-                    Fats
+                    {t.nutrition.fats}
                     {nutritionStatus && nutritionStatus.fats.status === 'low' && (
                       <TrendingDown size={10} className="text-amber-500" />
                     )}
@@ -550,7 +552,7 @@ export default function Nutrition() {
                   <div className="text-lg font-bold tabular-nums">{totals.fats}g</div>
                   {targets && (
                     <div className="text-[9px] text-muted-foreground mt-1">
-                      doel: {targets.fats}g
+                      {t.nutrition.goal}: {targets.fats}g
                     </div>
                   )}
                 </div>
@@ -573,10 +575,12 @@ export default function Nutrition() {
                       <div className="bg-amber-500/10 border border-amber-500/30 p-4 rounded-xl flex items-start gap-3">
                         <AlertTriangle size={20} className="text-amber-500 mt-0.5 flex-shrink-0" />
                         <div className="flex-1">
-                          <div className="font-bold text-amber-500 text-sm">Te weinig calorieën</div>
+                          <div className="font-bold text-amber-500 text-sm">{t.nutrition.tooFewCalories}</div>
                           <div className="text-xs text-muted-foreground mt-1">
-                            Je hebt pas {totals.calories} van {targets?.maintenance} kcal geconsumeerd. 
-                            Dit kan leiden tot energietekort en spierverlies.
+                            {language === 'nl' 
+                              ? `Je hebt pas ${totals.calories} van ${targets?.maintenance} kcal geconsumeerd. Dit kan leiden tot energietekort en spierverlies.`
+                              : `You've only consumed ${totals.calories} of ${targets?.maintenance} kcal. This can lead to energy deficit and muscle loss.`
+                            }
                           </div>
                         </div>
                       </div>
@@ -586,10 +590,12 @@ export default function Nutrition() {
                       <div className="bg-red-500/10 border border-red-500/30 p-4 rounded-xl flex items-start gap-3">
                         <AlertTriangle size={20} className="text-red-500 mt-0.5 flex-shrink-0" />
                         <div className="flex-1">
-                          <div className="font-bold text-red-500 text-sm">Te veel calorieën</div>
+                          <div className="font-bold text-red-500 text-sm">{t.nutrition.tooManyCalories}</div>
                           <div className="text-xs text-muted-foreground mt-1">
-                            Je hebt {totals.calories} van {targets?.maintenance} kcal geconsumeerd. 
-                            Dit kan leiden tot ongewenste gewichtstoename.
+                            {language === 'nl'
+                              ? `Je hebt ${totals.calories} van ${targets?.maintenance} kcal geconsumeerd. Dit kan leiden tot ongewenste gewichtstoename.`
+                              : `You've consumed ${totals.calories} of ${targets?.maintenance} kcal. This can lead to unwanted weight gain.`
+                            }
                           </div>
                         </div>
                       </div>
@@ -599,10 +605,12 @@ export default function Nutrition() {
                       <div className="bg-pink-500/10 border border-pink-500/30 p-4 rounded-xl flex items-start gap-3">
                         <Target size={20} className="text-pink-400 mt-0.5 flex-shrink-0" />
                         <div className="flex-1">
-                          <div className="font-bold text-pink-400 text-sm">Meer eiwit nodig</div>
+                          <div className="font-bold text-pink-400 text-sm">{t.nutrition.needMoreProtein}</div>
                           <div className="text-xs text-muted-foreground mt-1">
-                            Je hebt {totals.protein}g van {targets?.protein}g eiwit binnen. 
-                            Eiwit is essentieel voor spiergroei en herstel.
+                            {language === 'nl'
+                              ? `Je hebt ${totals.protein}g van ${targets?.protein}g eiwit binnen. Eiwit is essentieel voor spiergroei en herstel.`
+                              : `You've consumed ${totals.protein}g of ${targets?.protein}g protein. Protein is essential for muscle growth and recovery.`
+                            }
                           </div>
                         </div>
                       </div>
@@ -612,10 +620,12 @@ export default function Nutrition() {
                       <div className="bg-amber-500/10 border border-amber-500/30 p-4 rounded-xl flex items-start gap-3">
                         <Target size={20} className="text-amber-400 mt-0.5 flex-shrink-0" />
                         <div className="flex-1">
-                          <div className="font-bold text-amber-400 text-sm">Meer vetten nodig</div>
+                          <div className="font-bold text-amber-400 text-sm">{t.nutrition.needMoreFats}</div>
                           <div className="text-xs text-muted-foreground mt-1">
-                            Je hebt {totals.fats}g van {targets?.fats}g vetten binnen. 
-                            Gezonde vetten zijn belangrijk voor hormoonproductie.
+                            {language === 'nl'
+                              ? `Je hebt ${totals.fats}g van ${targets?.fats}g vetten binnen. Gezonde vetten zijn belangrijk voor hormoonproductie.`
+                              : `You've consumed ${totals.fats}g of ${targets?.fats}g fats. Healthy fats are important for hormone production.`
+                            }
                           </div>
                         </div>
                       </div>
@@ -636,9 +646,9 @@ export default function Nutrition() {
                   >
                     <Check size={20} className="text-green-500 mt-0.5 flex-shrink-0" />
                     <div className="flex-1">
-                      <div className="font-bold text-green-500 text-sm">Perfect op schema! 🎯</div>
+                      <div className="font-bold text-green-500 text-sm">{t.nutrition.perfectOnTrack}</div>
                       <div className="text-xs text-muted-foreground mt-1">
-                        Je voeding is in balans. Blijf zo doorgaan!
+                        {t.nutrition.balancedNutrition}
                       </div>
                     </div>
                   </motion.div>
@@ -663,20 +673,20 @@ export default function Nutrition() {
             <div>
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-bold">
-                  {isToday ? "Vandaag" : format(selectedDate, 'd MMMM', { locale: nl })}
+                  {isToday ? t.nutrition.today : format(selectedDate, 'd MMMM', { locale: language === 'nl' ? nl : undefined })}
                 </h2>
                 <div className="flex gap-3">
                   <button 
                     onClick={() => setIsScannerOpen(true)}
                     className="text-primary text-sm font-bold uppercase tracking-wider flex items-center gap-1 hover:underline"
                   >
-                    <Scan size={16} /> Scan
+                    <Scan size={16} /> {t.nutrition.scanBarcode.split(' ')[0]}
                   </button>
                   <button 
                     onClick={() => setIsAdding(true)}
                     className="text-primary text-sm font-bold uppercase tracking-wider flex items-center gap-1 hover:underline"
                   >
-                    <Plus size={16} /> Add
+                    <Plus size={16} /> {t.common.add}
                   </button>
                 </div>
               </div>
@@ -689,7 +699,7 @@ export default function Nutrition() {
                     className="text-center py-12 text-muted-foreground border border-dashed border-white/10 rounded-2xl"
                   >
                     <Utensils size={32} className="mx-auto mb-3 opacity-50" />
-                    <p>Geen maaltijden gelogd.</p>
+                    <p>{t.nutrition.noMeals}</p>
                   </motion.div>
                 ) : (
                   <div className="space-y-3">
@@ -754,7 +764,7 @@ export default function Nutrition() {
             >
               <div className="p-6 space-y-4">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-xl font-bold">Voeg Maaltijd Toe</h2>
+                  <h2 className="text-xl font-bold">{t.nutrition.addMeal}</h2>
                   <button 
                     onClick={() => setIsAdding(false)}
                     className="text-muted-foreground"
@@ -768,7 +778,7 @@ export default function Nutrition() {
                   <div className="mb-6">
                     <h3 className="text-xs font-bold text-muted-foreground uppercase mb-3 flex items-center gap-2">
                       <Clock size={14} className="text-primary" />
-                      Recent Toegevoegd
+                      {t.nutrition.recentlyAdded}
                     </h3>
                     <div className="max-h-48 overflow-y-auto space-y-2 pr-1 -mr-1">
                       {recentItems.map((item, index) => (
@@ -804,19 +814,19 @@ export default function Nutrition() {
                     </div>
                     <div className="mt-3 pt-3 border-t border-white/5 flex items-center gap-2 text-xs text-muted-foreground">
                       <div className="h-px flex-1 bg-white/5" />
-                      <span>of voeg handmatig toe</span>
+                      <span>{t.nutrition.orAddManually}</span>
                       <div className="h-px flex-1 bg-white/5" />
                     </div>
                   </div>
                 )}
 
                 <div>
-                  <label className="text-xs font-bold text-muted-foreground uppercase mb-2 block">Naam</label>
+                  <label className="text-xs font-bold text-muted-foreground uppercase mb-2 block">{t.nutrition.mealName}</label>
                   <input
                     type="text"
                     value={newItem.name}
                     onChange={(e) => setNewItem({...newItem, name: e.target.value})}
-                    placeholder="Kip filet"
+                    placeholder={language === 'nl' ? 'Kip filet' : 'Chicken breast'}
                     className="w-full bg-card border border-white/10 rounded-xl p-3 focus:border-primary outline-none"
                   />
                 </div>
@@ -829,7 +839,7 @@ export default function Nutrition() {
                     }`}
                   >
                     <Utensils size={16} className="inline mr-2" />
-                    Eten
+                    {t.nutrition.food}
                   </button>
                   <button
                     onClick={() => setNewItem({...newItem, type: 'drink'})}
@@ -838,13 +848,13 @@ export default function Nutrition() {
                     }`}
                   >
                     <Droplet size={16} className="inline mr-2" />
-                    Drinken
+                    {t.nutrition.drink}
                   </button>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-xs font-bold text-muted-foreground uppercase mb-2 block">Calorieën</label>
+                    <label className="text-xs font-bold text-muted-foreground uppercase mb-2 block">{t.nutrition.calories}</label>
                     <input
                       type="number"
                       value={newItem.calories}
@@ -854,7 +864,7 @@ export default function Nutrition() {
                     />
                   </div>
                   <div>
-                    <label className="text-xs font-bold text-muted-foreground uppercase mb-2 block">Eiwit (g)</label>
+                    <label className="text-xs font-bold text-muted-foreground uppercase mb-2 block">{t.nutrition.protein} (g)</label>
                     <input
                       type="number"
                       value={newItem.protein}
@@ -864,7 +874,7 @@ export default function Nutrition() {
                     />
                   </div>
                   <div>
-                    <label className="text-xs font-bold text-muted-foreground uppercase mb-2 block">Koolhydraten (g)</label>
+                    <label className="text-xs font-bold text-muted-foreground uppercase mb-2 block">{t.nutrition.carbs} (g)</label>
                     <input
                       type="number"
                       value={newItem.carbs}
@@ -874,7 +884,7 @@ export default function Nutrition() {
                     />
                   </div>
                   <div>
-                    <label className="text-xs font-bold text-muted-foreground uppercase mb-2 block">Vetten (g)</label>
+                    <label className="text-xs font-bold text-muted-foreground uppercase mb-2 block">{t.nutrition.fats} (g)</label>
                     <input
                       type="number"
                       value={newItem.fats}
@@ -889,7 +899,7 @@ export default function Nutrition() {
                   onClick={handleAdd}
                   className="w-full bg-primary text-primary-foreground font-bold py-4 rounded-xl flex items-center justify-center gap-2 hover:bg-primary/90 transition-colors"
                 >
-                  <Check size={20} /> Toevoegen
+                  <Check size={20} /> {t.common.add}
                 </button>
               </div>
             </motion.div>
