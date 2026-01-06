@@ -28,6 +28,7 @@ export default function BarcodeScanner({ onProductScanned, onClose }: BarcodeSca
   const [error, setError] = useState<string | null>(null)
   const [productData, setProductData] = useState<ProductData | null>(null)
   const [portionSize, setPortionSize] = useState<string>('100')
+  const [isScannerActive, setIsScannerActive] = useState(true)
   const scannerRef = useRef<Html5Qrcode | null>(null)
   const isScanning = useRef(false)
 
@@ -43,10 +44,6 @@ export default function BarcodeScanner({ onProductScanned, onClose }: BarcodeSca
           fps: 10,
           qrbox: { width: 250, height: 250 },
           aspectRatio: 1.0,
-          formatsToSupport: [
-            0, // QR_CODE (we'll use this constant)
-            // EAN formats for barcodes
-          ]
         }
 
         await scanner.start(
@@ -57,7 +54,13 @@ export default function BarcodeScanner({ onProductScanned, onClose }: BarcodeSca
             isScanning.current = true
             
             setScannedCode(decodedText)
-            await scanner?.stop()
+            setIsScannerActive(false)
+            
+            // Stop scanner before fetching
+            if (scanner && scanner.isScanning) {
+              await scanner.stop()
+            }
+            
             await fetchProductData(decodedText)
             isScanning.current = false
           },
@@ -65,20 +68,21 @@ export default function BarcodeScanner({ onProductScanned, onClose }: BarcodeSca
             // Quiet scan errors - happens continuously when not detecting
           }
         )
+        setIsScannerActive(true)
       } catch (err) {
         console.error("Scanner init error:", err)
         setError("Kon camera niet starten. Geef camera-toegang in je browserinstellingen.")
+        setIsScannerActive(false)
       }
     }
 
     initScanner()
 
     return () => {
-      if (scanner) {
-        if (scanner.isScanning) {
-          scanner.stop().catch(console.error)
-        }
-        scanner.clear()
+      if (scanner && scannerRef.current) {
+        scanner.stop().then(() => {
+          scanner?.clear()
+        }).catch(console.error)
       }
     }
   }, [])
@@ -89,7 +93,12 @@ export default function BarcodeScanner({ onProductScanned, onClose }: BarcodeSca
 
     try {
       const response = await fetch(
-        `https://world.openfoodfacts.org/api/v2/product/${barcode}.json`
+        `https://world.openfoodfacts.org/api/v2/product/${barcode}.json`,
+        {
+          headers: {
+            'User-Agent': 'IronPulse - Fitness App - Version 1.0 - ironpulse.app'
+          }
+        }
       )
       
       if (!response.ok) {
@@ -184,7 +193,7 @@ export default function BarcodeScanner({ onProductScanned, onClose }: BarcodeSca
         </div>
 
         {/* Scanner View */}
-        {!scannedCode && !error && (
+        {!scannedCode && !error && isScannerActive && (
           <motion.div
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
