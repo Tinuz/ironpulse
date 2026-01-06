@@ -296,6 +296,14 @@ export default function BarcodeScanner({ onProductScanned, onClose }: BarcodeSca
             animate={{ scale: 1, opacity: 1 }}
             className="bg-card/50 backdrop-blur-sm border border-white/10 rounded-3xl overflow-hidden relative"
           >
+            <style jsx>{`
+              #reader :global(video) {
+                border-radius: 1.5rem;
+              }
+              #reader :global(div[style*="position: absolute"]) {
+                display: none !important;
+              }
+            `}</style>
             <div id="reader" className="w-full relative" />
             
             {/* Torch Button */}
