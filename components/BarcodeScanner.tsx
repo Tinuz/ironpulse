@@ -48,7 +48,9 @@ export default function BarcodeScanner({ onProductScanned, onClose }: BarcodeSca
         }
 
         await scanner.start(
-          { facingMode: "environment" },
+          { 
+            facingMode: "environment"
+          },
           config,
           async (decodedText) => {
             if (isScanning.current) return
@@ -236,46 +238,51 @@ export default function BarcodeScanner({ onProductScanned, onClose }: BarcodeSca
             animate={{ scale: 1, opacity: 1 }}
             className="bg-card/50 backdrop-blur-sm border border-white/10 rounded-3xl overflow-hidden relative"
           >
-            {/* Scan Line Animation */}
+            <div id="reader" className="w-full relative" />
+            
+            {/* Overlay container - positioned over the video */}
             <div className="absolute inset-0 pointer-events-none z-10">
-              <motion.div
-                animate={{
-                  y: [0, 300, 0],
-                }}
-                transition={{
-                  duration: 2,
-                  repeat: Infinity,
-                  ease: "linear"
-                }}
-                className="h-1 bg-gradient-to-r from-transparent via-primary to-transparent shadow-[0_0_15px_rgba(var(--primary),0.8)]"
-              />
-            </div>
+              {/* Detection Flash Effect */}
+              {scanDetected && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: [0, 1, 0] }}
+                  transition={{ duration: 0.5 }}
+                  className="absolute inset-0 bg-primary/30"
+                />
+              )}
 
-            {/* Detection Flash Effect */}
-            {scanDetected && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: [0, 1, 0] }}
-                transition={{ duration: 0.5 }}
-                className="absolute inset-0 bg-primary/30 z-20 pointer-events-none"
-              />
-            )}
-
-            {/* Corner Guides */}
-            <div className="absolute inset-0 pointer-events-none z-10 flex items-center justify-center">
-              <div className="relative w-64 h-64">
-                {/* Top Left */}
-                <div className="absolute top-0 left-0 w-12 h-12 border-t-4 border-l-4 border-primary rounded-tl-xl" />
-                {/* Top Right */}
-                <div className="absolute top-0 right-0 w-12 h-12 border-t-4 border-r-4 border-primary rounded-tr-xl" />
-                {/* Bottom Left */}
-                <div className="absolute bottom-0 left-0 w-12 h-12 border-b-4 border-l-4 border-primary rounded-bl-xl" />
-                {/* Bottom Right */}
-                <div className="absolute bottom-0 right-0 w-12 h-12 border-b-4 border-r-4 border-primary rounded-br-xl" />
+              {/* Center the scan area overlay */}
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="relative" style={{ width: '250px', height: '250px' }}>
+                  {/* Scan Line Animation - moves within the 250x250 box */}
+                  <motion.div
+                    animate={{
+                      y: [0, 250],
+                    }}
+                    transition={{
+                      duration: 2,
+                      repeat: Infinity,
+                      ease: "linear"
+                    }}
+                    className="absolute w-full h-0.5 bg-gradient-to-r from-transparent via-primary to-transparent shadow-[0_0_15px_rgba(239,68,68,0.8)]"
+                    style={{ left: 0 }}
+                  />
+                  
+                  {/* Corner Guides - exactly 250x250 */}
+                  <div className="absolute inset-0">
+                    {/* Top Left */}
+                    <div className="absolute top-0 left-0 w-12 h-12 border-t-4 border-l-4 border-primary rounded-tl-xl" />
+                    {/* Top Right */}
+                    <div className="absolute top-0 right-0 w-12 h-12 border-t-4 border-r-4 border-primary rounded-tr-xl" />
+                    {/* Bottom Left */}
+                    <div className="absolute bottom-0 left-0 w-12 h-12 border-b-4 border-l-4 border-primary rounded-bl-xl" />
+                    {/* Bottom Right */}
+                    <div className="absolute bottom-0 right-0 w-12 h-12 border-b-4 border-r-4 border-primary rounded-br-xl" />
+                  </div>
+                </div>
               </div>
             </div>
-
-            <div id="reader" className="w-full" />
             
             <div className="p-6 text-center relative">
               {scanDetected ? (
