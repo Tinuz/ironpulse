@@ -2,9 +2,9 @@
 
 import React, { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft, Plus, Trash2, Utensils, Flame, Droplet, Check, Scan, AlertTriangle, TrendingUp, TrendingDown, Target, ChevronLeft, ChevronRight, Calendar, BarChart3 } from 'lucide-react'
+import { ArrowLeft, Plus, Trash2, Utensils, Flame, Droplet, Check, Scan, AlertTriangle, TrendingUp, TrendingDown, Target, ChevronLeft, ChevronRight, Calendar, BarChart3, Clock } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { useData } from '@/components/context/DataContext'
+import { useData, NutritionItem } from '@/components/context/DataContext'
 import { format, addDays, subDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth, eachDayOfInterval } from 'date-fns'
 import { nl } from 'date-fns/locale'
 import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts'
@@ -186,6 +186,43 @@ export default function Nutrition() {
     });
     setIsScannerOpen(false);
     setIsAdding(true);
+  };
+
+  // Get recent unique items from all nutrition logs
+  const getRecentItems = () => {
+    const allItems: NutritionItem[] = [];
+    
+    // Collect all items from all dates
+    nutritionLogs.forEach(log => {
+      allItems.push(...log.items);
+    });
+    
+    // Create unique items based on name + nutritional values
+    const uniqueItems = new Map<string, NutritionItem>();
+    
+    allItems.forEach(item => {
+      const key = `${item.name}-${item.calories}-${item.protein}-${item.carbs}-${item.fats}-${item.type}`;
+      if (!uniqueItems.has(key)) {
+        uniqueItems.set(key, item);
+      }
+    });
+    
+    // Return last 10 unique items
+    return Array.from(uniqueItems.values()).slice(-10).reverse();
+  };
+
+  const recentItems = getRecentItems();
+
+  const handleAddRecentItem = (item: NutritionItem) => {
+    addMeal(currentDateStr, {
+      name: item.name,
+      calories: item.calories,
+      protein: item.protein,
+      carbs: item.carbs,
+      fats: item.fats,
+      type: item.type
+    });
+    setIsAdding(false);
   };
 
   const navigateDate = (direction: 'prev' | 'next') => {
@@ -725,6 +762,53 @@ export default function Nutrition() {
                     ✕
                   </button>
                 </div>
+
+                {/* Recent Items Section */}
+                {recentItems.length > 0 && (
+                  <div className="mb-6">
+                    <h3 className="text-xs font-bold text-muted-foreground uppercase mb-3 flex items-center gap-2">
+                      <Clock size={14} className="text-primary" />
+                      Recent Toegevoegd
+                    </h3>
+                    <div className="max-h-48 overflow-y-auto space-y-2 pr-1 -mr-1">
+                      {recentItems.map((item, index) => (
+                        <motion.button
+                          key={`${item.name}-${index}`}
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: index * 0.03 }}
+                          onClick={() => handleAddRecentItem(item)}
+                          className="w-full bg-card border border-white/5 hover:border-primary/30 hover:bg-primary/5 p-3 rounded-xl transition-all text-left group"
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3 flex-1 min-w-0">
+                              <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                                item.type === 'drink' ? 'bg-blue-500/20 text-blue-400' : 'bg-orange-500/20 text-orange-400'
+                              }`}>
+                                {item.type === 'drink' ? <Droplet size={14} /> : <Utensils size={14} />}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="font-semibold text-sm truncate">{item.name}</div>
+                                <div className="text-xs text-muted-foreground flex gap-2">
+                                  <span className="font-mono">{item.calories} kcal</span>
+                                  {item.protein > 0 && <span>• {item.protein}g P</span>}
+                                  {item.carbs > 0 && <span>• {item.carbs}g C</span>}
+                                  {item.fats > 0 && <span>• {item.fats}g F</span>}
+                                </div>
+                              </div>
+                            </div>
+                            <Plus size={16} className="text-primary opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
+                          </div>
+                        </motion.button>
+                      ))}
+                    </div>
+                    <div className="mt-3 pt-3 border-t border-white/5 flex items-center gap-2 text-xs text-muted-foreground">
+                      <div className="h-px flex-1 bg-white/5" />
+                      <span>of voeg handmatig toe</span>
+                      <div className="h-px flex-1 bg-white/5" />
+                    </div>
+                  </div>
+                )}
 
                 <div>
                   <label className="text-xs font-bold text-muted-foreground uppercase mb-2 block">Naam</label>
