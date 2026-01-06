@@ -29,6 +29,7 @@ export default function BarcodeScanner({ onProductScanned, onClose }: BarcodeSca
   const [productData, setProductData] = useState<ProductData | null>(null)
   const [portionSize, setPortionSize] = useState<string>('100')
   const [isScannerActive, setIsScannerActive] = useState(true)
+  const [scanDetected, setScanDetected] = useState(false)
   const scannerRef = useRef<Html5Qrcode | null>(null)
   const isScanning = useRef(false)
 
@@ -53,16 +54,26 @@ export default function BarcodeScanner({ onProductScanned, onClose }: BarcodeSca
             if (isScanning.current) return
             isScanning.current = true
             
+            // Visual feedback: barcode detected!
+            setScanDetected(true)
+            
             setScannedCode(decodedText)
             setIsScannerActive(false)
             
-            // Stop scanner before fetching
-            if (scanner && scanner.isScanning) {
-              await scanner.stop()
+            // Stop scanner before fetching - with proper check
+            try {
+              if (scanner && scanner.isScanning) {
+                await scanner.stop()
+                console.log('✅ Scanner stopped successfully')
+              }
+            } catch (err) {
+              console.warn('⚠️ Scanner stop warning:', err)
+              // Continue anyway, scanner might already be stopped
             }
             
             await fetchProductData(decodedText)
             isScanning.current = false
+            setScanDetected(false)
           },
           (_errorMessage) => {
             // Quiet scan errors - happens continuously when not detecting
@@ -91,23 +102,34 @@ export default function BarcodeScanner({ onProductScanned, onClose }: BarcodeSca
     setIsLoading(true)
     setError(null)
 
+    console.log('🔍 [BARCODE SCAN] Starting product fetch...')
+    console.log('📊 Barcode:', barcode)
+
     try {
-      const response = await fetch(
-        `https://world.openfoodfacts.org/api/v2/product/${barcode}.json`,
-        {
-          headers: {
-            'User-Agent': 'IronPulse - Fitness App - Version 1.0 - ironpulse.app'
-          }
+      const apiUrl = `https://world.openfoodfacts.org/api/v2/product/${barcode}.json`
+      console.log('🌐 API URL:', apiUrl)
+
+      const response = await fetch(apiUrl, {
+        headers: {
+          'User-Agent': 'IronPulse - Fitness App - Version 1.0 - ironpulse.app'
         }
-      )
+      })
+      
+      console.log('📡 Response status:', response.status, response.statusText)
+      console.log('✅ Response OK:', response.ok)
       
       if (!response.ok) {
+        console.error('❌ API response not OK:', response.status)
         throw new Error('Product niet gevonden')
       }
 
       const data = await response.json()
+      console.log('📦 API Response data:', data)
+      console.log('🏷️ Product status:', data.status)
+      console.log('🛒 Product found:', !!data.product)
 
       if (data.status === 0 || !data.product) {
+        console.warn('⚠️ Product not found in OpenFoodFacts database')
         setError('Product niet gevonden in database. Probeer een ander product of voeg handmatig toe.')
         setIsLoading(false)
         return
@@ -115,6 +137,15 @@ export default function BarcodeScanner({ onProductScanned, onClose }: BarcodeSca
 
       const product = data.product
       const nutriments = product.nutriments || {}
+
+      console.log('📝 Product name:', product.product_name || product.product_name_nl)
+      console.log('🏢 Brand:', product.brands)
+      console.log('🍽️ Nutriments:', {
+        calories: nutriments.energy_kcal_100g || nutriments['energy-kcal_100g'],
+        protein: nutriments.proteins_100g,
+        carbs: nutriments.carbohydrates_100g,
+        fats: nutriments.fat_100g
+      })
 
       const productData: ProductData = {
         name: product.product_name || product.product_name_nl || 'Onbekend product',
@@ -128,10 +159,16 @@ export default function BarcodeScanner({ onProductScanned, onClose }: BarcodeSca
         brand: product.brands || undefined
       }
 
+      console.log('✨ Processed product data:', productData)
       setProductData(productData)
       setIsLoading(false)
+      console.log('✅ Product fetch completed successfully!')
     } catch (err) {
-      console.error('Error fetching product:', err)
+      console.error('❌ Error fetching product:', err)
+      console.error('❌ Error details:', {
+        message: err instanceof Error ? err.message : 'Unknown error',
+        stack: err instanceof Error ? err.stack : undefined
+      })
       setError('Kon productgegevens niet ophalen. Controleer je internetverbinding.')
       setIsLoading(false)
     }
@@ -197,17 +234,100 @@ export default function BarcodeScanner({ onProductScanned, onClose }: BarcodeSca
           <motion.div
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className="bg-card/50 backdrop-blur-sm border border-white/10 rounded-3xl overflow-hidden"
+            className="bg-card/50 backdrop-blur-sm border border-white/10 rounded-3xl overflow-hidden relative"
           >
+            {/* Scan Line Animation */}
+            <div className="absolute inset-0 pointer-events-none z-10">
+              <motion.div
+                animate={{
+                  y: [0, 300, 0],
+                }}
+                transition={{
+                  duration: 2,
+                  repeat: Infinity,
+                  ease: "linear"
+                }}
+                className="h-1 bg-gradient-to-r from-transparent via-primary to-transparent shadow-[0_0_15px_rgba(var(--primary),0.8)]"
+              />
+            </div>
+
+            {/* Detection Flash Effect */}
+            {scanDetected && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: [0, 1, 0] }}
+                transition={{ duration: 0.5 }}
+                className="absolute inset-0 bg-primary/30 z-20 pointer-events-none"
+              />
+            )}
+
+            {/* Corner Guides */}
+            <div className="absolute inset-0 pointer-events-none z-10 flex items-center justify-center">
+              <div className="relative w-64 h-64">
+                {/* Top Left */}
+                <div className="absolute top-0 left-0 w-12 h-12 border-t-4 border-l-4 border-primary rounded-tl-xl" />
+                {/* Top Right */}
+                <div className="absolute top-0 right-0 w-12 h-12 border-t-4 border-r-4 border-primary rounded-tr-xl" />
+                {/* Bottom Left */}
+                <div className="absolute bottom-0 left-0 w-12 h-12 border-b-4 border-l-4 border-primary rounded-bl-xl" />
+                {/* Bottom Right */}
+                <div className="absolute bottom-0 right-0 w-12 h-12 border-b-4 border-r-4 border-primary rounded-br-xl" />
+              </div>
+            </div>
+
             <div id="reader" className="w-full" />
-            <div className="p-6 text-center">
-              <Camera size={32} className="mx-auto text-primary mb-3" />
-              <p className="text-sm text-muted-foreground">
-                Houd de barcode voor de camera
-              </p>
-              <p className="text-xs text-muted-foreground mt-2">
-                EAN-13, UPC-A en UPC-E formaten worden ondersteund
-              </p>
+            
+            <div className="p-6 text-center relative">
+              {scanDetected ? (
+                <motion.div
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  className="flex items-center justify-center gap-3"
+                >
+                  <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center">
+                    <Scan size={18} className="text-primary" />
+                  </div>
+                  <p className="text-lg font-bold text-primary">
+                    Barcode gedetecteerd! 
+                  </p>
+                </motion.div>
+              ) : (
+                <>
+                  <motion.div
+                    animate={{ 
+                      scale: [1, 1.1, 1],
+                    }}
+                    transition={{ 
+                      duration: 2,
+                      repeat: Infinity,
+                      ease: "easeInOut"
+                    }}
+                  >
+                    <Camera size={32} className="mx-auto text-primary mb-3" />
+                  </motion.div>
+                  <p className="text-sm text-muted-foreground">
+                    Houd de barcode voor de camera
+                  </p>
+                  <div className="mt-3 flex items-center justify-center gap-2">
+                    <motion.div
+                      animate={{ opacity: [0.3, 1, 0.3] }}
+                      transition={{ duration: 1.5, repeat: Infinity }}
+                      className="h-2 w-2 rounded-full bg-primary"
+                    />
+                    <p className="text-xs text-primary font-semibold">
+                      Aan het scannen...
+                    </p>
+                    <motion.div
+                      animate={{ opacity: [0.3, 1, 0.3] }}
+                      transition={{ duration: 1.5, repeat: Infinity, delay: 0.5 }}
+                      className="h-2 w-2 rounded-full bg-primary"
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-3">
+                    EAN-13, UPC-A en UPC-E formaten worden ondersteund
+                  </p>
+                </>
+              )}
             </div>
           </motion.div>
         )}
