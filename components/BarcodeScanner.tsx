@@ -1,9 +1,9 @@
 'use client'
 
 import React, { useEffect, useState, useRef } from 'react'
-import { Html5Qrcode } from 'html5-qrcode'
+import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode'
 import { motion } from 'framer-motion'
-import { Camera, Loader2, X, AlertCircle, Package, Scan } from 'lucide-react'
+import { Camera, Loader2, X, AlertCircle, Package, Scan, Flashlight, FlashlightOff } from 'lucide-react'
 
 interface ProductData {
   name: string
@@ -30,6 +30,8 @@ export default function BarcodeScanner({ onProductScanned, onClose }: BarcodeSca
   const [portionSize, setPortionSize] = useState<string>('100')
   const [isScannerActive, setIsScannerActive] = useState(true)
   const [scanDetected, setScanDetected] = useState(false)
+  const [torchEnabled, setTorchEnabled] = useState(false)
+  const [torchSupported, setTorchSupported] = useState(false)
   const scannerRef = useRef<Html5Qrcode | null>(null)
   const isScanning = useRef(false)
 
@@ -38,7 +40,17 @@ export default function BarcodeScanner({ onProductScanned, onClose }: BarcodeSca
 
     const initScanner = async () => {
       try {
-        scanner = new Html5Qrcode("reader")
+        scanner = new Html5Qrcode("reader", {
+          formatsToSupport: [
+            Html5QrcodeSupportedFormats.EAN_13,
+            Html5QrcodeSupportedFormats.EAN_8,
+            Html5QrcodeSupportedFormats.UPC_A,
+            Html5QrcodeSupportedFormats.UPC_E,
+            Html5QrcodeSupportedFormats.CODE_128,
+            Html5QrcodeSupportedFormats.CODE_39,
+          ],
+          verbose: false
+        })
         scannerRef.current = scanner
 
         const config = {
@@ -81,6 +93,16 @@ export default function BarcodeScanner({ onProductScanned, onClose }: BarcodeSca
             // Quiet scan errors - happens continuously when not detecting
           }
         )
+        
+        // Check torch support
+        try {
+          const capabilities = await scanner.getRunningTrackCameraCapabilities()
+          setTorchSupported(capabilities.torchFeature().isSupported())
+          console.log('🔦 Torch supported:', capabilities.torchFeature().isSupported())
+        } catch (err) {
+          console.warn('Could not check torch support:', err)
+        }
+        
         setIsScannerActive(true)
       } catch (err) {
         console.error("Scanner init error:", err)
@@ -99,6 +121,20 @@ export default function BarcodeScanner({ onProductScanned, onClose }: BarcodeSca
       }
     }
   }, [])
+
+  const toggleTorch = async () => {
+    if (!scannerRef.current || !torchSupported) return
+    
+    try {
+      await scannerRef.current.applyVideoConstraints({
+        advanced: [{ torch: !torchEnabled } as any]
+      })
+      setTorchEnabled(!torchEnabled)
+      console.log('🔦 Torch toggled:', !torchEnabled)
+    } catch (err) {
+      console.error('Failed to toggle torch:', err)
+    }
+  }
 
   const fetchProductData = async (barcode: string) => {
     setIsLoading(true)
@@ -239,6 +275,22 @@ export default function BarcodeScanner({ onProductScanned, onClose }: BarcodeSca
             className="bg-card/50 backdrop-blur-sm border border-white/10 rounded-3xl overflow-hidden relative"
           >
             <div id="reader" className="w-full relative" />
+            
+            {/* Torch Button */}
+            {torchSupported && (
+              <motion.button
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                onClick={toggleTorch}
+                className="absolute top-4 right-4 z-20 p-3 bg-black/50 backdrop-blur-sm rounded-full border border-white/20 hover:bg-black/70 transition-colors"
+              >
+                {torchEnabled ? (
+                  <Flashlight size={24} className="text-yellow-400" />
+                ) : (
+                  <FlashlightOff size={24} className="text-white" />
+                )}
+              </motion.button>
+            )}
             
             {/* Overlay container - positioned over the video */}
             <div className="absolute inset-0 pointer-events-none z-10">
