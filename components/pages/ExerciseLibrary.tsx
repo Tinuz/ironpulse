@@ -399,7 +399,7 @@ function ExerciseDetailModal({
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         onClick={onClose}
-        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
+        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[80]"
       />
 
       {/* Modal */}
@@ -407,10 +407,10 @@ function ExerciseDetailModal({
         initial={{ opacity: 0, y: 50 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 50 }}
-        className="fixed inset-x-4 top-[5%] bottom-[5%] sm:inset-x-auto sm:left-1/2 sm:-translate-x-1/2 sm:w-full sm:max-w-3xl bg-background rounded-2xl shadow-2xl z-50 overflow-hidden flex flex-col"
+        className="fixed inset-x-4 top-4 bottom-20 sm:top-[5vh] sm:bottom-[5vh] sm:inset-x-auto sm:left-1/2 sm:-translate-x-1/2 sm:w-full sm:max-w-3xl bg-background rounded-2xl shadow-2xl z-[90] overflow-hidden flex flex-col"
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-4 sm:p-6 border-b border-border">
+        <div className="flex items-center justify-between p-4 sm:p-6 border-b border-border shrink-0">
           <h2 className="text-xl sm:text-2xl font-bold pr-8">
             {exercise.name.replace(' Video Exercise Guide', '')}
           </h2>
