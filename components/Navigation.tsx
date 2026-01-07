@@ -3,7 +3,7 @@
 import React from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, PlusSquare, History as HistoryIcon, User, Bot, Library } from 'lucide-react'
+import { LayoutDashboard, PlusSquare, User, Bot, Dumbbell } from 'lucide-react'
 import { motion } from 'framer-motion'
 import clsx from 'clsx'
 import { useLanguage } from '@/components/context/LanguageContext'
@@ -15,9 +15,8 @@ export default function Navigation() {
   const navItems = [
     { path: '/', icon: LayoutDashboard, label: language === 'nl' ? 'Dash' : 'Dash' },
     { path: '/schema', icon: PlusSquare, label: language === 'nl' ? 'Build' : 'Build' },
-    { path: '/exercises', icon: Library, label: language === 'nl' ? 'Lib' : 'Lib' },
     { path: '/trainer', icon: Bot, label: language === 'nl' ? 'Coach' : 'Coach', special: true },
-    { path: '/history', icon: HistoryIcon, label: language === 'nl' ? 'Logs' : 'Logs' },
+    { path: '/exercises', icon: Dumbbell, label: language === 'nl' ? 'Exercises' : 'Exercises' },
     { path: '/progress', icon: User, label: language === 'nl' ? 'Me' : 'Me' },
   ]
 
