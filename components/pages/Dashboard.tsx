@@ -2,7 +2,7 @@
 
 import React from 'react'
 import { motion } from 'framer-motion'
-import { Play, TrendingUp, Calendar, ArrowRight, Plus, Utensils, User, Edit2, MoreVertical } from 'lucide-react'
+import { Play, TrendingUp, Calendar, ArrowRight, Plus, Utensils, User, Edit2, MoreVertical, Trash2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useData } from '@/components/context/DataContext'
 import { useAuth } from '@/components/context/AuthContext'
@@ -24,10 +24,11 @@ const item = {
 };
 
 export default function Dashboard() {
-  const { schemas, history, startWorkout, activeWorkout, nutritionLogs } = useData()
+  const { schemas, history, startWorkout, activeWorkout, nutritionLogs, deleteSchema } = useData()
   const { user } = useAuth()
   const router = useRouter()
   const [schemaMenuOpen, setSchemaMenuOpen] = React.useState<string | null>(null)
+  const [deleteConfirmId, setDeleteConfirmId] = React.useState<string | null>(null)
 
   const totalWorkouts = history.length;
 
@@ -46,6 +47,12 @@ export default function Dashboard() {
   const handleQuickStart = () => {
     startWorkout();
     router.push('/workout');
+  };
+
+  const handleDeleteSchema = (schemaId: string) => {
+    deleteSchema(schemaId)
+    setDeleteConfirmId(null)
+    setSchemaMenuOpen(null)
   };
 
   return (
@@ -215,6 +222,17 @@ export default function Dashboard() {
                         <Play size={16} className="text-primary" />
                         <span className="font-medium">Start Workout</span>
                       </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setDeleteConfirmId(schema.id)
+                          setSchemaMenuOpen(null)
+                        }}
+                        className="w-full px-4 py-3 flex items-center gap-3 hover:bg-destructive/10 transition-colors text-left border-t border-white/5"
+                      >
+                        <Trash2 size={16} className="text-destructive" />
+                        <span className="font-medium text-destructive">Delete Schema</span>
+                      </button>
                     </div>
                   </>
                 )}
@@ -304,6 +322,36 @@ export default function Dashboard() {
           </div>
         )}
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      {deleteConfirmId && (
+        <>
+          <div 
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100]"
+            onClick={() => setDeleteConfirmId(null)}
+          />
+          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-card border border-border rounded-2xl p-6 shadow-2xl z-[110] max-w-sm w-[90%]">
+            <h3 className="text-xl font-bold mb-2">Delete Schema?</h3>
+            <p className="text-muted-foreground mb-6">
+              Are you sure you want to delete this workout schema? This action cannot be undone.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setDeleteConfirmId(null)}
+                className="flex-1 px-4 py-2.5 bg-muted hover:bg-muted/80 rounded-xl font-medium transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleDeleteSchema(deleteConfirmId)}
+                className="flex-1 px-4 py-2.5 bg-destructive hover:bg-destructive/90 text-destructive-foreground rounded-xl font-medium transition-colors"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
