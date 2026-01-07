@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useMemo, useCallback } from 'react'
-import { Search, Filter, X, ChevronDown, Play } from 'lucide-react'
+import { Search, Filter, X, ChevronDown, Play, Dumbbell } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Image from 'next/image'
 import {
@@ -75,8 +75,9 @@ export default function ExerciseLibrary() {
       <div className="sticky top-0 z-40 bg-background/95 backdrop-blur-xl border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
           <div className="flex items-center justify-between mb-4">
-            <h1 className="text-2xl sm:text-3xl font-bold">
-              {language === 'nl' ? '📚 Oefeningen Bibliotheek' : '📚 Exercise Library'}
+            <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-3">
+              <Dumbbell className="text-primary" size={28} />
+              {language === 'nl' ? 'Oefeningen Bibliotheek' : 'Exercise Library'}
             </h1>
             <button
               onClick={() => setShowFilters(!showFilters)}

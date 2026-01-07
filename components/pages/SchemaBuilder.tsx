@@ -156,7 +156,7 @@ export default function SchemaBuilder() {
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="e.g. Leg Day Destruction"
+            placeholder="bijv. Upper Body Strength"
             className="w-full bg-transparent border-b-2 border-white/10 py-2 text-2xl font-black placeholder:text-white/10 focus:border-primary focus:outline-none transition-colors"
           />
         </div>
