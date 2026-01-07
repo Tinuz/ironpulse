@@ -2,7 +2,7 @@
 
 import React from 'react'
 import { motion } from 'framer-motion'
-import { Play, TrendingUp, Calendar, ArrowRight, Plus, Utensils, User, Edit2, MoreVertical, Trash2 } from 'lucide-react'
+import { Play, TrendingUp, Calendar, ArrowRight, Plus, Utensils, User, Edit2, MoreVertical, Trash2, Flame } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useData } from '@/components/context/DataContext'
 import { useAuth } from '@/components/context/AuthContext'
@@ -305,6 +305,11 @@ export default function Dashboard() {
                     <div className="font-mono font-bold text-accent">
                       {log.exercises.length} Ex
                     </div>
+                    {log.totalCalories && log.totalCalories > 0 && (
+                      <div className="text-xs text-primary font-bold flex items-center gap-1 justify-end mt-0.5">
+                        <Flame size={10} /> {log.totalCalories} kcal
+                      </div>
+                    )}
                   </div>
                   <button
                     onClick={(e) => {

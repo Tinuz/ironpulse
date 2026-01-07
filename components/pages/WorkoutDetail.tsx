@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Calendar, Clock, Trophy, Dumbbell, Edit2, BarChart3, Award, Trash2 } from 'lucide-react'
+import { ArrowLeft, Calendar, Clock, Trophy, Dumbbell, Edit2, BarChart3, Award, Trash2, Flame } from 'lucide-react'
 import { useRouter, usePathname } from 'next/navigation'
 import { format } from 'date-fns'
 import { useData } from '@/components/context/DataContext'
@@ -103,7 +103,11 @@ export default function WorkoutDetail() {
           </div>
 
           {/* Stats Cards */}
-          <div className="grid grid-cols-3 gap-3">
+          <div className={`grid gap-3 ${
+            workout.totalCalories && workout.totalCalories > 0 
+              ? 'grid-cols-2 sm:grid-cols-4' 
+              : 'grid-cols-3'
+          }`}>
             <div className="bg-card border border-white/5 rounded-xl p-4">
               <div className="text-[10px] uppercase font-bold text-muted-foreground mb-2 flex items-center gap-1">
                 <Clock size={10} /> Duration
@@ -128,6 +132,16 @@ export default function WorkoutDetail() {
                 {totalSets}
               </div>
             </div>
+            {workout.totalCalories && workout.totalCalories > 0 && (
+              <div className="bg-primary/10 border border-primary/30 rounded-xl p-4">
+                <div className="text-[10px] uppercase font-bold text-primary/80 mb-2 flex items-center gap-1">
+                  <Flame size={10} /> Calories
+                </div>
+                <div className="text-2xl font-black tabular-nums text-primary">
+                  ~{workout.totalCalories}
+                </div>
+              </div>
+            )}
           </div>
         </motion.div>
 
@@ -246,6 +260,25 @@ export default function WorkoutDetail() {
                         {exercise.sets.filter(s => s.completed).length}/{exercise.sets.length} sets
                       </span>
                     </div>
+                    {exercise.durationMinutes && exercise.durationMinutes > 0 && (
+                      <div>
+                        <span className="text-muted-foreground">Duration:</span>
+                        <span className="ml-2 font-bold">
+                          {exercise.durationMinutes} min
+                        </span>
+                      </div>
+                    )}
+                    {exercise.estimatedCalories && exercise.estimatedCalories > 0 && (
+                      <div>
+                        <span className="text-muted-foreground flex items-center gap-1">
+                          <Flame size={12} className="text-primary" />
+                          Calories:
+                        </span>
+                        <span className="ml-2 font-bold text-primary">
+                          ~{exercise.estimatedCalories} kcal
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
               </motion.div>

@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Calendar, Clock, Trophy, Dumbbell, Edit2, Trash2, MoreVertical } from 'lucide-react'
+import { ArrowLeft, Calendar, Clock, Trophy, Dumbbell, Edit2, Trash2, MoreVertical, Flame } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { format } from 'date-fns'
 import { useData } from '@/components/context/DataContext'
@@ -150,7 +150,7 @@ export default function History() {
                       )}
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4 mb-4">
+                    <div className="grid grid-cols-3 gap-3 mb-4">
                       <div className="bg-white/5 p-3 rounded-xl">
                         <div className="text-[10px] uppercase font-bold text-muted-foreground mb-1 flex items-center gap-1">
                           <Trophy size={10} /> Volume
@@ -164,12 +164,22 @@ export default function History() {
                       </div>
                       <div className="bg-white/5 p-3 rounded-xl">
                         <div className="text-[10px] uppercase font-bold text-muted-foreground mb-1 flex items-center gap-1">
-                          <Dumbbell size={10} /> Sets Done
+                          <Dumbbell size={10} /> Sets
                         </div>
                         <div className="text-xl font-black tabular-nums">
                           {totalSets}
                         </div>
                       </div>
+                      {log.totalCalories && log.totalCalories > 0 && (
+                        <div className="bg-primary/10 p-3 rounded-xl border border-primary/20">
+                          <div className="text-[10px] uppercase font-bold text-primary/80 mb-1 flex items-center gap-1">
+                            <Flame size={10} /> Kcal
+                          </div>
+                          <div className="text-xl font-black tabular-nums text-primary">
+                            ~{log.totalCalories}
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     <div className="space-y-2">
