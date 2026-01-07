@@ -260,9 +260,9 @@ export default function WorkoutLogger() {
     }
   }, [activeWorkout]);
 
-  // Timer effect
+  // Timer effect - pause when summary is shown
   useEffect(() => {
-    if (!workoutData) return;
+    if (!workoutData || showSummary) return;
     
     setElapsed(Math.floor((Date.now() - workoutData.startTime) / 1000));
 
@@ -271,7 +271,7 @@ export default function WorkoutLogger() {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [workoutData]);
+  }, [workoutData, showSummary]);
 
   // Show loading while checking
   if (!isReady) {
