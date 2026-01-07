@@ -1,8 +1,20 @@
-import exercisesData from '@/exercisesv3.json'
 import { LibraryExercise, ExerciseFilters } from '@/types/exerciseLibrary'
 
-// Type-safe exercise library
-export const EXERCISES_LIBRARY: LibraryExercise[] = exercisesData as LibraryExercise[]
+// Lazy load exercise data to reduce initial bundle size
+let exercisesData: LibraryExercise[] | null = null
+
+// Synchronous access for when data is already loaded
+function getExercises(): LibraryExercise[] {
+  if (!exercisesData) {
+    // Fallback: load synchronously (only happens on first access)
+    const data = require('@/exercisesv3.json')
+    exercisesData = data as LibraryExercise[]
+  }
+  return exercisesData
+}
+
+// Type-safe exercise library (loaded synchronously for now - optimize later)
+export const EXERCISES_LIBRARY: LibraryExercise[] = getExercises()
 
 // Pre-built index for fast lookups by name
 export const EXERCISE_BY_NAME = new Map(

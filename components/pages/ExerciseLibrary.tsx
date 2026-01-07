@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useCallback } from 'react'
 import { Search, Filter, X, ChevronDown, Play } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Image from 'next/image'
@@ -14,11 +14,14 @@ import {
 import { LibraryExercise, ExerciseFilters } from '@/types/exerciseLibrary'
 import { useLanguage } from '@/components/context/LanguageContext'
 
+const ITEMS_PER_PAGE = 48 // Show 48 items at a time (4 columns x 12 rows)
+
 export default function ExerciseLibrary() {
   const { language } = useLanguage()
   const [searchQuery, setSearchQuery] = useState('')
   const [showFilters, setShowFilters] = useState(false)
   const [selectedExercise, setSelectedExercise] = useState<LibraryExercise | null>(null)
+  const [displayCount, setDisplayCount] = useState(ITEMS_PER_PAGE)
   
   const [filters, setFilters] = useState<ExerciseFilters>({
     search: '',
@@ -36,8 +39,20 @@ export default function ExerciseLibrary() {
     })
   }, [searchQuery, filters])
 
+  // Only show subset of exercises for performance
+  const displayedExercises = useMemo(() => {
+    return filteredExercises.slice(0, displayCount)
+  }, [filteredExercises, displayCount])
+
+  const hasMore = displayCount < filteredExercises.length
+
+  const loadMore = useCallback(() => {
+    setDisplayCount(prev => Math.min(prev + ITEMS_PER_PAGE, filteredExercises.length))
+  }, [filteredExercises.length])
+
   const handleFilterChange = (key: keyof Omit<ExerciseFilters, 'search'>, value: string | null) => {
     setFilters(prev => ({ ...prev, [key]: value }))
+    setDisplayCount(ITEMS_PER_PAGE) // Reset to first page when filters change
   }
 
   const clearFilters = () => {
@@ -49,6 +64,7 @@ export default function ExerciseLibrary() {
       mechanics: null,
     })
     setSearchQuery('')
+    setDisplayCount(ITEMS_PER_PAGE)
   }
 
   const hasActiveFilters = filters.muscleGroup || filters.equipment || filters.experienceLevel || filters.mechanics
@@ -157,7 +173,10 @@ export default function ExerciseLibrary() {
       {/* Results Count */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
         <p className="text-sm text-muted-foreground">
-          {filteredExercises.length} {language === 'nl' ? 'oefeningen gevonden' : 'exercises found'}
+          {language === 'nl' 
+            ? `${displayedExercises.length} van ${filteredExercises.length} oefeningen getoond`
+            : `Showing ${displayedExercises.length} of ${filteredExercises.length} exercises`
+          }
         </p>
       </div>
 
@@ -176,15 +195,36 @@ export default function ExerciseLibrary() {
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 pb-8">
-            {filteredExercises.map((exercise) => (
-              <ExerciseCard
-                key={exercise.name}
-                exercise={exercise}
-                onClick={() => setSelectedExercise(exercise)}
-              />
-            ))}
-          </div>
+          <>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+              {displayedExercises.map((exercise) => (
+                <ExerciseCard
+                  key={exercise.name}
+                  exercise={exercise}
+                  onClick={() => setSelectedExercise(exercise)}
+                />
+              ))}
+            </div>
+
+            {/* Load More Button */}
+            {hasMore && (
+              <div className="flex justify-center py-8">
+                <button
+                  onClick={loadMore}
+                  className="px-6 py-3 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-colors font-medium flex items-center gap-2"
+                >
+                  <span>
+                    {language === 'nl' 
+                      ? `Meer laden (nog ${filteredExercises.length - displayCount})`
+                      : `Load More (${filteredExercises.length - displayCount} remaining)`
+                    }
+                  </span>
+                </button>
+              </div>
+            )}
+
+            <div className="pb-8" />
+          </>
         )}
       </div>
 
@@ -272,7 +312,7 @@ function FilterDropdown({
 }
 
 // Exercise Card Component
-function ExerciseCard({
+const ExerciseCard = React.memo(function ExerciseCard({
   exercise,
   onClick,
 }: {
@@ -295,6 +335,7 @@ function ExerciseCard({
             fill
             className="object-cover group-hover:scale-105 transition-transform duration-300"
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+            loading="lazy"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-muted-foreground">
@@ -335,7 +376,7 @@ function ExerciseCard({
       </div>
     </motion.button>
   )
-}
+})
 
 // Exercise Detail Modal Component
 function ExerciseDetailModal({
