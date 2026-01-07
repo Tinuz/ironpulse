@@ -120,9 +120,9 @@ export default function ExerciseLibrary() {
                 animate={{ height: 'auto', opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
                 transition={{ duration: 0.2 }}
-                className="overflow-hidden"
+                className="overflow-visible"
               >
-                <div className="pt-4 space-y-3">
+                <div className="pt-4 space-y-3 pb-2">
                   {/* Muscle Group Filter */}
                   <FilterDropdown
                     label={language === 'nl' ? 'Spiergroep' : 'Muscle Group'}
@@ -270,15 +270,18 @@ function FilterDropdown({
       <AnimatePresence>
         {isOpen && (
           <>
-            <div
-              className="fixed inset-0 z-40"
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[60]"
               onClick={() => setIsOpen(false)}
             />
             <motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="absolute top-full left-0 right-0 mt-1 bg-background border border-border rounded-lg shadow-xl z-50 max-h-64 overflow-y-auto"
+              className="absolute top-full left-0 right-0 mt-1 bg-background border border-border rounded-lg shadow-xl z-[70] max-h-64 overflow-y-auto"
             >
               <button
                 onClick={() => {
