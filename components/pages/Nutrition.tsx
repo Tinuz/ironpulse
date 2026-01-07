@@ -747,7 +747,7 @@ export default function Nutrition() {
                         </div>
                         <button 
                           onClick={() => deleteMeal(currentDateStr, item.id)}
-                          className="opacity-0 group-hover:opacity-100 text-red-500 p-2 hover:bg-red-500/10 rounded-lg transition-all"
+                          className="text-red-500/60 md:opacity-0 md:group-hover:opacity-100 hover:text-red-500 p-2 hover:bg-red-500/10 rounded-lg transition-all"
                         >
                           <Trash2 size={16} />
                         </button>
@@ -824,7 +824,7 @@ export default function Nutrition() {
                                 </div>
                               </div>
                             </div>
-                            <Plus size={16} className="text-primary opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
+                            <Plus size={16} className="text-primary/60 md:opacity-0 md:group-hover:opacity-100 hover:text-primary transition-opacity flex-shrink-0" />
                           </div>
                         </motion.button>
                       ))}

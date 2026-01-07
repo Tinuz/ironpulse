@@ -479,7 +479,7 @@ export default function Progress() {
                     </div>
                     <button 
                       onClick={() => deleteBodyStats(stat.id)}
-                      className="p-2 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="p-2 text-red-500/60 md:opacity-0 md:group-hover:opacity-100 hover:text-red-500 transition-opacity"
                     >
                       <Trash2 size={18} />
                     </button>
