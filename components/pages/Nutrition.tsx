@@ -10,13 +10,14 @@ import { format, addDays, subDays, startOfWeek, endOfWeek, startOfMonth, endOfMo
 import { nl } from 'date-fns/locale'
 import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts'
 import BarcodeScanner from '@/components/BarcodeScanner'
+import WaterTracker from '@/components/WaterTracker'
 
 type ViewMode = 'day' | 'week' | 'month';
 
 export default function Nutrition() {
   const router = useRouter()
   const { t, language } = useLanguage()
-  const { nutritionLogs, addMeal, deleteMeal, userProfile } = useData()
+  const { nutritionLogs, addMeal, deleteMeal, addWater, userProfile } = useData()
   const [isAdding, setIsAdding] = useState(false);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -34,6 +35,7 @@ export default function Nutrition() {
     protein: '',
     carbs: '',
     fats: '',
+    volume: '',
     type: 'food' as 'food' | 'drink'
   });
 
@@ -163,7 +165,8 @@ export default function Nutrition() {
       protein: Number(newItem.protein) || 0,
       carbs: Number(newItem.carbs) || 0,
       fats: Number(newItem.fats) || 0,
-      type: newItem.type
+      type: newItem.type,
+      volume: newItem.volume ? Number(newItem.volume) : undefined
     });
 
     setNewItem({
@@ -172,6 +175,7 @@ export default function Nutrition() {
       protein: '',
       carbs: '',
       fats: '',
+      volume: '',
       type: 'food'
     });
     setIsAdding(false);
@@ -184,6 +188,7 @@ export default function Nutrition() {
       protein: product.protein.toString(),
       carbs: product.carbs.toString(),
       fats: product.fats.toString(),
+      volume: '',
       type: 'food'
     });
     setIsScannerOpen(false);
@@ -669,6 +674,15 @@ export default function Nutrition() {
               </div>
             )}
 
+            {/* Water Tracker */}
+            {viewMode === 'day' && (
+              <WaterTracker 
+                currentIntake={todaysLog?.waterIntake || 0}
+                targetIntake={2000}
+                onAddWater={(amount) => addWater(currentDateStr, amount)}
+              />
+            )}
+
             {/* Meals List */}
             <div>
               <div className="flex items-center justify-between mb-4">
@@ -725,6 +739,9 @@ export default function Nutrition() {
                               {item.protein > 0 && <span>• {item.protein}g P</span>}
                               {item.carbs > 0 && <span>• {item.carbs}g C</span>}
                               {item.fats > 0 && <span>• {item.fats}g F</span>}
+                              {item.type === 'drink' && item.volume && (
+                                <span className="text-blue-400">• {item.volume}ml</span>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -894,6 +911,26 @@ export default function Nutrition() {
                     />
                   </div>
                 </div>
+
+                {/* Volume field for drinks */}
+                {newItem.type === 'drink' && (
+                  <div>
+                    <label className="text-xs font-bold text-muted-foreground uppercase mb-2 block flex items-center gap-2">
+                      <Droplet size={14} className="text-blue-400" />
+                      Volume (ml)
+                    </label>
+                    <input
+                      type="number"
+                      value={newItem.volume}
+                      onChange={(e) => setNewItem({...newItem, volume: e.target.value})}
+                      placeholder="250"
+                      className="w-full bg-card border border-blue-500/20 rounded-xl p-3 focus:border-blue-500/50 outline-none"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1 px-1">
+                      Dit wordt automatisch toegevoegd aan je hydratatie tracking
+                    </p>
+                  </div>
+                )}
 
                 <button
                   onClick={handleAdd}

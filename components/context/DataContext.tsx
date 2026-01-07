@@ -66,12 +66,14 @@ export interface NutritionItem {
   carbs: number;
   fats: number;
   type: 'food' | 'drink';
+  volume?: number; // in ml for drinks
 }
 
 export interface NutritionLog {
   id: string;
   date: string; // ISO date string YYYY-MM-DD
   items: NutritionItem[];
+  waterIntake: number; // total water in ml
 }
 
 export interface UserProfile {
@@ -104,6 +106,7 @@ interface DataContextType {
   deleteBodyStats: (id: string) => void;
   addMeal: (date: string, item: Omit<NutritionItem, 'id'>) => void;
   deleteMeal: (date: string, itemId: string) => void;
+  addWater: (date: string, amount: number) => void;
   setCoachProfile: (profile: CoachProfileType) => void;
   saveUserProfile: (profile: Omit<UserProfile, 'id'>) => Promise<void>;
 }
@@ -254,7 +257,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setNutritionLogs(nutritionData.map(n => ({
           id: n.id,
           date: n.date,
-          items: n.items
+          items: n.items || [],
+          waterIntake: n.water_intake || 0
         })));
       }
 
@@ -518,25 +522,34 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     if (existingLog) {
       const updatedItems = [...existingLog.items, newItem];
+      // Update water intake if it's a drink with volume
+      const waterIncrease = (item.type === 'drink' && item.volume) ? item.volume : 0;
+      const updatedWaterIntake = (existingLog.waterIntake || 0) + waterIncrease;
+      
       const { error } = await supabase
         .from('nutrition_logs')
-        .update({ items: updatedItems })
+        .update({ 
+          items: updatedItems,
+          water_intake: updatedWaterIntake
+        })
         .eq('id', existingLog.id)
         .eq('user_id', USER_ID);
 
       if (!error) {
         setNutritionLogs(prev => prev.map(l => l.date === date 
-          ? { ...l, items: updatedItems }
+          ? { ...l, items: updatedItems, waterIntake: updatedWaterIntake }
           : l
         ));
       }
     } else {
+      const waterIntake = (item.type === 'drink' && item.volume) ? item.volume : 0;
       const { data, error } = await supabase
         .from('nutrition_logs')
         .insert({
           user_id: USER_ID,
           date,
-          items: [newItem]
+          items: [newItem],
+          water_intake: waterIntake
         })
         .select()
         .single();
@@ -545,7 +558,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setNutritionLogs(prev => [...prev, {
           id: data.id,
           date: data.date,
-          items: data.items
+          items: data.items,
+          waterIntake: data.water_intake || 0
         }]);
       }
     }
@@ -555,7 +569,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const existingLog = nutritionLogs.find(l => l.date === date);
     if (!existingLog) return;
 
+    const itemToDelete = existingLog.items.find(i => i.id === itemId);
     const updatedItems = existingLog.items.filter(i => i.id !== itemId);
+    
+    // Update water intake if deleting a drink
+    const waterDecrease = (itemToDelete?.type === 'drink' && itemToDelete.volume) ? itemToDelete.volume : 0;
+    const updatedWaterIntake = Math.max(0, (existingLog.waterIntake || 0) - waterDecrease);
 
     if (updatedItems.length === 0) {
       // Delete the entire log if no items left
@@ -572,15 +591,58 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Update with remaining items
       const { error } = await supabase
         .from('nutrition_logs')
-        .update({ items: updatedItems })
+        .update({ 
+          items: updatedItems,
+          water_intake: updatedWaterIntake
+        })
         .eq('id', existingLog.id)
         .eq('user_id', USER_ID);
 
       if (!error) {
         setNutritionLogs(prev => prev.map(l => l.date === date 
-          ? { ...l, items: updatedItems }
+          ? { ...l, items: updatedItems, waterIntake: updatedWaterIntake }
           : l
         ));
+      }
+    }
+  };
+
+  const addWater = async (date: string, amount: number) => {
+    const existingLog = nutritionLogs.find(l => l.date === date);
+    
+    if (existingLog) {
+      const updatedWaterIntake = (existingLog.waterIntake || 0) + amount;
+      const { error } = await supabase
+        .from('nutrition_logs')
+        .update({ water_intake: updatedWaterIntake })
+        .eq('id', existingLog.id)
+        .eq('user_id', USER_ID);
+
+      if (!error) {
+        setNutritionLogs(prev => prev.map(l => l.date === date 
+          ? { ...l, waterIntake: updatedWaterIntake }
+          : l
+        ));
+      }
+    } else {
+      const { data, error } = await supabase
+        .from('nutrition_logs')
+        .insert({
+          user_id: USER_ID,
+          date,
+          items: [],
+          water_intake: amount
+        })
+        .select()
+        .single();
+
+      if (!error && data) {
+        setNutritionLogs(prev => [...prev, {
+          id: data.id,
+          date: data.date,
+          items: data.items || [],
+          waterIntake: data.water_intake || 0
+        }]);
       }
     }
   };
@@ -681,6 +743,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       deleteBodyStats,
       addMeal,
       deleteMeal,
+      addWater,
       setCoachProfile,
       saveUserProfile
     }}>

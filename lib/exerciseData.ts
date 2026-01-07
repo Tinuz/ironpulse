@@ -64,9 +64,9 @@ export function filterExercises(filters: ExerciseFilters): LibraryExercise[] {
   if (filters.search) {
     const searchLower = filters.search.toLowerCase()
     results = results.filter(ex => 
-      ex.name.toLowerCase().includes(searchLower) ||
-      ex.overview.toLowerCase().includes(searchLower) ||
-      ex.profile.targetMuscleGroup.toLowerCase().includes(searchLower)
+      ex.name?.toLowerCase().includes(searchLower) ||
+      ex.overview?.toLowerCase().includes(searchLower) ||
+      ex.profile?.targetMuscleGroup?.toLowerCase().includes(searchLower)
     )
   }
 

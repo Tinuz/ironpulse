@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { ArrowLeft, Plus, Check, X, Clock, Play, Trash2, TrendingUp, TrendingDown, Minus, Award, Zap, StickyNote } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import clsx from 'clsx'
@@ -16,23 +16,29 @@ import {
   generateOverloadSuggestion
 } from '@/components/utils/workoutCalculations'
 
-const SetRow = ({ 
-  set, 
-  index, 
-  onUpdate, 
-  onToggle 
-}: { 
+const SetRow = React.forwardRef<HTMLDivElement, { 
   set: WorkoutSet; 
   index: number; 
   onUpdate: (field: 'weight' | 'reps', value: number) => void;
   onToggle: () => void;
-}) => {
+  onRemove: () => void;
+  canRemove: boolean;
+}>(({ 
+  set, 
+  index, 
+  onUpdate, 
+  onToggle,
+  onRemove,
+  canRemove
+}, ref) => {
   return (
     <motion.div 
+      ref={ref}
       initial={{ opacity: 0, x: -10 }}
       animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -10, height: 0 }}
       className={clsx(
-        "grid grid-cols-[auto_1fr_1fr_auto] gap-3 items-center py-2 px-1 rounded-lg transition-colors",
+        "grid grid-cols-[auto_1fr_1fr_auto_auto] gap-2 items-center py-2 px-1 rounded-lg transition-colors group",
         set.completed ? "bg-primary/10" : "hover:bg-white/5"
       )}
     >
@@ -79,9 +85,25 @@ const SetRow = ({
       >
         <Check size={16} strokeWidth={3} />
       </button>
+
+      <button
+        onClick={onRemove}
+        disabled={!canRemove}
+        className={clsx(
+          "h-8 w-8 rounded-lg flex items-center justify-center transition-all duration-200",
+          canRemove 
+            ? "text-red-500/60 hover:bg-red-500/20 hover:text-red-600 md:invisible md:group-hover:visible" 
+            : "invisible cursor-not-allowed"
+        )}
+        title={canRemove ? "Verwijder set" : "Minimaal 1 set vereist"}
+      >
+        <X size={16} strokeWidth={2.5} />
+      </button>
     </motion.div>
   );
-};
+});
+
+SetRow.displayName = 'SetRow';
 
 const ExerciseStats = ({ 
   exercise, 
@@ -322,6 +344,19 @@ export default function WorkoutLogger() {
     updateActiveWorkout(updated);
   };
 
+  const removeSet = (exerciseIndex: number, setIndex: number) => {
+    if (!workoutData) return;
+    const newExercises = [...workoutData.exercises];
+    
+    // Prevent removing last set
+    if (newExercises[exerciseIndex].sets.length <= 1) return;
+    
+    newExercises[exerciseIndex].sets = newExercises[exerciseIndex].sets.filter((_, idx) => idx !== setIndex);
+    const updated = { ...workoutData, exercises: newExercises };
+    setWorkoutData(updated);
+    updateActiveWorkout(updated);
+  };
+
   const addExercise = () => {
     if (!workoutData) return;
     const newExercise: WorkoutExercise = {
@@ -454,22 +489,27 @@ export default function WorkoutLogger() {
               </div>
               
               <div className="p-4 space-y-2">
-                <div className="grid grid-cols-[auto_1fr_1fr_auto] gap-3 text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-2 px-1">
+                <div className="grid grid-cols-[auto_1fr_1fr_auto_auto] gap-2 text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-2 px-1">
                   <div className="w-6 text-center">Set</div>
                   <div className="text-center">KG</div>
                   <div className="text-center">Reps</div>
                   <div className="w-8 text-center">✓</div>
+                  <div className="w-8"></div>
                 </div>
 
-                {exercise.sets.map((set, setIndex) => (
-                  <SetRow 
-                    key={set.id}
-                    set={set}
-                    index={setIndex}
-                    onUpdate={(field, val) => updateSet(exerciseIndex, setIndex, field, val)}
-                    onToggle={() => toggleSet(exerciseIndex, setIndex)}
-                  />
-                ))}
+                <AnimatePresence mode="popLayout">
+                  {exercise.sets.map((set, setIndex) => (
+                    <SetRow 
+                      key={set.id}
+                      set={set}
+                      index={setIndex}
+                      onUpdate={(field, val) => updateSet(exerciseIndex, setIndex, field, val)}
+                      onToggle={() => toggleSet(exerciseIndex, setIndex)}
+                      onRemove={() => removeSet(exerciseIndex, setIndex)}
+                      canRemove={exercise.sets.length > 1}
+                    />
+                  ))}
+                </AnimatePresence>
 
                 <button 
                   onClick={() => addSet(exerciseIndex)}
