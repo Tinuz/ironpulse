@@ -1,9 +1,10 @@
 'use client'
 
 import React, { useState, useMemo, useCallback } from 'react'
-import { Search, Filter, X, ChevronDown, Play, Dumbbell } from 'lucide-react'
+import { Search, Filter, X, ChevronDown, Play, Dumbbell, ArrowLeft, Plus } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Image from 'next/image'
+import { useSearchParams, useRouter } from 'next/navigation'
 import {
   filterExercises,
   MUSCLE_GROUPS,
@@ -18,6 +19,11 @@ const ITEMS_PER_PAGE = 48 // Show 48 items at a time (4 columns x 12 rows)
 
 export default function ExerciseLibrary() {
   const { language } = useLanguage()
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const isSelectMode = searchParams.get('mode') === 'select'
+  const returnPath = searchParams.get('return') || '/schema'
+  
   const [searchQuery, setSearchQuery] = useState('')
   const [showFilters, setShowFilters] = useState(false)
   const [selectedExercise, setSelectedExercise] = useState<LibraryExercise | null>(null)
@@ -50,6 +56,11 @@ export default function ExerciseLibrary() {
     setDisplayCount(prev => Math.min(prev + ITEMS_PER_PAGE, filteredExercises.length))
   }, [filteredExercises.length])
 
+  const handleSelectExercise = useCallback((exerciseName: string) => {
+    // Navigate back with selected exercise in URL params
+    router.push(`${returnPath}?selectedExercise=${encodeURIComponent(exerciseName)}`)
+  }, [router, returnPath])
+
   const handleFilterChange = (key: keyof Omit<ExerciseFilters, 'search'>, value: string | null) => {
     setFilters(prev => ({ ...prev, [key]: value }))
     setDisplayCount(ITEMS_PER_PAGE) // Reset to first page when filters change
@@ -75,9 +86,20 @@ export default function ExerciseLibrary() {
       <div className="sticky top-0 z-40 bg-background/95 backdrop-blur-xl border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
           <div className="flex items-center justify-between mb-4">
+            {isSelectMode && (
+              <button
+                onClick={() => router.push(returnPath)}
+                className="p-2 -ml-2 text-muted-foreground hover:text-foreground"
+              >
+                <ArrowLeft size={24} />
+              </button>
+            )}
             <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-3">
               <Dumbbell className="text-primary" size={28} />
-              {language === 'nl' ? 'Oefeningen Bibliotheek' : 'Exercise Library'}
+              {isSelectMode 
+                ? (language === 'nl' ? 'Selecteer Oefening' : 'Select Exercise')
+                : (language === 'nl' ? 'Oefeningen Bibliotheek' : 'Exercise Library')
+              }
             </h1>
             <button
               onClick={() => setShowFilters(!showFilters)}
@@ -235,6 +257,8 @@ export default function ExerciseLibrary() {
           <ExerciseDetailModal
             exercise={selectedExercise}
             onClose={() => setSelectedExercise(null)}
+            onSelect={isSelectMode ? handleSelectExercise : undefined}
+            isSelectMode={isSelectMode}
           />
         )}
       </AnimatePresence>
@@ -386,9 +410,13 @@ const ExerciseCard = React.memo(function ExerciseCard({
 function ExerciseDetailModal({
   exercise,
   onClose,
+  onSelect,
+  isSelectMode,
 }: {
   exercise: LibraryExercise
   onClose: () => void
+  onSelect?: (name: string) => void
+  isSelectMode?: boolean
 }) {
   const { language } = useLanguage()
 
@@ -513,6 +541,22 @@ function ExerciseDetailModal({
             </div>
           )}
         </div>
+
+        {/* Add to Workout Button (Select Mode Only) */}
+        {isSelectMode && onSelect && (
+          <div className="sticky bottom-0 p-4 bg-background border-t border-border shrink-0">
+            <button
+              onClick={() => {
+                onSelect(exercise.name.replace(' Video Exercise Guide', ''))
+                onClose()
+              }}
+              className="w-full py-3 bg-primary text-primary-foreground rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-primary/90 transition-colors"
+            >
+              <Plus size={20} />
+              {language === 'nl' ? 'Toevoegen aan Workout' : 'Add to Workout'}
+            </button>
+          </div>
+        )}
       </motion.div>
     </>
   )
