@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft, Plus, Check, X, Clock, Play, Trash2, TrendingUp, TrendingDown, Minus, Award, Zap, StickyNote } from 'lucide-react'
+import { ArrowLeft, Plus, Check, X, Clock, Play, Trash2, TrendingUp, TrendingDown, Minus, Award, Zap, StickyNote, Flame } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import clsx from 'clsx'
 import { useData, WorkoutSet, WorkoutExercise } from '@/components/context/DataContext'
@@ -15,6 +15,7 @@ import {
   calculateProgression,
   generateOverloadSuggestion
 } from '@/components/utils/workoutCalculations'
+import { calculateBurnedCalories } from '@/components/utils/calorieCalculations'
 
 const SetRow = React.forwardRef<HTMLDivElement, { 
   set: WorkoutSet; 
@@ -228,11 +229,12 @@ const ExerciseStats = ({
 };
 
 export default function WorkoutLogger() {
-  const { activeWorkout, updateActiveWorkout, finishWorkout, cancelWorkout, history } = useData();
+  const { activeWorkout, updateActiveWorkout, finishWorkout, cancelWorkout, history, bodyStats, userProfile } = useData();
   const router = useRouter();
   const [elapsed, setElapsed] = useState(0);
   const [workoutData, setWorkoutData] = useState<typeof activeWorkout>(null);
   const [isReady, setIsReady] = useState(false);
+  const [showSummary, setShowSummary] = useState(false);
 
   // Load workout on mount - check both context and localStorage
   useEffect(() => {
@@ -393,6 +395,43 @@ export default function WorkoutLogger() {
     updateActiveWorkout(updated);
   };
 
+  // Helper: Get user weight from latest BodyStats or UserProfile
+  const getUserWeight = (): number | null => {
+    // Check most recent body stats first
+    if (bodyStats && bodyStats.length > 0) {
+      const sorted = [...bodyStats].sort((a, b) => 
+        new Date(b.date).getTime() - new Date(a.date).getTime()
+      );
+      if (sorted[0].weight) return sorted[0].weight;
+    }
+    
+    // Fallback to user profile
+    return userProfile?.weight || null;
+  };
+
+  const updateExerciseDuration = (exerciseIndex: number, durationMinutes: number) => {
+    if (!workoutData) return;
+    const newExercises = [...workoutData.exercises];
+    newExercises[exerciseIndex].durationMinutes = durationMinutes;
+    
+    // Auto-calculate calories if weight is available
+    const weight = getUserWeight();
+    if (weight && durationMinutes > 0) {
+      try {
+        const result = calculateBurnedCalories(weight, durationMinutes, workoutData.metValue || 5);
+        newExercises[exerciseIndex].estimatedCalories = result.kcal;
+      } catch {
+        newExercises[exerciseIndex].estimatedCalories = undefined;
+      }
+    } else {
+      newExercises[exerciseIndex].estimatedCalories = undefined;
+    }
+    
+    const updated = { ...workoutData, exercises: newExercises };
+    setWorkoutData(updated);
+    updateActiveWorkout(updated);
+  };
+
   const updateExerciseName = (exerciseIndex: number, name: string) => {
     if (!workoutData) return;
     const newExercises = [...workoutData.exercises];
@@ -403,10 +442,27 @@ export default function WorkoutLogger() {
   };
 
   const handleFinish = () => {
-    if (window.confirm('Finish this workout?')) {
-      finishWorkout();
-      router.push('/history');
-    }
+    setShowSummary(true);
+  };
+
+  const confirmFinish = () => {
+    if (!workoutData) return;
+    
+    // Calculate total calories from all exercises
+    const totalCalories = workoutData.exercises.reduce((sum, exercise) => {
+      return sum + (exercise.estimatedCalories || 0);
+    }, 0);
+    
+    // Update workout with total calories before finishing
+    const finalWorkout = {
+      ...workoutData,
+      totalCalories: totalCalories > 0 ? totalCalories : undefined,
+      metValue: workoutData.metValue || 5
+    };
+    
+    updateActiveWorkout(finalWorkout);
+    finishWorkout();
+    router.push('/history');
   };
 
   const handleCancel = () => {
@@ -532,6 +588,45 @@ export default function WorkoutLogger() {
                     rows={3}
                   />
                 </div>
+
+                {/* Duration & Calories Section */}
+                <div className="mt-4 pt-4 border-t border-white/5">
+                  <div className="flex items-start gap-3">
+                    <div className="flex-1">
+                      <label className="flex items-center gap-1.5 text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2 px-1">
+                        <Clock size={12} />
+                        Duur (min)
+                      </label>
+                      <input
+                        type="number"
+                        value={exercise.durationMinutes || ''}
+                        onChange={(e) => updateExerciseDuration(exerciseIndex, Number(e.target.value))}
+                        placeholder="0"
+                        min="0"
+                        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-primary/50 focus:bg-white/10 transition-colors"
+                      />
+                    </div>
+                    {exercise.durationMinutes && exercise.estimatedCalories && getUserWeight() && (
+                      <div className="flex-1">
+                        <div className="flex items-center gap-1.5 text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2 px-1">
+                          <Flame size={12} />
+                          Geschat
+                        </div>
+                        <div className="bg-primary/10 border border-primary/30 rounded-lg px-3 py-2.5 flex items-baseline gap-1">
+                          <span className="text-primary font-black text-xl">{exercise.estimatedCalories}</span>
+                          <span className="text-primary/60 text-xs font-bold">kcal</span>
+                        </div>
+                      </div>
+                    )}
+                    {exercise.durationMinutes && !getUserWeight() && (
+                      <div className="flex-1">
+                        <div className="text-xs text-muted-foreground/60 italic mt-7 px-1">
+                          Vul je gewicht in bij Settings voor calorie schatting
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
 
               {/* Stats Section */}
@@ -560,6 +655,134 @@ export default function WorkoutLogger() {
           </button>
         </div>
       </div>
+
+      {/* Workout Summary Modal */}
+      <AnimatePresence>
+        {showSummary && workoutData && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-6"
+            onClick={() => setShowSummary(false)}
+          >
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-zinc-900 rounded-2xl border border-white/10 max-w-md w-full overflow-hidden shadow-2xl"
+            >
+              {/* Header */}
+              <div className="bg-gradient-to-r from-primary/20 to-orange-500/20 p-6 text-center border-b border-primary/20">
+                <Award size={48} className="text-primary mx-auto mb-3" />
+                <h2 className="text-2xl font-black uppercase tracking-wide">Workout Voltooid!</h2>
+                <p className="text-sm text-muted-foreground mt-1">{workoutData.name}</p>
+              </div>
+
+              {/* Stats Grid */}
+              <div className="p-6 space-y-4">
+                <div className="grid grid-cols-2 gap-3">
+                  {/* Total Time */}
+                  <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1 uppercase tracking-wider">
+                      <Clock size={12} />
+                      Totale Tijd
+                    </div>
+                    <div className="text-2xl font-black text-foreground">
+                      {formatTime(elapsed)}
+                    </div>
+                  </div>
+
+                  {/* Exercises */}
+                  <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1 uppercase tracking-wider">
+                      <TrendingUp size={12} />
+                      Oefeningen
+                    </div>
+                    <div className="text-2xl font-black text-foreground">
+                      {workoutData.exercises.length}
+                    </div>
+                  </div>
+
+                  {/* Completed Sets */}
+                  <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1 uppercase tracking-wider">
+                      <Check size={12} />
+                      Sets Voltooid
+                    </div>
+                    <div className="text-2xl font-black text-foreground">
+                      {completedSets}
+                    </div>
+                  </div>
+
+                  {/* Calories Burned */}
+                  <div className="bg-primary/10 rounded-xl p-4 border border-primary/30">
+                    <div className="flex items-center gap-2 text-xs text-primary/80 mb-1 uppercase tracking-wider font-bold">
+                      <Flame size={12} />
+                      Calorieën
+                    </div>
+                    <div className="text-2xl font-black text-primary">
+                      {workoutData.exercises.reduce((sum, ex) => sum + (ex.estimatedCalories || 0), 0) > 0 
+                        ? `~${workoutData.exercises.reduce((sum, ex) => sum + (ex.estimatedCalories || 0), 0)}`
+                        : '—'}
+                    </div>
+                    {workoutData.exercises.reduce((sum, ex) => sum + (ex.estimatedCalories || 0), 0) > 0 && (
+                      <div className="text-xs text-primary/60 mt-0.5">kcal</div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Disclaimer - Only show if calories were calculated */}
+                {workoutData.exercises.reduce((sum, ex) => sum + (ex.estimatedCalories || 0), 0) > 0 && (
+                  <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 text-xs text-yellow-200/90 leading-relaxed">
+                    <strong className="block mb-1">⚠️ Let op - Schatting:</strong>
+                    Dit is een schatting op basis van de MET-formule. Individuele verschillen (leeftijd, geslacht, lichaamssamenstelling, intensiteit, rusttijden) kunnen de werkelijke verbranding aanzienlijk beïnvloeden. Voor nauwkeurige metingen raden we een hartslagmeter aan.
+                  </div>
+                )}
+
+                {/* Breakdown if multiple exercises with calories */}
+                {workoutData.exercises.filter(ex => ex.estimatedCalories).length > 1 && (
+                  <div className="border-t border-white/5 pt-4 mt-4">
+                    <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">
+                      Per Oefening
+                    </div>
+                    <div className="space-y-1.5 max-h-32 overflow-y-auto">
+                      {workoutData.exercises.map((ex) => (
+                        ex.estimatedCalories && (
+                          <div key={ex.id} className="flex items-center justify-between text-xs bg-white/5 rounded px-3 py-2">
+                            <span className="text-muted-foreground truncate flex-1">{ex.name}</span>
+                            <div className="flex items-center gap-3 flex-shrink-0">
+                              <span className="text-muted-foreground/60">{ex.durationMinutes} min</span>
+                              <span className="text-primary font-bold">{ex.estimatedCalories} kcal</span>
+                            </div>
+                          </div>
+                        )
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Actions */}
+              <div className="p-6 pt-0 flex gap-3">
+                <button 
+                  onClick={() => setShowSummary(false)}
+                  className="flex-1 py-3 bg-white/10 text-foreground font-bold rounded-xl hover:bg-white/20 transition-colors"
+                >
+                  Annuleren
+                </button>
+                <button 
+                  onClick={confirmFinish}
+                  className="flex-1 py-3 bg-primary text-black font-bold rounded-xl hover:scale-[1.02] active:scale-[0.98] transition-transform shadow-lg shadow-primary/20"
+                >
+                  Opslaan
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -33,6 +33,8 @@ export interface WorkoutExercise {
   name: string;
   sets: WorkoutSet[];
   notes?: string;
+  durationMinutes?: number; // Duration of exercise in minutes
+  estimatedCalories?: number; // Calculated calories for this exercise
 }
 
 export interface WorkoutLog {
@@ -43,6 +45,8 @@ export interface WorkoutLog {
   startTime: number;
   endTime: number | null;
   exercises: WorkoutExercise[];
+  totalCalories?: number; // Total estimated calories burned
+  metValue?: number; // MET value used for calculation (default: 5)
 }
 
 export interface BodyStats {
