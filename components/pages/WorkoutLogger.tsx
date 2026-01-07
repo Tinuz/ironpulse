@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Plus, Check, X, Clock, Play, Trash2, TrendingUp, TrendingDown, Minus, Award, Zap } from 'lucide-react'
+import { ArrowLeft, Plus, Check, X, Clock, Play, Trash2, TrendingUp, TrendingDown, Minus, Award, Zap, StickyNote } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import clsx from 'clsx'
 import { useData, WorkoutSet, WorkoutExercise } from '@/components/context/DataContext'
@@ -349,6 +349,15 @@ export default function WorkoutLogger() {
     updateActiveWorkout(updated);
   };
 
+  const updateExerciseNotes = (exerciseIndex: number, notes: string) => {
+    if (!workoutData) return;
+    const newExercises = [...workoutData.exercises];
+    newExercises[exerciseIndex].notes = notes;
+    const updated = { ...workoutData, exercises: newExercises };
+    setWorkoutData(updated);
+    updateActiveWorkout(updated);
+  };
+
   const updateExerciseName = (exerciseIndex: number, name: string) => {
     if (!workoutData) return;
     const newExercises = [...workoutData.exercises];
@@ -468,6 +477,21 @@ export default function WorkoutLogger() {
                 >
                   <Plus size={14} /> Add Set
                 </button>
+
+                {/* Notes Section */}
+                <div className="mt-4 pt-4 border-t border-white/5">
+                  <label className="flex items-center gap-2 text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2 px-1">
+                    <StickyNote size={14} />
+                    Notities
+                  </label>
+                  <textarea
+                    value={exercise.notes || ''}
+                    onChange={(e) => updateExerciseNotes(exerciseIndex, e.target.value)}
+                    placeholder="Voeg notities toe over vorm, gevoel, progressie..."
+                    className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-sm placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/50 focus:bg-white/10 transition-colors resize-none"
+                    rows={3}
+                  />
+                </div>
               </div>
 
               {/* Stats Section */}

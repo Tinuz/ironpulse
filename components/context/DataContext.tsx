@@ -32,6 +32,7 @@ export interface WorkoutExercise {
   exerciseId: string;
   name: string;
   sets: WorkoutSet[];
+  notes?: string;
 }
 
 export interface WorkoutLog {
