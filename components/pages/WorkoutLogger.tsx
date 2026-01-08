@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft, Plus, Check, X, Clock, Play, Trash2, TrendingUp, TrendingDown, Minus, Award, Zap, StickyNote, Flame, Copy } from 'lucide-react'
+import { ArrowLeft, Plus, Check, X, Clock, Play, Trash2, TrendingUp, TrendingDown, Minus, Award, Zap, StickyNote, Flame } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import clsx from 'clsx'
 import { useData, WorkoutSet, WorkoutExercise } from '@/components/context/DataContext'
@@ -469,40 +469,6 @@ export default function WorkoutLogger() {
     updateActiveWorkout(updated);
   };
 
-  const repeatLastWorkout = () => {
-    if (!workoutData || history.length === 0) return;
-    
-    // Find the most recent completed workout (excluding current)
-    const sortedHistory = [...history].sort((a, b) => 
-      new Date(b.date).getTime() - new Date(a.date).getTime()
-    );
-    
-    const lastWorkout = sortedHistory[0];
-    if (!lastWorkout) return;
-    
-    // Clone exercises from last workout with fresh IDs
-    const clonedExercises = lastWorkout.exercises.map((exercise) => ({
-      ...exercise,
-      id: crypto.randomUUID(), // New instance ID
-      sets: exercise.sets.map((set) => ({
-        ...set,
-        id: crypto.randomUUID(),
-        completed: false // Reset completion status
-      })),
-      durationMinutes: undefined, // Reset duration
-      estimatedCalories: undefined, // Reset calories
-      notes: undefined // Reset notes
-    }));
-    
-    const updated = {
-      ...workoutData,
-      exercises: clonedExercises
-    };
-    
-    setWorkoutData(updated);
-    updateActiveWorkout(updated);
-  };
-
   const handleFinish = () => {
     setShowSummary(true);
   };
@@ -719,16 +685,6 @@ export default function WorkoutLogger() {
 
         {/* Action Buttons */}
         <div className="space-y-3">
-          {/* Repeat Last Workout Button */}
-          {history.length > 0 && workoutData.exercises.length === 0 && (
-            <button
-              onClick={repeatLastWorkout}
-              className="w-full py-3 border-2 border-primary/30 rounded-xl text-primary bg-primary/5 hover:bg-primary/10 transition-colors font-bold flex items-center justify-center gap-2"
-            >
-              <Copy size={18} /> Repeat Last Workout
-            </button>
-          )}
-          
           {/* Add Exercise Button */}
           <button
             onClick={addExercise}

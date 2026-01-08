@@ -2,7 +2,7 @@
 
 import React from 'react'
 import { motion } from 'framer-motion'
-import { Play, TrendingUp, Calendar, ArrowRight, Plus, Utensils, User, Edit2, MoreVertical, Trash2, Flame } from 'lucide-react'
+import { Play, TrendingUp, Calendar, ArrowRight, Plus, Utensils, User, Edit2, MoreVertical, Trash2, Flame, Copy } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useData } from '@/components/context/DataContext'
 import { useAuth } from '@/components/context/AuthContext'
@@ -47,6 +47,28 @@ export default function Dashboard() {
 
   const handleQuickStart = () => {
     startWorkout();
+    router.push('/workout');
+  };
+
+  const handleRepeatWorkout = (workoutId: string) => {
+    const workout = history.find(w => w.id === workoutId);
+    if (!workout) return;
+
+    // Clone workout structure without IDs and completion status
+    const clonedExercises = workout.exercises.map(ex => ({
+      id: crypto.randomUUID(),
+      exerciseId: ex.exerciseId, // Preserve original exercise ID
+      name: ex.name,
+      sets: ex.sets.map(set => ({
+        id: crypto.randomUUID(),
+        reps: set.reps,
+        weight: set.weight,
+        completed: false
+      }))
+    }));
+
+    // Start new workout with cloned exercises
+    startWorkout(undefined, clonedExercises);
     router.push('/workout');
   };
 
@@ -315,6 +337,16 @@ export default function Dashboard() {
                       </div>
                     )}
                   </div>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleRepeatWorkout(log.id)
+                    }}
+                    className="p-2 hover:bg-accent/20 rounded-lg transition-all duration-200"
+                    title="Repeat workout"
+                  >
+                    <Copy size={18} className="text-accent" />
+                  </button>
                   <button
                     onClick={(e) => {
                       e.stopPropagation()
