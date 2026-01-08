@@ -20,6 +20,8 @@ interface UserProfile {
   workouts_last_30_days: number
   achievement_count: number
   last_workout_date: string | null
+  followers_count?: number
+  following_count?: number
 }
 
 interface WorkoutHistoryItem {
@@ -66,7 +68,18 @@ export default function Profile() {
       if (profileError) throw profileError
 
       if (profileData) {
-        setProfile(profileData)
+        // Load followers/following counts from user_friend_stats
+        const { data: friendStats } = await supabase
+          .from('user_friend_stats')
+          .select('followers_count, following_count')
+          .eq('user_id', profileData.user_id)
+          .single()
+
+        setProfile({
+          ...profileData,
+          followers_count: friendStats?.followers_count || 0,
+          following_count: friendStats?.following_count || 0
+        })
         setIsOwnProfile(user.id === profileData.user_id)
 
         // Check if following
@@ -166,16 +179,16 @@ export default function Profile() {
         <div className="w-10" />
       </div>
 
-      <div className="p-4 max-w-2xl mx-auto space-y-6">
+      <div className="p-4 max-w-2xl mx-auto space-y-4">
         {/* Profile Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-card border border-white/5 rounded-2xl p-6"
+          className="bg-card border border-white/5 rounded-2xl p-4"
         >
-          <div className="flex items-start gap-4">
+          <div className="flex items-start gap-3">
             {/* Avatar */}
-            <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-primary to-accent flex items-center justify-center text-white font-bold text-3xl flex-shrink-0">
+            <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-primary to-accent flex items-center justify-center text-white font-bold text-2xl flex-shrink-0">
               {profile.avatar_url ? (
                 <img src={profile.avatar_url} alt={profile.username} className="w-full h-full rounded-full object-cover" />
               ) : (
@@ -185,62 +198,74 @@ export default function Profile() {
 
             {/* Info */}
             <div className="flex-1 min-w-0">
-              <h2 className="text-2xl font-black italic">
+              <h2 className="text-xl font-black italic">
                 {profile.display_name || profile.username}
               </h2>
-              <p className="text-muted-foreground">@{profile.username}</p>
+              <p className="text-sm text-muted-foreground">@{profile.username}</p>
               {profile.bio && (
-                <p className="text-sm mt-2">{profile.bio}</p>
-              )}
-
-              {/* Follow Button (not for own profile) */}
-              {!isOwnProfile && (
-                <button
-                  onClick={handleFollow}
-                  className={`mt-4 px-6 py-2 rounded-full font-bold transition-colors ${
-                    isFollowing
-                      ? 'bg-white/10 text-foreground hover:bg-white/20'
-                      : 'bg-primary text-white hover:bg-primary/90'
-                  }`}
-                >
-                  {isFollowing ? (
-                    <div className="flex items-center gap-2">
-                      <UserCheck size={18} />
-                      Volgt
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-2">
-                      <UserPlus size={18} />
-                      Volg
-                    </div>
-                  )}
-                </button>
-              )}
-
-              {isOwnProfile && (
-                <button
-                  onClick={() => router.push('/settings')}
-                  className="mt-4 px-6 py-2 rounded-full bg-white/10 text-foreground hover:bg-white/20 font-bold transition-colors"
-                >
-                  Bewerk Profiel
-                </button>
+                <p className="text-xs mt-1 text-muted-foreground">{profile.bio}</p>
               )}
             </div>
           </div>
 
+          {/* Follow/Following counts */}
+          <div className="flex gap-4 mt-3 text-sm">
+            <div>
+              <span className="font-bold">{profile.followers_count || 0}</span>
+              <span className="text-muted-foreground ml-1">volgers</span>
+            </div>
+            <div>
+              <span className="font-bold">{profile.following_count || 0}</span>
+              <span className="text-muted-foreground ml-1">volgend</span>
+            </div>
+          </div>
+
+          {/* Follow Button (not for own profile) */}
+          {!isOwnProfile && (
+            <button
+              onClick={handleFollow}
+              className={`mt-3 w-full py-2 rounded-lg font-bold transition-colors ${
+                isFollowing
+                  ? 'bg-white/10 text-foreground hover:bg-white/20'
+                  : 'bg-primary text-white hover:bg-primary/90'
+              }`}
+            >
+              {isFollowing ? (
+                <div className="flex items-center justify-center gap-2">
+                  <UserCheck size={16} />
+                  Volgt
+                </div>
+              ) : (
+                <div className="flex items-center justify-center gap-2">
+                  <UserPlus size={16} />
+                  Volg
+                </div>
+              )}
+            </button>
+          )}
+
+          {isOwnProfile && (
+            <button
+              onClick={() => router.push('/settings')}
+              className="mt-3 w-full py-2 rounded-lg bg-white/10 text-foreground hover:bg-white/20 font-bold transition-colors"
+            >
+              Bewerk Profiel
+            </button>
+          )}
+
           {/* Stats */}
-          <div className="grid grid-cols-3 gap-4 mt-6 pt-6 border-t border-white/5">
+          <div className="grid grid-cols-3 gap-3 mt-3 pt-3 border-t border-white/5">
             <div className="text-center">
-              <div className="text-2xl font-black text-primary">{profile.total_workouts || 0}</div>
-              <div className="text-xs text-muted-foreground uppercase">Workouts</div>
+              <div className="text-xl font-black text-primary">{profile.total_workouts || 0}</div>
+              <div className="text-[10px] text-muted-foreground uppercase">Workouts</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-black text-green-500">{profile.workouts_last_30_days || 0}</div>
-              <div className="text-xs text-muted-foreground uppercase">Last 30d</div>
+              <div className="text-xl font-black text-green-500">{profile.workouts_last_30_days || 0}</div>
+              <div className="text-[10px] text-muted-foreground uppercase">Last 30d</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-black text-amber-500">{profile.achievement_count || 0}</div>
-              <div className="text-xs text-muted-foreground uppercase">Badges</div>
+              <div className="text-xl font-black text-amber-500">{profile.achievement_count || 0}</div>
+              <div className="text-[10px] text-muted-foreground uppercase">Badges</div>
             </div>
           </div>
         </motion.div>
