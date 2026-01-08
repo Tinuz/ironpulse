@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft, Plus, Check, X, Clock, Play, Trash2, TrendingUp, TrendingDown, Minus, Award, Zap, StickyNote, Flame } from 'lucide-react'
+import { ArrowLeft, Plus, Check, X, Clock, Play, Trash2, TrendingUp, TrendingDown, Minus, Award, Zap, StickyNote, Flame, Copy } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import clsx from 'clsx'
 import { useData, WorkoutSet, WorkoutExercise } from '@/components/context/DataContext'
@@ -16,7 +16,7 @@ import {
   generateOverloadSuggestion
 } from '@/components/utils/workoutCalculations'
 import { calculateBurnedCalories } from '@/components/utils/calorieCalculations'
-import { getExerciseProgression, formatProgressionDelta } from '@/components/utils/progressionAnalytics'
+import { getExerciseProgression, formatProgressionDelta, findLastWorkoutWithExercise } from '@/components/utils/progressionAnalytics'
 import ProgressionBadge from '@/components/ProgressionBadge'
 
 const SetRow = React.forwardRef<HTMLDivElement, { 
@@ -335,12 +335,38 @@ export default function WorkoutLogger() {
   const addSet = (exerciseIndex: number) => {
     if (!workoutData) return;
     const newExercises = [...workoutData.exercises];
-    const previousSet = newExercises[exerciseIndex].sets[newExercises[exerciseIndex].sets.length - 1];
+    const exercise = newExercises[exerciseIndex];
+    
+    // Smart weight suggestion logic
+    let suggestedWeight = 0;
+    let suggestedReps = 0;
+    
+    if (exercise.sets.length > 0) {
+      // Suggest based on previous set in this workout (same weight)
+      const previousSet = exercise.sets[exercise.sets.length - 1];
+      suggestedWeight = previousSet.weight || 0;
+      suggestedReps = previousSet.reps || 0;
+    } else {
+      // First set: suggest based on last workout with progression
+      const previousExercise = findLastWorkoutWithExercise(history, exercise.name, workoutData.id);
+      if (previousExercise && previousExercise.sets.length > 0) {
+        const completedSets = previousExercise.sets.filter(s => s.completed);
+        if (completedSets.length > 0) {
+          // Find heaviest set from last workout
+          const heaviestSet = completedSets.reduce((best, current) => 
+            current.weight > best.weight ? current : best
+          );
+          // Suggest +2.5kg for progressive overload
+          suggestedWeight = heaviestSet.weight + 2.5;
+          suggestedReps = heaviestSet.reps;
+        }
+      }
+    }
     
     newExercises[exerciseIndex].sets.push({
       id: crypto.randomUUID(),
-      weight: previousSet ? previousSet.weight : 0,
-      reps: previousSet ? previousSet.reps : 0,
+      weight: suggestedWeight,
+      reps: suggestedReps,
       completed: false
     });
     const updated = { ...workoutData, exercises: newExercises };
@@ -439,6 +465,40 @@ export default function WorkoutLogger() {
     const newExercises = [...workoutData.exercises];
     newExercises[exerciseIndex].name = name;
     const updated = { ...workoutData, exercises: newExercises };
+    setWorkoutData(updated);
+    updateActiveWorkout(updated);
+  };
+
+  const repeatLastWorkout = () => {
+    if (!workoutData || history.length === 0) return;
+    
+    // Find the most recent completed workout (excluding current)
+    const sortedHistory = [...history].sort((a, b) => 
+      new Date(b.date).getTime() - new Date(a.date).getTime()
+    );
+    
+    const lastWorkout = sortedHistory[0];
+    if (!lastWorkout) return;
+    
+    // Clone exercises from last workout with fresh IDs
+    const clonedExercises = lastWorkout.exercises.map((exercise) => ({
+      ...exercise,
+      id: crypto.randomUUID(), // New instance ID
+      sets: exercise.sets.map((set) => ({
+        ...set,
+        id: crypto.randomUUID(),
+        completed: false // Reset completion status
+      })),
+      durationMinutes: undefined, // Reset duration
+      estimatedCalories: undefined, // Reset calories
+      notes: undefined // Reset notes
+    }));
+    
+    const updated = {
+      ...workoutData,
+      exercises: clonedExercises
+    };
+    
     setWorkoutData(updated);
     updateActiveWorkout(updated);
   };
@@ -657,13 +717,26 @@ export default function WorkoutLogger() {
           );
         })}
 
-        {/* Add Exercise Button */}
-        <button
-          onClick={addExercise}
-          className="w-full py-4 border-2 border-dashed border-white/10 rounded-2xl text-muted-foreground hover:border-primary/30 hover:text-primary transition-colors font-bold uppercase tracking-wide flex items-center justify-center gap-2"
-        >
-          <Plus size={20} /> Add Exercise
-        </button>
+        {/* Action Buttons */}
+        <div className="space-y-3">
+          {/* Repeat Last Workout Button */}
+          {history.length > 0 && workoutData.exercises.length === 0 && (
+            <button
+              onClick={repeatLastWorkout}
+              className="w-full py-3 border-2 border-primary/30 rounded-xl text-primary bg-primary/5 hover:bg-primary/10 transition-colors font-bold flex items-center justify-center gap-2"
+            >
+              <Copy size={18} /> Repeat Last Workout
+            </button>
+          )}
+          
+          {/* Add Exercise Button */}
+          <button
+            onClick={addExercise}
+            className="w-full py-4 border-2 border-dashed border-white/10 rounded-2xl text-muted-foreground hover:border-primary/30 hover:text-primary transition-colors font-bold uppercase tracking-wide flex items-center justify-center gap-2"
+          >
+            <Plus size={20} /> Add Exercise
+          </button>
+        </div>
 
         <div className="pt-8 px-4">
           <button

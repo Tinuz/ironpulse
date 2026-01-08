@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation'
 import { useData } from '@/components/context/DataContext'
 import { useAuth } from '@/components/context/AuthContext'
 import { format } from 'date-fns';
+import StreakWidget from '@/components/StreakWidget';
 
 const container = {
   hidden: { opacity: 0 },
@@ -149,6 +150,9 @@ export default function Dashboard() {
           </div>
         </motion.div>
       </motion.div>
+
+      {/* Streak Widget */}
+      <StreakWidget history={history} />
 
       {/* Quick Start Schemas */}
       <div className="space-y-4">
