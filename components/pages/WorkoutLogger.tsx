@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft, Plus, Check, X, Clock, Play, Trash2, TrendingUp, TrendingDown, Minus, Award, Zap, StickyNote, Flame } from 'lucide-react'
+import { ArrowLeft, Plus, Check, X, Clock, Play, Trash2, TrendingUp, TrendingDown, Minus, Award, Zap, StickyNote, Flame, RefreshCw } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import clsx from 'clsx'
 import { useData, WorkoutSet, WorkoutExercise } from '@/components/context/DataContext'
@@ -18,6 +18,7 @@ import {
 import { calculateBurnedCalories } from '@/components/utils/calorieCalculations'
 import { getExerciseProgression, formatProgressionDelta, findLastWorkoutWithExercise } from '@/components/utils/progressionAnalytics'
 import ProgressionBadge from '@/components/ProgressionBadge'
+import ExerciseSubstitutionModal from '@/components/ExerciseSubstitutionModal'
 
 const SetRow = React.forwardRef<HTMLDivElement, { 
   set: WorkoutSet; 
@@ -237,6 +238,10 @@ export default function WorkoutLogger() {
   const [workoutData, setWorkoutData] = useState<typeof activeWorkout>(null);
   const [isReady, setIsReady] = useState(false);
   const [showSummary, setShowSummary] = useState(false);
+
+  // Substitution modal state
+  const [substitutionModalOpen, setSubstitutionModalOpen] = useState(false);
+  const [exerciseIndexToSubstitute, setExerciseIndexToSubstitute] = useState<number | null>(null);
 
   // Load workout on mount - check both context and localStorage
   useEffect(() => {
@@ -469,6 +474,25 @@ export default function WorkoutLogger() {
     updateActiveWorkout(updated);
   };
 
+  const openSubstitutionModal = (exerciseIndex: number) => {
+    setExerciseIndexToSubstitute(exerciseIndex);
+    setSubstitutionModalOpen(true);
+  };
+
+  const handleSubstituteExercise = (newExerciseName: string) => {
+    if (!workoutData || exerciseIndexToSubstitute === null) return;
+    
+    // Update exercise name, preserve all sets and data
+    const newExercises = [...workoutData.exercises];
+    newExercises[exerciseIndexToSubstitute].name = newExerciseName;
+    const updated = { ...workoutData, exercises: newExercises };
+    setWorkoutData(updated);
+    updateActiveWorkout(updated);
+    
+    setSubstitutionModalOpen(false);
+    setExerciseIndexToSubstitute(null);
+  };
+
   const handleFinish = () => {
     setShowSummary(true);
   };
@@ -581,12 +605,21 @@ export default function WorkoutLogger() {
                     />
                   )}
                 </div>
-                <button 
-                  onClick={() => removeExercise(exerciseIndex)}
-                  className="text-red-500 hover:bg-red-500/10 p-2 rounded-lg transition-colors"
-                >
-                  <Trash2 size={18} />
-                </button>
+                <div className="flex gap-2">
+                  <button 
+                    onClick={() => openSubstitutionModal(exerciseIndex)}
+                    className="text-blue-400 hover:bg-blue-400/10 p-2 rounded-lg transition-colors"
+                    title="Can't do this exercise?"
+                  >
+                    <RefreshCw size={18} />
+                  </button>
+                  <button 
+                    onClick={() => removeExercise(exerciseIndex)}
+                    className="text-red-500 hover:bg-red-500/10 p-2 rounded-lg transition-colors"
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                </div>
               </div>
               
               <div className="p-4 space-y-2">
@@ -831,6 +864,21 @@ export default function WorkoutLogger() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Exercise Substitution Modal */}
+      <ExerciseSubstitutionModal
+        isOpen={substitutionModalOpen}
+        onClose={() => {
+          setSubstitutionModalOpen(false);
+          setExerciseIndexToSubstitute(null);
+        }}
+        exerciseName={
+          workoutData && exerciseIndexToSubstitute !== null
+            ? workoutData.exercises[exerciseIndexToSubstitute]?.name || ''
+            : ''
+        }
+        onSelectSubstitute={handleSubstituteExercise}
+      />
     </div>
   );
 }

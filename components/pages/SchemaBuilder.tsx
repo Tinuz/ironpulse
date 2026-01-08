@@ -2,9 +2,10 @@
 
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft, Plus, Trash2, GripHorizontal, RotateCcw, Edit2, Search } from 'lucide-react'
+import { ArrowLeft, Plus, Trash2, GripHorizontal, RotateCcw, Edit2, Search, RefreshCw } from 'lucide-react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useData, Schema, Exercise } from '@/components/context/DataContext'
+import ExerciseSubstitutionModal from '@/components/ExerciseSubstitutionModal'
 
 export default function SchemaBuilder() {
   const { addSchema, schemas, updateSchema } = useData();
@@ -23,6 +24,10 @@ export default function SchemaBuilder() {
   const [newExSets, setNewExSets] = useState(3);
   const [newExReps, setNewExReps] = useState(10);
   const [newExStartWeight, setNewExStartWeight] = useState<number | undefined>(undefined);
+
+  // Substitution Modal State
+  const [substitutionModalOpen, setSubstitutionModalOpen] = useState(false);
+  const [exerciseToSubstitute, setExerciseToSubstitute] = useState<Exercise | null>(null);
 
   // Load schema for editing
   useEffect(() => {
@@ -143,6 +148,24 @@ export default function SchemaBuilder() {
     setIsAddingEx(false);
   };
 
+  const openSubstitutionModal = (exercise: Exercise) => {
+    setExerciseToSubstitute(exercise);
+    setSubstitutionModalOpen(true);
+  };
+
+  const handleSubstituteExercise = (newExerciseName: string) => {
+    if (!exerciseToSubstitute) return;
+    
+    setExercises(exercises.map(ex => 
+      ex.id === exerciseToSubstitute.id 
+        ? { ...ex, name: newExerciseName }
+        : ex
+    ));
+    
+    setSubstitutionModalOpen(false);
+    setExerciseToSubstitute(null);
+  };
+
   return (
     <div className="min-h-screen bg-background pb-24">
       {/* Header */}
@@ -202,6 +225,13 @@ export default function SchemaBuilder() {
                   </div>
                 </div>
                 <div className="flex gap-2">
+                  <button 
+                    onClick={() => openSubstitutionModal(ex)}
+                    className="p-2 text-blue-400/60 md:opacity-0 md:group-hover:opacity-100 hover:text-blue-400 transition-colors"
+                    title="Find substitute exercise"
+                  >
+                    <RefreshCw size={18} />
+                  </button>
                   <button 
                     onClick={() => startEditExercise(ex)}
                     className="p-2 text-muted-foreground/60 md:opacity-0 md:group-hover:opacity-100 hover:text-primary transition-colors"
@@ -315,6 +345,17 @@ export default function SchemaBuilder() {
           )}
         </div>
       </div>
+
+      {/* Exercise Substitution Modal */}
+      <ExerciseSubstitutionModal
+        isOpen={substitutionModalOpen}
+        onClose={() => {
+          setSubstitutionModalOpen(false);
+          setExerciseToSubstitute(null);
+        }}
+        exerciseName={exerciseToSubstitute?.name || ''}
+        onSelectSubstitute={handleSubstituteExercise}
+      />
     </div>
   );
 }
