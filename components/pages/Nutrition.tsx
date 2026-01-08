@@ -45,7 +45,13 @@ export default function Nutrition() {
     carbs: '',
     fats: '',
     volume: '',
-    type: 'food' as 'food' | 'drink'
+    amount: '100', // Default to 100g
+    type: 'food' as 'food' | 'drink',
+    // Base values per 100g (for recalculation)
+    baseCalories: '',
+    baseProtein: '',
+    baseCarbs: '',
+    baseFats: ''
   });
 
   const totals = items.reduce((acc, item) => ({
@@ -185,7 +191,12 @@ export default function Nutrition() {
       carbs: '',
       fats: '',
       volume: '',
-      type: 'food'
+      amount: '100',
+      type: 'food',
+      baseCalories: '',
+      baseProtein: '',
+      baseCarbs: '',
+      baseFats: ''
     });
     setIsAdding(false);
   };
@@ -198,7 +209,12 @@ export default function Nutrition() {
       carbs: product.carbs.toString(),
       fats: product.fats.toString(),
       volume: '',
-      type: 'food'
+      amount: '100',
+      type: 'food',
+      baseCalories: product.calories.toString(),
+      baseProtein: product.protein.toString(),
+      baseCarbs: product.carbs.toString(),
+      baseFats: product.fats.toString()
     });
     setIsScannerOpen(false);
     setIsAdding(true);
@@ -271,7 +287,13 @@ export default function Nutrition() {
       carbs: result.nutrients.carbs.toString(),
       fats: result.nutrients.fats.toString(),
       volume: '',
-      type: newItem.type
+      amount: '100',
+      type: newItem.type,
+      // Store base values (per 100g) for recalculation
+      baseCalories: result.nutrients.calories.toString(),
+      baseProtein: result.nutrients.protein.toString(),
+      baseCarbs: result.nutrients.carbs.toString(),
+      baseFats: result.nutrients.fats.toString()
     });
     setShowDropdown(false);
     setSearchResults([]);
@@ -297,6 +319,27 @@ export default function Nutrition() {
       }
     };
   }, []);
+
+  // Calculate nutrition values based on amount (in grams)
+  const handleAmountChange = (amount: string) => {
+    const amountNum = parseFloat(amount) || 0;
+    
+    // If we have base values, recalculate
+    if (newItem.baseCalories) {
+      const multiplier = amountNum / 100;
+      
+      setNewItem({
+        ...newItem,
+        amount: amount,
+        calories: Math.round(parseFloat(newItem.baseCalories) * multiplier).toString(),
+        protein: (Math.round(parseFloat(newItem.baseProtein) * multiplier * 10) / 10).toString(),
+        carbs: (Math.round(parseFloat(newItem.baseCarbs) * multiplier * 10) / 10).toString(),
+        fats: (Math.round(parseFloat(newItem.baseFats) * multiplier * 10) / 10).toString()
+      });
+    } else {
+      setNewItem({...newItem, amount: amount});
+    }
+  };
 
   // Get recent unique items from all nutrition logs
   const getRecentItems = () => {
@@ -1047,6 +1090,25 @@ export default function Nutrition() {
                   </button>
                 </div>
 
+                {/* Amount Field - Prominently Placed */}
+                <div className="mb-4">
+                  <label className="text-xs font-bold text-primary uppercase mb-2 block flex items-center gap-2">
+                    {language === 'nl' ? 'Hoeveelheid (gram)' : 'Amount (grams)'}
+                    {newItem.baseCalories && (
+                      <span className="text-[10px] text-muted-foreground normal-case font-normal">
+                        • {language === 'nl' ? 'waarden per 100g' : 'values per 100g'}
+                      </span>
+                    )}
+                  </label>
+                  <input
+                    type="number"
+                    value={newItem.amount}
+                    onChange={(e) => handleAmountChange(e.target.value)}
+                    placeholder="100"
+                    className="w-full bg-card border-2 border-primary/30 rounded-xl p-3 focus:border-primary outline-none text-lg font-bold"
+                  />
+                </div>
+
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="text-xs font-bold text-muted-foreground uppercase mb-2 block">{t.nutrition.calories}</label>
@@ -1056,6 +1118,7 @@ export default function Nutrition() {
                       onChange={(e) => setNewItem({...newItem, calories: e.target.value})}
                       placeholder="200"
                       className="w-full bg-card border border-white/10 rounded-xl p-3 focus:border-primary outline-none"
+                      disabled={!!newItem.baseCalories}
                     />
                   </div>
                   <div>
@@ -1066,6 +1129,7 @@ export default function Nutrition() {
                       onChange={(e) => setNewItem({...newItem, protein: e.target.value})}
                       placeholder="30"
                       className="w-full bg-card border border-white/10 rounded-xl p-3 focus:border-primary outline-none"
+                      disabled={!!newItem.baseCalories}
                     />
                   </div>
                   <div>
@@ -1076,6 +1140,7 @@ export default function Nutrition() {
                       onChange={(e) => setNewItem({...newItem, carbs: e.target.value})}
                       placeholder="10"
                       className="w-full bg-card border border-white/10 rounded-xl p-3 focus:border-primary outline-none"
+                      disabled={!!newItem.baseCalories}
                     />
                   </div>
                   <div>
@@ -1086,6 +1151,7 @@ export default function Nutrition() {
                       onChange={(e) => setNewItem({...newItem, fats: e.target.value})}
                       placeholder="5"
                       className="w-full bg-card border border-white/10 rounded-xl p-3 focus:border-primary outline-none"
+                      disabled={!!newItem.baseCalories}
                     />
                   </div>
                 </div>
