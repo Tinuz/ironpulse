@@ -8,6 +8,9 @@ import { useData } from '@/components/context/DataContext'
 import { useAuth } from '@/components/context/AuthContext'
 import { format } from 'date-fns';
 import StreakWidget from '@/components/StreakWidget';
+import MuscleGroupVolumeWidget from '@/components/MuscleGroupVolumeWidget';
+import WeeklySummaryWidget from '@/components/WeeklySummaryWidget';
+import PlateauDetectionWidget from '@/components/PlateauDetectionWidget';
 
 const container = {
   hidden: { opacity: 0 },
@@ -175,6 +178,15 @@ export default function Dashboard() {
 
       {/* Streak Widget */}
       <StreakWidget history={history} />
+
+      {/* Weekly Summary Widget */}
+      <WeeklySummaryWidget />
+
+      {/* Muscle Group Volume Widget */}
+      <MuscleGroupVolumeWidget />
+
+      {/* Plateau Detection Widget */}
+      <PlateauDetectionWidget />
 
       {/* Quick Start Schemas */}
       <div className="space-y-4">
