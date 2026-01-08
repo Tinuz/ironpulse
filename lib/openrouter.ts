@@ -174,15 +174,25 @@ Example format:
 function parseAndValidateSuggestions(content: string): AccessorySuggestion[] {
   try {
     // Extract JSON from markdown code blocks if present
-    const jsonMatch = content.match(/```(?:json)?\s*(\[[\s\S]*?\])\s*```/) || 
-                     content.match(/(\[[\s\S]*?\])/);
+    let jsonMatch = content.match(/```(?:json)?\s*(\[[\s\S]*?\])\s*```/) || 
+                    content.match(/(\[[\s\S]*?\])/);
     
     if (!jsonMatch) {
       console.error('No JSON array found in response');
       return [];
     }
 
-    const parsed = JSON.parse(jsonMatch[1]);
+    let jsonString = jsonMatch[1];
+
+    // Clean up common JSON formatting issues
+    jsonString = jsonString
+      .replace(/,\s*}/g, '}')      // Remove trailing commas before }
+      .replace(/,\s*\]/g, ']')     // Remove trailing commas before ]
+      .replace(/\n/g, ' ')          // Replace newlines with spaces
+      .replace(/\s+/g, ' ')         // Normalize whitespace
+      .trim();
+
+    const parsed = JSON.parse(jsonString);
     
     if (!Array.isArray(parsed)) {
       console.error('Response is not an array');
@@ -215,6 +225,39 @@ function parseAndValidateSuggestions(content: string): AccessorySuggestion[] {
 
   } catch (error) {
     console.error('Failed to parse AI response:', error);
+    
+    // Last resort: Try to extract individual valid JSON objects
+    try {
+      const objectMatches = content.matchAll(/\{[^{}]*"exercise"[^{}]*\}/g);
+      const fallbackSuggestions: AccessorySuggestion[] = [];
+      
+      for (const match of objectMatches) {
+        try {
+          const obj = JSON.parse(match[0]);
+          if (obj.exercise && obj.reason && obj.category && obj.priority && obj.targetMuscles) {
+            fallbackSuggestions.push({
+              exercise: obj.exercise,
+              reason: obj.reason,
+              category: obj.category,
+              priority: obj.priority,
+              targetMuscles: obj.targetMuscles,
+              sets: obj.sets,
+              reps: obj.reps,
+            });
+          }
+        } catch {
+          // Skip invalid objects
+        }
+      }
+      
+      if (fallbackSuggestions.length > 0) {
+        console.log('Recovered suggestions using fallback parsing');
+        return fallbackSuggestions.slice(0, 5);
+      }
+    } catch {
+      // Fallback also failed
+    }
+    
     return [];
   }
 }
