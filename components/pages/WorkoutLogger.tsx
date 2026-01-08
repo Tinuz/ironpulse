@@ -16,6 +16,8 @@ import {
   generateOverloadSuggestion
 } from '@/components/utils/workoutCalculations'
 import { calculateBurnedCalories } from '@/components/utils/calorieCalculations'
+import { getExerciseProgression, formatProgressionDelta } from '@/components/utils/progressionAnalytics'
+import ProgressionBadge from '@/components/ProgressionBadge'
 
 const SetRow = React.forwardRef<HTMLDivElement, { 
   set: WorkoutSet; 
@@ -521,6 +523,14 @@ export default function WorkoutLogger() {
             .map(w => getExerciseFromWorkout(w, exercise.name))
             .filter(ex => ex !== null) as WorkoutExercise[];
 
+          // Calculate progression for this exercise
+          const progression = getExerciseProgression(
+            exercise.name,
+            exercise,
+            history,
+            workoutData.id
+          );
+
           return (
             <motion.div 
               key={exercise.id}
@@ -530,12 +540,21 @@ export default function WorkoutLogger() {
               className="bg-card border border-white/5 rounded-2xl overflow-hidden"
             >
               <div className="p-4 bg-white/5 border-b border-white/5 flex justify-between items-center gap-3">
-                <input
-                  type="text"
-                  value={exercise.name}
-                  onChange={(e) => updateExerciseName(exerciseIndex, e.target.value)}
-                  className="flex-1 bg-transparent font-bold text-lg focus:outline-none focus:bg-white/5 px-2 py-1 rounded transition-colors"
-                />
+                <div className="flex-1 flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={exercise.name}
+                    onChange={(e) => updateExerciseName(exerciseIndex, e.target.value)}
+                    className="flex-1 bg-transparent font-bold text-lg focus:outline-none focus:bg-white/5 px-2 py-1 rounded transition-colors"
+                  />
+                  {progression.previousBest && (
+                    <ProgressionBadge 
+                      status={progression.status}
+                      delta={formatProgressionDelta(progression)}
+                      size="sm"
+                    />
+                  )}
+                </div>
                 <button 
                   onClick={() => removeExercise(exerciseIndex)}
                   className="text-red-500 hover:bg-red-500/10 p-2 rounded-lg transition-colors"
