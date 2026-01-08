@@ -2,7 +2,7 @@
 
 import React from 'react'
 import { motion } from 'framer-motion'
-import { Play, TrendingUp, Calendar, ArrowRight, Plus, Utensils, User, Edit2, MoreVertical, Trash2, Flame } from 'lucide-react'
+import { Play, TrendingUp, Calendar, ArrowRight, Plus, Utensils, User, Edit2, MoreVertical, Trash2, Flame, Coffee } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useData } from '@/components/context/DataContext'
 import { useAuth } from '@/components/context/AuthContext'
@@ -357,6 +357,22 @@ export default function Dashboard() {
           </div>
         </>
       )}
+
+      {/* Support Button */}
+      <motion.a
+        href="https://buymeacoffee.com/nxtrep"
+        target="_blank"
+        rel="noopener noreferrer"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.5 }}
+        className="block w-full py-3 px-4 rounded-xl bg-white/5 hover:bg-[#FF813F]/10 border border-white/10 hover:border-[#FF813F]/30 transition-all text-center group"
+      >
+        <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground group-hover:text-[#FF813F] transition-colors">
+          <Coffee size={16} />
+          <span>Support de doorontwikkeling</span>
+        </div>
+      </motion.a>
     </div>
   );
 }
