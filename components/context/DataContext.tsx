@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { CoachProfileType } from '@/components/utils/coachProfiles';
 import { useAuth } from '@/components/context/AuthContext';
+import { checkAchievements, getNewlyUnlocked } from '@/components/utils/achievementEngine';
 
 export interface Exercise {
   id: string;
@@ -47,6 +48,7 @@ export interface WorkoutLog {
   exercises: WorkoutExercise[];
   totalCalories?: number; // Total estimated calories burned
   metValue?: number; // MET value used for calculation (default: 5)
+  completedAt?: string; // ISO timestamp when workout was completed
 }
 
 export interface BodyStats {
@@ -97,6 +99,8 @@ interface DataContextType {
   nutritionLogs: NutritionLog[];
   coachProfile: CoachProfileType;
   userProfile: UserProfile | null;
+  achievements: string[]; // Array of unlocked achievement IDs
+  unlockedAchievement: { id: string; name: string; description: string; icon: string; category: string } | null;
   addSchema: (schema: Schema) => void;
   updateSchema: (id: string, schema: Schema) => Promise<void>;
   deleteSchema: (id: string) => void;
@@ -154,6 +158,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [bodyStats, setBodyStats] = useState<BodyStats[]>([]);
   const [nutritionLogs, setNutritionLogs] = useState<NutritionLog[]>([]);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [achievements, setAchievements] = useState<string[]>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('ironpulse_achievements');
+      return saved ? JSON.parse(saved) : [];
+    }
+    return [];
+  });
+  const [unlockedAchievement, setUnlockedAchievement] = useState<{ id: string; name: string; description: string; icon: string; category: string } | null>(null);
   const [coachProfile, setCoachProfileState] = useState<CoachProfileType>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('ironpulse_coach_profile');
@@ -400,7 +412,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const finishWorkout = async () => {
     if (activeWorkout) {
-      const finishedWorkout = { ...activeWorkout, endTime: Date.now() };
+      const finishedWorkout = { ...activeWorkout, endTime: Date.now(), completedAt: new Date().toISOString() };
       
       const { data, error } = await supabase
         .from('workout_history')
@@ -418,15 +430,43 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .single();
 
       if (!error && data) {
-        setHistory(prev => [{
+        const newWorkout = {
           id: data.id,
           schemaId: data.schema_id,
           name: data.name,
           date: data.date,
           startTime: data.start_time,
           endTime: data.end_time,
-          exercises: data.exercises
-        }, ...prev]);
+          exercises: data.exercises,
+          completedAt: finishedWorkout.completedAt
+        };
+        
+        const updatedHistory = [newWorkout, ...history];
+        setHistory(updatedHistory);
+        
+        // Check for newly unlocked achievements
+        const achievementProgress = checkAchievements(updatedHistory, achievements);
+        const newlyUnlocked = getNewlyUnlocked(achievementProgress, achievements);
+        
+        if (newlyUnlocked.length > 0) {
+          // Show first unlocked achievement
+          const firstUnlocked = newlyUnlocked[0];
+          setUnlockedAchievement({
+            id: firstUnlocked.id,
+            name: firstUnlocked.name,
+            description: firstUnlocked.description,
+            icon: firstUnlocked.icon,
+            category: firstUnlocked.category
+          });
+          
+          // Update achievements list
+          const newAchievements = [...achievements, ...newlyUnlocked.map(a => a.id)];
+          setAchievements(newAchievements);
+          localStorage.setItem('ironpulse_achievements', JSON.stringify(newAchievements));
+          
+          // Clear toast after animation
+          setTimeout(() => setUnlockedAchievement(null), 6000);
+        }
       }
       setActiveWorkout(null);
       localStorage.removeItem('ft_active');
@@ -734,6 +774,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       nutritionLogs,
       coachProfile,
       userProfile,
+      achievements,
+      unlockedAchievement,
       addSchema,
       updateSchema,
       deleteSchema,

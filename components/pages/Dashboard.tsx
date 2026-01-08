@@ -12,6 +12,8 @@ import MuscleGroupVolumeWidget from '@/components/MuscleGroupVolumeWidget';
 import WeeklySummaryWidget from '@/components/WeeklySummaryWidget';
 import PlateauDetectionWidget from '@/components/PlateauDetectionWidget';
 import DeloadRecommendationWidget from '@/components/DeloadRecommendationWidget';
+import AchievementsWidget from '@/components/AchievementsWidget';
+import AchievementToast from '@/components/AchievementToast';
 
 const container = {
   hidden: { opacity: 0 },
@@ -29,7 +31,7 @@ const item = {
 };
 
 export default function Dashboard() {
-  const { schemas, history, startWorkout, activeWorkout, nutritionLogs, deleteSchema } = useData()
+  const { schemas, history, startWorkout, activeWorkout, nutritionLogs, deleteSchema, unlockedAchievement } = useData()
   const { user } = useAuth()
   const router = useRouter()
   const [schemaMenuOpen, setSchemaMenuOpen] = React.useState<string | null>(null)
@@ -191,6 +193,9 @@ export default function Dashboard() {
 
       {/* Deload Recommendation Widget */}
       <DeloadRecommendationWidget />
+
+      {/* Achievements Widget */}
+      <AchievementsWidget />
 
       {/* Quick Start Schemas */}
       <div className="space-y-4">
@@ -428,6 +433,19 @@ export default function Dashboard() {
           <p className="text-xs text-muted-foreground/70">Steun de doorontwikkeling van NXT•REP</p>
         </div>
       </motion.a>
+
+      {/* Achievement Toast */}
+      <AchievementToast 
+        achievement={unlockedAchievement ? {
+          id: unlockedAchievement.id,
+          name: unlockedAchievement.name,
+          description: unlockedAchievement.description,
+          icon: unlockedAchievement.icon,
+          category: unlockedAchievement.category as any,
+          threshold: 0
+        } : null}
+        onClose={() => {}}
+      />
     </div>
   );
 }
