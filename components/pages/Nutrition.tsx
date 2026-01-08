@@ -1090,7 +1090,7 @@ export default function Nutrition() {
                   </button>
                 </div>
 
-                {/* Amount Field - Only for Food */}
+                {/* Amount Field - For Food (grams) */}
                 {newItem.type === 'food' && (
                   <div className="mb-4">
                     <label className="text-xs font-bold text-primary uppercase mb-2 block flex items-center gap-2">
@@ -1108,6 +1108,28 @@ export default function Nutrition() {
                       placeholder="100"
                       className="w-full bg-card border-2 border-primary/30 rounded-xl p-3 focus:border-primary outline-none text-lg font-bold"
                     />
+                  </div>
+                )}
+
+                {/* Volume Field - For Drinks (ml) */}
+                {newItem.type === 'drink' && (
+                  <div className="mb-4">
+                    <label className="text-xs font-bold text-blue-400 uppercase mb-2 block flex items-center gap-2">
+                      <Droplet size={14} />
+                      Volume (ml)
+                    </label>
+                    <input
+                      type="number"
+                      value={newItem.volume}
+                      onChange={(e) => setNewItem({...newItem, volume: e.target.value})}
+                      placeholder="250"
+                      className="w-full bg-card border-2 border-blue-500/30 rounded-xl p-3 focus:border-blue-500/50 outline-none text-lg font-bold"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1 px-1">
+                      {language === 'nl' 
+                        ? 'Dit wordt automatisch toegevoegd aan je hydratatie tracking' 
+                        : 'This will be automatically added to your hydration tracking'}
+                    </p>
                   </div>
                 )}
 
@@ -1157,26 +1179,6 @@ export default function Nutrition() {
                     />
                   </div>
                 </div>
-
-                {/* Volume field for drinks */}
-                {newItem.type === 'drink' && (
-                  <div>
-                    <label className="text-xs font-bold text-muted-foreground uppercase mb-2 block flex items-center gap-2">
-                      <Droplet size={14} className="text-blue-400" />
-                      Volume (ml)
-                    </label>
-                    <input
-                      type="number"
-                      value={newItem.volume}
-                      onChange={(e) => setNewItem({...newItem, volume: e.target.value})}
-                      placeholder="250"
-                      className="w-full bg-card border border-blue-500/20 rounded-xl p-3 focus:border-blue-500/50 outline-none"
-                    />
-                    <p className="text-xs text-muted-foreground mt-1 px-1">
-                      Dit wordt automatisch toegevoegd aan je hydratatie tracking
-                    </p>
-                  </div>
-                )}
 
                 <button
                   onClick={handleAdd}
