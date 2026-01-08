@@ -1,11 +1,13 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { ArrowLeft, Calendar, Clock, Trophy, Dumbbell, Edit2, BarChart3, Award, Trash2, Flame } from 'lucide-react'
 import { useRouter, usePathname } from 'next/navigation'
 import { format } from 'date-fns'
 import { useData } from '@/components/context/DataContext'
+import { useAuth } from '@/components/context/AuthContext'
+import { supabase } from '@/lib/supabase'
 import WorkoutReactions from '@/components/WorkoutReactions'
 import { 
   getBest1RM, 
@@ -14,18 +16,72 @@ import {
   getExerciseFromWorkout,
   getPersonalRecord 
 } from '@/components/utils/workoutCalculations'
+import type { WorkoutLog } from '@/components/context/DataContext'
 
 export default function WorkoutDetail() {
   const { history, deleteWorkout } = useData();
+  const { user } = useAuth();
   const router = useRouter()
   const pathname = usePathname()
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [workout, setWorkout] = useState<WorkoutLog | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [isOwnWorkout, setIsOwnWorkout] = useState(false);
   
   // Get workout ID from URL path (e.g., /workout/abc123)
   const workoutId = pathname.split('/workout/')[1]
 
-  const workout = history.find(w => w.id === workoutId);
+  useEffect(() => {
+    loadWorkout();
+  }, [workoutId, history, user]);
+
+  const loadWorkout = async () => {
+    if (!workoutId) {
+      setLoading(false);
+      return;
+    }
+
+    // First try to find in local history (own workouts)
+    const localWorkout = history.find(w => w.id === workoutId);
+    if (localWorkout) {
+      setWorkout(localWorkout);
+      setIsOwnWorkout(true);
+      setLoading(false);
+      return;
+    }
+
+    // If not found locally, fetch from Supabase (other users' workouts)
+    try {
+      const { data, error } = await supabase
+        .from('workout_history')
+        .select('*')
+        .eq('id', workoutId)
+        .single();
+
+      if (error) throw error;
+
+      if (data) {
+        // Convert Supabase data to WorkoutLog format
+        const fetchedWorkout: WorkoutLog = {
+          id: data.id,
+          schemaId: null,
+          name: data.name,
+          date: data.date,
+          startTime: data.start_time,
+          endTime: data.end_time,
+          exercises: data.exercises,
+          totalCalories: data.total_calories
+        };
+        setWorkout(fetchedWorkout);
+        setIsOwnWorkout(user?.id === data.user_id);
+      }
+    } catch (error) {
+      console.error('Error loading workout:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleDelete = async () => {
     if (!workoutId) return;
@@ -38,6 +94,14 @@ export default function WorkoutDetail() {
       setIsDeleting(false);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="h-8 w-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   if (!workout) {
     return (
@@ -73,20 +137,23 @@ export default function WorkoutDetail() {
           <ArrowLeft size={24} />
         </button>
         <h1 className="font-bold text-lg">Workout Details</h1>
-        <div className="flex gap-2">
-          <button 
-            onClick={() => setShowDeleteConfirm(true)}
-            className="p-2 text-muted-foreground hover:text-destructive"
-          >
-            <Trash2 size={20} />
-          </button>
-          <button 
-            onClick={() => router.push(`/workout/${workoutId}?edit=true`)}
-            className="p-2 -mr-2 text-primary hover:text-primary/80"
-          >
-            <Edit2 size={20} />
-          </button>
-        </div>
+        {isOwnWorkout && (
+          <div className="flex gap-2">
+            <button 
+              onClick={() => setShowDeleteConfirm(true)}
+              className="p-2 text-muted-foreground hover:text-destructive"
+            >
+              <Trash2 size={20} />
+            </button>
+            <button 
+              onClick={() => router.push(`/workout/${workoutId}?edit=true`)}
+              className="p-2 -mr-2 text-primary hover:text-primary/80"
+            >
+              <Edit2 size={20} />
+            </button>
+          </div>
+        )}
+        {!isOwnWorkout && <div className="w-10" />}
       </div>
 
       <div className="p-4 max-w-2xl mx-auto space-y-6">
