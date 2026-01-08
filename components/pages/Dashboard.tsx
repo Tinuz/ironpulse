@@ -11,6 +11,7 @@ import StreakWidget from '@/components/StreakWidget';
 import MuscleGroupVolumeWidget from '@/components/MuscleGroupVolumeWidget';
 import WeeklySummaryWidget from '@/components/WeeklySummaryWidget';
 import PlateauDetectionWidget from '@/components/PlateauDetectionWidget';
+import DeloadRecommendationWidget from '@/components/DeloadRecommendationWidget';
 
 const container = {
   hidden: { opacity: 0 },
@@ -187,6 +188,9 @@ export default function Dashboard() {
 
       {/* Plateau Detection Widget */}
       <PlateauDetectionWidget />
+
+      {/* Deload Recommendation Widget */}
+      <DeloadRecommendationWidget />
 
       {/* Quick Start Schemas */}
       <div className="space-y-4">
