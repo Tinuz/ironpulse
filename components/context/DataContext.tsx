@@ -158,13 +158,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [bodyStats, setBodyStats] = useState<BodyStats[]>([]);
   const [nutritionLogs, setNutritionLogs] = useState<NutritionLog[]>([]);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [achievements, setAchievements] = useState<string[]>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('ironpulse_achievements');
-      return saved ? JSON.parse(saved) : [];
-    }
-    return [];
-  });
+  const [achievements, setAchievements] = useState<string[]>([]);
   const [unlockedAchievement, setUnlockedAchievement] = useState<{ id: string; name: string; description: string; icon: string; category: string } | null>(null);
   const [coachProfile, setCoachProfileState] = useState<CoachProfileType>(() => {
     if (typeof window !== 'undefined') {
@@ -296,12 +290,126 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
       }
 
+      // Load achievements from Supabase
+      await loadAchievements();
+
       // Load active workout from localStorage (temporary state)
       const savedActive = localStorage.getItem('ft_active');
       setActiveWorkout(savedActive ? JSON.parse(savedActive) : null);
 
     } catch (error) {
       console.error('Error loading data:', error);
+    }
+  };
+
+  // Load achievements from Supabase with localStorage migration
+  const loadAchievements = async () => {
+    try {
+      // First, check if there are achievements in localStorage that need migrating
+      const localAchievements = typeof window !== 'undefined' 
+        ? localStorage.getItem('ironpulse_achievements') 
+        : null;
+      
+      // Load from Supabase
+      const { data: achievementsData, error } = await supabase
+        .from('user_achievements')
+        .select('achievement_id')
+        .eq('user_id', USER_ID);
+
+      if (error) {
+        console.error('Error loading achievements from Supabase:', error);
+        // Fallback to localStorage
+        if (localAchievements) {
+          setAchievements(JSON.parse(localAchievements));
+        }
+        return;
+      }
+
+      const dbAchievements = achievementsData?.map(a => a.achievement_id) || [];
+
+      // Migrate localStorage achievements to database if they exist
+      if (localAchievements) {
+        const localAchievementIds: string[] = JSON.parse(localAchievements);
+        const achievementsToMigrate = localAchievementIds.filter(
+          id => !dbAchievements.includes(id)
+        );
+
+        if (achievementsToMigrate.length > 0) {
+          console.log(`Migrating ${achievementsToMigrate.length} achievements from localStorage to database...`);
+          
+          const { error: insertError } = await supabase
+            .from('user_achievements')
+            .insert(
+              achievementsToMigrate.map(id => ({
+                user_id: USER_ID,
+                achievement_id: id,
+                unlocked_at: new Date().toISOString()
+              }))
+            );
+
+          if (!insertError) {
+            // Migration successful, clear localStorage
+            localStorage.removeItem('ironpulse_achievements');
+            console.log('Achievement migration completed successfully');
+            // Combine migrated and existing
+            setAchievements([...dbAchievements, ...achievementsToMigrate]);
+          } else {
+            console.error('Error migrating achievements:', insertError);
+            // Keep using localStorage as fallback
+            setAchievements(localAchievementIds);
+          }
+        } else {
+          // No migration needed, use database achievements
+          setAchievements(dbAchievements);
+          // Clean up localStorage
+          localStorage.removeItem('ironpulse_achievements');
+        }
+      } else {
+        // No localStorage data, just use database
+        setAchievements(dbAchievements);
+      }
+    } catch (error) {
+      console.error('Error in loadAchievements:', error);
+      // Fallback to localStorage
+      if (typeof window !== 'undefined') {
+        const localAchievements = localStorage.getItem('ironpulse_achievements');
+        if (localAchievements) {
+          setAchievements(JSON.parse(localAchievements));
+        }
+      }
+    }
+  };
+
+  // Save new achievements to Supabase
+  const saveAchievements = async (newAchievementIds: string[]) => {
+    try {
+      // Insert new achievements into database
+      const { error } = await supabase
+        .from('user_achievements')
+        .insert(
+          newAchievementIds.map(id => ({
+            user_id: USER_ID,
+            achievement_id: id,
+            unlocked_at: new Date().toISOString()
+          }))
+        );
+
+      if (error) {
+        console.error('Error saving achievements to Supabase:', error);
+        // Fallback: save to localStorage
+        const updatedAchievements = [...achievements, ...newAchievementIds];
+        localStorage.setItem('ironpulse_achievements', JSON.stringify(updatedAchievements));
+        setAchievements(updatedAchievements);
+      } else {
+        // Success: update local state
+        setAchievements([...achievements, ...newAchievementIds]);
+      }
+    } catch (error) {
+      console.error('Error in saveAchievements:', error);
+      // Fallback to localStorage
+      const updatedAchievements = [...achievements, ...newAchievementIds];
+      localStorage.setItem('ironpulse_achievements', JSON.stringify(updatedAchievements));
+      setAchievements(updatedAchievements);
     }
   };
 
@@ -459,10 +567,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             category: firstUnlocked.category
           });
           
-          // Update achievements list
-          const newAchievements = [...achievements, ...newlyUnlocked.map(a => a.id)];
-          setAchievements(newAchievements);
-          localStorage.setItem('ironpulse_achievements', JSON.stringify(newAchievements));
+          // Save new achievements to Supabase
+          await saveAchievements(newlyUnlocked.map(a => a.id));
           
           // Clear toast after animation
           setTimeout(() => setUnlockedAchievement(null), 6000);
