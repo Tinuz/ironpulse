@@ -1090,24 +1090,26 @@ export default function Nutrition() {
                   </button>
                 </div>
 
-                {/* Amount Field - Prominently Placed */}
-                <div className="mb-4">
-                  <label className="text-xs font-bold text-primary uppercase mb-2 block flex items-center gap-2">
-                    {language === 'nl' ? 'Hoeveelheid (gram)' : 'Amount (grams)'}
-                    {newItem.baseCalories && (
-                      <span className="text-[10px] text-muted-foreground normal-case font-normal">
-                        • {language === 'nl' ? 'waarden per 100g' : 'values per 100g'}
-                      </span>
-                    )}
-                  </label>
-                  <input
-                    type="number"
-                    value={newItem.amount}
-                    onChange={(e) => handleAmountChange(e.target.value)}
-                    placeholder="100"
-                    className="w-full bg-card border-2 border-primary/30 rounded-xl p-3 focus:border-primary outline-none text-lg font-bold"
-                  />
-                </div>
+                {/* Amount Field - Only for Food */}
+                {newItem.type === 'food' && (
+                  <div className="mb-4">
+                    <label className="text-xs font-bold text-primary uppercase mb-2 block flex items-center gap-2">
+                      {language === 'nl' ? 'Hoeveelheid (gram)' : 'Amount (grams)'}
+                      {newItem.baseCalories && (
+                        <span className="text-[10px] text-muted-foreground normal-case font-normal">
+                          • {language === 'nl' ? 'waarden per 100g' : 'values per 100g'}
+                        </span>
+                      )}
+                    </label>
+                    <input
+                      type="number"
+                      value={newItem.amount}
+                      onChange={(e) => handleAmountChange(e.target.value)}
+                      placeholder="100"
+                      className="w-full bg-card border-2 border-primary/30 rounded-xl p-3 focus:border-primary outline-none text-lg font-bold"
+                    />
+                  </div>
+                )}
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
