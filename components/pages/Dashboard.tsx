@@ -2,7 +2,7 @@
 
 import React from 'react'
 import { motion } from 'framer-motion'
-import { Play, TrendingUp, Calendar, ArrowRight, Plus, Utensils, User, Edit2, MoreVertical, Trash2, Flame, Copy } from 'lucide-react'
+import { Play, TrendingUp, Calendar, ArrowRight, Plus, Utensils, User, Edit2, MoreVertical, Trash2, Flame, RotateCcw } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useData } from '@/components/context/DataContext'
 import { useAuth } from '@/components/context/AuthContext'
@@ -343,9 +343,9 @@ export default function Dashboard() {
                       handleRepeatWorkout(log.id)
                     }}
                     className="p-2 hover:bg-accent/20 rounded-lg transition-all duration-200"
-                    title="Repeat workout"
+                    title="Herhaal workout"
                   >
-                    <Copy size={18} className="text-accent" />
+                    <RotateCcw size={18} className="text-accent" />
                   </button>
                   <button
                     onClick={(e) => {
