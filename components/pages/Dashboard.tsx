@@ -2,7 +2,7 @@
 
 import React from 'react'
 import { motion } from 'framer-motion'
-import { Play, TrendingUp, Calendar, ArrowRight, Plus, Utensils, User, Edit2, MoreVertical, Trash2, Flame, Coffee } from 'lucide-react'
+import { Play, TrendingUp, Calendar, ArrowRight, Plus, Utensils, User, Edit2, MoreVertical, Trash2, Flame } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useData } from '@/components/context/DataContext'
 import { useAuth } from '@/components/context/AuthContext'
@@ -366,11 +366,14 @@ export default function Dashboard() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.5 }}
-        className="block w-full py-3 px-4 rounded-xl bg-white/5 hover:bg-[#FF813F]/10 border border-white/10 hover:border-[#FF813F]/30 transition-all text-center group"
+        className="block w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-[#FF813F]/5 to-[#FFDD00]/5 hover:from-[#FF813F]/15 hover:to-[#FFDD00]/15 border border-[#FF813F]/20 hover:border-[#FF813F]/40 transition-all text-center group shadow-sm hover:shadow-md"
       >
-        <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground group-hover:text-[#FF813F] transition-colors">
-          <Coffee size={16} />
-          <span>Support de doorontwikkeling</span>
+        <div className="flex flex-col items-center gap-1">
+          <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground group-hover:text-[#FF813F] transition-colors">
+            <span className="text-lg">☕</span>
+            <span>Buy Me a Coffee</span>
+          </div>
+          <p className="text-xs text-muted-foreground/70">Steun de doorontwikkeling van NEXT•REP</p>
         </div>
       </motion.a>
     </div>
