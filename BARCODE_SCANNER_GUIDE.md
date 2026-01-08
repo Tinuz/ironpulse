@@ -1,7 +1,7 @@
 # Barcode Scanner - Gebruiksinstructies
 
 ## Overzicht
-De NEXT•REP app heeft een ingebouwde barcode scanner waarmee je eenvoudig voedingswaarden van producten kunt ophalen door de barcode te scannen.
+De NXT•REP app heeft een ingebouwde barcode scanner waarmee je eenvoudig voedingswaarden van producten kunt ophalen door de barcode te scannen.
 
 ## Hoe te gebruiken
 

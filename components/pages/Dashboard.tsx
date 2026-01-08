@@ -65,7 +65,7 @@ export default function Dashboard() {
       >
         <div>
           <h2 className="text-muted-foreground text-sm uppercase tracking-widest mb-1">Fitness Tracker</h2>
-          <h1 className="text-4xl font-black italic tracking-tighter">NEXT <span className="text-primary">•</span> REP</h1>
+          <h1 className="text-4xl font-black italic tracking-tighter">NXT <span className="text-primary">•</span> REP</h1>
         </div>
         <div className="flex flex-col items-end gap-2">
           <button 
@@ -373,7 +373,7 @@ export default function Dashboard() {
             <span className="text-lg">☕</span>
             <span>Buy Me a Coffee</span>
           </div>
-          <p className="text-xs text-muted-foreground/70">Steun de doorontwikkeling van NEXT•REP</p>
+          <p className="text-xs text-muted-foreground/70">Steun de doorontwikkeling van NXT•REP</p>
         </div>
       </motion.a>
     </div>

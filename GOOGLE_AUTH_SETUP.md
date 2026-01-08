@@ -1,4 +1,4 @@
-# Google OAuth Setup voor NEXT•REP
+# Google OAuth Setup voor NXT•REP
 
 ## 1. Supabase Dashboard Configuratie
 
