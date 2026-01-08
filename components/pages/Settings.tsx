@@ -2,7 +2,7 @@
 
 import React from 'react'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Bot, Check, LogOut, User, Languages } from 'lucide-react'
+import { ArrowLeft, Bot, Check, LogOut, User, Languages, Coffee } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useData } from '@/components/context/DataContext'
 import { useAuth } from '@/components/context/AuthContext'
@@ -194,6 +194,27 @@ export default function Settings() {
             </p>
           </motion.div>
         )}
+
+        {/* Support Section */}
+        <div>
+          <div className="flex items-center gap-2 mb-4">
+            <Coffee className="text-primary" size={20} />
+            <h2 className="text-lg font-bold">{language === 'nl' ? 'Support de App' : 'Support the App'}</h2>
+          </div>
+          
+          <div className="p-4 rounded-2xl bg-gradient-to-br from-[#FF813F]/10 to-[#FF813F]/5 border border-[#FF813F]/20">
+            <p className="text-sm text-muted-foreground leading-relaxed mb-3">
+              {language === 'nl' 
+                ? 'IronPulse is volledig gratis en zonder advertenties. Als je de app waardevol vindt en de doorontwikkeling wilt ondersteunen, kun je een donatie doen.' 
+                : 'IronPulse is completely free and ad-free. If you find the app valuable and want to support its development, you can make a donation.'}
+            </p>
+            <p className="text-xs text-muted-foreground/70">
+              {language === 'nl'
+                ? '💪 Klik op het koffie-icoontje rechtsonder om te doneren'
+                : '💪 Click the coffee icon at the bottom right to donate'}
+            </p>
+          </div>
+        </div>
 
         {/* Info */}
         <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
