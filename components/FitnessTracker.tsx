@@ -7,6 +7,7 @@ import Dashboard from '@/components/pages/Dashboard'
 import SchemaBuilder from '@/components/pages/SchemaBuilder'
 import Play from '@/components/pages/Play'
 import Social from '@/components/pages/Social'
+import Profile from '@/components/pages/Profile'
 import WorkoutLogger from '@/components/pages/WorkoutLogger'
 import History from '@/components/pages/History'
 import Progress from '@/components/pages/Progress'
@@ -55,6 +56,7 @@ const ProtectedLayout = () => {
     if (pathname === '/play') return <Play />
     if (pathname === '/dashboard') return <Dashboard />
     if (pathname === '/social') return <Social />
+    if (pathname.startsWith('/profile/')) return <Profile />
     if (pathname === '/schema') return <SchemaBuilder />
     if (pathname === '/exercises') return <ExerciseLibrary />
     if (pathname === '/exercise-progress') return <ExerciseProgress />
