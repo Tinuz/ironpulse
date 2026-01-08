@@ -137,6 +137,109 @@ export type Database = {
           created_at?: string
         }
       }
+      user_social_profiles: {
+        Row: {
+          id: string
+          user_id: string
+          username: string
+          display_name: string | null
+          bio: string | null
+          avatar_url: string | null
+          is_public: boolean
+          show_workouts: boolean
+          show_achievements: boolean
+          show_stats: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          username: string
+          display_name?: string | null
+          bio?: string | null
+          avatar_url?: string | null
+          is_public?: boolean
+          show_workouts?: boolean
+          show_achievements?: boolean
+          show_stats?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          username?: string
+          display_name?: string | null
+          bio?: string | null
+          avatar_url?: string | null
+          is_public?: boolean
+          show_workouts?: boolean
+          show_achievements?: boolean
+          show_stats?: boolean
+          updated_at?: string
+        }
+      }
+      user_follows: {
+        Row: {
+          id: string
+          follower_id: string
+          following_id: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          follower_id: string
+          following_id: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          follower_id?: string
+          following_id?: string
+          created_at?: string
+        }
+      }
+      workout_reactions: {
+        Row: {
+          id: string
+          workout_id: string
+          user_id: string
+          reaction_type: 'fire' | 'strong' | 'clap' | 'beast'
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          workout_id: string
+          user_id: string
+          reaction_type: 'fire' | 'strong' | 'clap' | 'beast'
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          workout_id?: string
+          user_id?: string
+          reaction_type?: 'fire' | 'strong' | 'clap' | 'beast'
+          created_at?: string
+        }
+      }
+      user_notification_state: {
+        Row: {
+          user_id: string
+          last_checked_reactions: string
+          updated_at: string
+        }
+        Insert: {
+          user_id: string
+          last_checked_reactions?: string
+          updated_at?: string
+        }
+        Update: {
+          user_id?: string
+          last_checked_reactions?: string
+          updated_at?: string
+        }
+      }
     }
   }
 }

@@ -1,19 +1,124 @@
 'use client'
 
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Bot, Check, LogOut, User, Languages, Coffee } from 'lucide-react'
+import { ArrowLeft, Bot, Check, LogOut, User, Languages, Coffee, UserCircle, Lock, Eye, EyeOff } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useData } from '@/components/context/DataContext'
 import { useAuth } from '@/components/context/AuthContext'
 import { useLanguage } from '@/components/context/LanguageContext'
 import { COACH_PROFILES } from '@/components/utils/coachProfiles'
+import { supabase } from '@/lib/supabase'
+
+interface SocialProfile {
+  username: string
+  display_name: string | null
+  bio: string | null
+  is_public: boolean
+  show_workouts: boolean
+  show_achievements: boolean
+  show_stats: boolean
+}
 
 export default function Settings() {
   const router = useRouter()
   const { coachProfile, setCoachProfile } = useData()
   const { user, signOut } = useAuth()
   const { language, setLanguage, t } = useLanguage()
+  
+  const [socialProfile, setSocialProfile] = useState<SocialProfile | null>(null)
+  const [isEditingProfile, setIsEditingProfile] = useState(false)
+  const [editedProfile, setEditedProfile] = useState<SocialProfile | null>(null)
+  const [usernameError, setUsernameError] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    if (user) {
+      loadSocialProfile()
+    }
+  }, [user])
+
+  const loadSocialProfile = async () => {
+    if (!user) return
+
+    const { data } = await supabase
+      .from('user_social_profiles')
+      .select('*')
+      .eq('user_id', user.id)
+      .single()
+
+    if (data) {
+      setSocialProfile(data)
+      setEditedProfile(data)
+    } else {
+      // Create default profile
+      const defaultUsername = user.email?.split('@')[0].replace(/[^a-zA-Z0-9]/g, '').toLowerCase() || 'user'
+      const newProfile = {
+        username: defaultUsername,
+        display_name: null,
+        bio: null,
+        is_public: true,
+        show_workouts: true,
+        show_achievements: true,
+        show_stats: true
+      }
+      setSocialProfile(newProfile)
+      setEditedProfile(newProfile)
+    }
+  }
+
+  const handleSaveProfile = async () => {
+    if (!user || !editedProfile) return
+
+    // Validate username
+    if (editedProfile.username.length < 3 || editedProfile.username.length > 20) {
+      setUsernameError('Username moet tussen 3 en 20 karakters zijn')
+      return
+    }
+
+    if (!/^[a-zA-Z0-9]+$/.test(editedProfile.username)) {
+      setUsernameError('Username mag alleen letters en cijfers bevatten')
+      return
+    }
+
+    setSaving(true)
+    setUsernameError('')
+
+    try {
+      const { data: existingProfile } = await supabase
+        .from('user_social_profiles')
+        .select('user_id')
+        .eq('user_id', user.id)
+        .single()
+
+      if (existingProfile) {
+        // Update existing profile
+        await supabase
+          .from('user_social_profiles')
+          .update(editedProfile)
+          .eq('user_id', user.id)
+      } else {
+        // Insert new profile
+        await supabase
+          .from('user_social_profiles')
+          .insert({
+            user_id: user.id,
+            ...editedProfile
+          })
+      }
+
+      setSocialProfile(editedProfile)
+      setIsEditingProfile(false)
+    } catch (error: any) {
+      if (error.code === '23505') {
+        setUsernameError('Deze username is al in gebruik')
+      } else {
+        console.error('Error saving profile:', error)
+      }
+    } finally {
+      setSaving(false)
+    }
+  }
 
   const handleSignOut = async () => {
     try {
@@ -36,6 +141,212 @@ export default function Settings() {
       </div>
 
       <div className="p-4 space-y-6">
+        {/* Social Profile Section */}
+        <div>
+          <div className="flex items-center gap-2 mb-4">
+            <UserCircle className="text-primary" size={20} />
+            <h2 className="text-lg font-bold">Social Profiel</h2>
+          </div>
+
+          {socialProfile && (
+            isEditingProfile ? (
+              <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-4">
+                {/* Username */}
+                <div>
+                  <label className="text-xs text-muted-foreground uppercase tracking-wide mb-2 block">
+                    Username *
+                  </label>
+                  <input
+                    type="text"
+                    value={editedProfile?.username || ''}
+                    onChange={(e) => {
+                      setEditedProfile(prev => prev ? { ...prev, username: e.target.value.toLowerCase() } : null)
+                      setUsernameError('')
+                    }}
+                    className="w-full px-4 py-3 bg-card border border-white/10 rounded-xl focus:outline-none focus:border-primary transition-colors"
+                    placeholder="username"
+                  />
+                  {usernameError && (
+                    <p className="text-xs text-red-500 mt-1">{usernameError}</p>
+                  )}
+                  <p className="text-xs text-muted-foreground mt-1">3-20 karakters, alleen letters en cijfers</p>
+                </div>
+
+                {/* Display Name */}
+                <div>
+                  <label className="text-xs text-muted-foreground uppercase tracking-wide mb-2 block">
+                    Weergavenaam
+                  </label>
+                  <input
+                    type="text"
+                    value={editedProfile?.display_name || ''}
+                    onChange={(e) => setEditedProfile(prev => prev ? { ...prev, display_name: e.target.value } : null)}
+                    className="w-full px-4 py-3 bg-card border border-white/10 rounded-xl focus:outline-none focus:border-primary transition-colors"
+                    placeholder="Je naam"
+                  />
+                </div>
+
+                {/* Bio */}
+                <div>
+                  <label className="text-xs text-muted-foreground uppercase tracking-wide mb-2 block">
+                    Bio
+                  </label>
+                  <textarea
+                    value={editedProfile?.bio || ''}
+                    onChange={(e) => setEditedProfile(prev => prev ? { ...prev, bio: e.target.value.slice(0, 150) } : null)}
+                    className="w-full px-4 py-3 bg-card border border-white/10 rounded-xl focus:outline-none focus:border-primary transition-colors resize-none"
+                    placeholder="Vertel iets over jezelf..."
+                    rows={3}
+                    maxLength={150}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {(editedProfile?.bio?.length || 0)}/150
+                  </p>
+                </div>
+
+                {/* Privacy Section */}
+                <div className="pt-4 border-t border-white/10">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Lock size={16} className="text-muted-foreground" />
+                    <h3 className="font-bold text-sm">Privacy Instellingen</h3>
+                  </div>
+
+                  <div className="space-y-3">
+                    <label className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium text-sm">Publiek Profiel</p>
+                        <p className="text-xs text-muted-foreground">Anderen kunnen je profiel zien</p>
+                      </div>
+                      <button
+                        onClick={() => setEditedProfile(prev => prev ? { ...prev, is_public: !prev.is_public } : null)}
+                        className={`relative w-12 h-6 rounded-full transition-colors ${
+                          editedProfile?.is_public ? 'bg-primary' : 'bg-white/20'
+                        }`}
+                      >
+                        <div className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform ${
+                          editedProfile?.is_public ? 'translate-x-6' : 'translate-x-0'
+                        }`} />
+                      </button>
+                    </label>
+
+                    <label className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium text-sm">Toon Workouts</p>
+                        <p className="text-xs text-muted-foreground">Vrienden zien je workout geschiedenis</p>
+                      </div>
+                      <button
+                        onClick={() => setEditedProfile(prev => prev ? { ...prev, show_workouts: !prev.show_workouts } : null)}
+                        className={`relative w-12 h-6 rounded-full transition-colors ${
+                          editedProfile?.show_workouts ? 'bg-primary' : 'bg-white/20'
+                        }`}
+                      >
+                        <div className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform ${
+                          editedProfile?.show_workouts ? 'translate-x-6' : 'translate-x-0'
+                        }`} />
+                      </button>
+                    </label>
+
+                    <label className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium text-sm">Toon Achievements</p>
+                        <p className="text-xs text-muted-foreground">Vrienden zien je badges</p>
+                      </div>
+                      <button
+                        onClick={() => setEditedProfile(prev => prev ? { ...prev, show_achievements: !prev.show_achievements } : null)}
+                        className={`relative w-12 h-6 rounded-full transition-colors ${
+                          editedProfile?.show_achievements ? 'bg-primary' : 'bg-white/20'
+                        }`}
+                      >
+                        <div className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform ${
+                          editedProfile?.show_achievements ? 'translate-x-6' : 'translate-x-0'
+                        }`} />
+                      </button>
+                    </label>
+
+                    <label className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium text-sm">Toon Statistieken</p>
+                        <p className="text-xs text-muted-foreground">Vrienden zien je workout stats</p>
+                      </div>
+                      <button
+                        onClick={() => setEditedProfile(prev => prev ? { ...prev, show_stats: !prev.show_stats } : null)}
+                        className={`relative w-12 h-6 rounded-full transition-colors ${
+                          editedProfile?.show_stats ? 'bg-primary' : 'bg-white/20'
+                        }`}
+                      >
+                        <div className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform ${
+                          editedProfile?.show_stats ? 'translate-x-6' : 'translate-x-0'
+                        }`} />
+                      </button>
+                    </label>
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex gap-2 pt-2">
+                  <button
+                    onClick={() => {
+                      setEditedProfile(socialProfile)
+                      setIsEditingProfile(false)
+                      setUsernameError('')
+                    }}
+                    className="flex-1 py-3 px-4 bg-white/5 hover:bg-white/10 rounded-xl font-bold transition-colors"
+                  >
+                    Annuleer
+                  </button>
+                  <button
+                    onClick={handleSaveProfile}
+                    disabled={saving}
+                    className="flex-1 py-3 px-4 bg-primary hover:bg-primary/90 text-white rounded-xl font-bold transition-colors disabled:opacity-50"
+                  >
+                    {saving ? 'Opslaan...' : 'Opslaan'}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-3">
+                <div>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Username</p>
+                  <p className="font-medium">@{socialProfile.username}</p>
+                </div>
+                {socialProfile.display_name && (
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Weergavenaam</p>
+                    <p className="font-medium">{socialProfile.display_name}</p>
+                  </div>
+                )}
+                {socialProfile.bio && (
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Bio</p>
+                    <p className="text-sm">{socialProfile.bio}</p>
+                  </div>
+                )}
+                
+                <div className="flex items-center gap-2 text-xs pt-2">
+                  {socialProfile.is_public ? (
+                    <span className="flex items-center gap-1 text-green-500">
+                      <Eye size={14} /> Publiek
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-1 text-muted-foreground">
+                      <EyeOff size={14} /> Privé
+                    </span>
+                  )}
+                </div>
+
+                <div className="pt-3 border-t border-white/10">
+                  <button
+                    onClick={() => setIsEditingProfile(true)}
+                    className="w-full py-3 px-4 bg-primary/10 hover:bg-primary/20 text-primary rounded-xl font-bold transition-colors"
+                  >
+                    Bewerk Profiel
+                  </button>
+                </div>
+              </div>
+            )
+          )}
+        </div>
+
         {/* Account Section */}
         <div>
           <div className="flex items-center gap-2 mb-4">

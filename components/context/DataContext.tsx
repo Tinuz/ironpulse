@@ -104,7 +104,7 @@ interface DataContextType {
   addSchema: (schema: Schema) => void;
   updateSchema: (id: string, schema: Schema) => Promise<void>;
   deleteSchema: (id: string) => void;
-  startWorkout: (schema?: Schema, exercises?: WorkoutExercise[]) => WorkoutLog;
+  startWorkout: (schema?: Schema, exercises?: WorkoutExercise[], customName?: string) => WorkoutLog;
   updateActiveWorkout: (workout: WorkoutLog) => void;
   finishWorkout: () => void;
   cancelWorkout: () => void;
@@ -480,7 +480,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const startWorkout = (schema?: Schema, exercises?: WorkoutExercise[]): WorkoutLog => {
+  const startWorkout = (schema?: Schema, exercises?: WorkoutExercise[], customName?: string): WorkoutLog => {
     // Clear any existing workout first
     localStorage.removeItem('ft_active');
     setActiveWorkout(null);
@@ -488,7 +488,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const newWorkout: WorkoutLog = {
       id: crypto.randomUUID(),
       schemaId: schema ? schema.id : null,
-      name: schema ? schema.name : 'Freestyle Workout',
+      name: customName || (schema ? schema.name : 'Freestyle Workout'),
       date: new Date().toISOString(),
       startTime: Date.now(),
       endTime: null,

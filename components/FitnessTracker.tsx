@@ -5,6 +5,8 @@ import { usePathname, useSearchParams } from 'next/navigation'
 import { AnimatePresence } from 'framer-motion'
 import Dashboard from '@/components/pages/Dashboard'
 import SchemaBuilder from '@/components/pages/SchemaBuilder'
+import Play from '@/components/pages/Play'
+import Social from '@/components/pages/Social'
 import WorkoutLogger from '@/components/pages/WorkoutLogger'
 import History from '@/components/pages/History'
 import Progress from '@/components/pages/Progress'
@@ -20,6 +22,7 @@ import { DataProvider } from '@/components/context/DataContext'
 import { AuthProvider, useAuth } from '@/components/context/AuthContext'
 import { LanguageProvider, useLanguage } from '@/components/context/LanguageContext'
 import Navigation from '@/components/Navigation'
+import FloatingCoachButton from '@/components/FloatingCoachButton'
 import { Loader2 } from 'lucide-react'
 
 // Protected Layout component with auth check
@@ -48,7 +51,10 @@ const ProtectedLayout = () => {
 
   // Render page based on pathname
   const renderPage = () => {
-    if (pathname === '/') return <Dashboard />
+    if (pathname === '/') return <Play />
+    if (pathname === '/play') return <Play />
+    if (pathname === '/dashboard') return <Dashboard />
+    if (pathname === '/social') return <Social />
     if (pathname === '/schema') return <SchemaBuilder />
     if (pathname === '/exercises') return <ExerciseLibrary />
     if (pathname === '/exercise-progress') return <ExerciseProgress />
@@ -64,7 +70,7 @@ const ProtectedLayout = () => {
     if (pathname === '/trainer') return <AITrainer />
     if (pathname === '/nutrition') return <Nutrition />
     if (pathname === '/settings') return <Settings />
-    return <Dashboard />
+    return <Play />
   }
 
   return (
@@ -76,6 +82,7 @@ const ProtectedLayout = () => {
           </div>
         </AnimatePresence>
       </main>
+      <FloatingCoachButton />
       <Navigation />
     </div>
   )

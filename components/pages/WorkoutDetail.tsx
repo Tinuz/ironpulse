@@ -6,6 +6,7 @@ import { ArrowLeft, Calendar, Clock, Trophy, Dumbbell, Edit2, BarChart3, Award, 
 import { useRouter, usePathname } from 'next/navigation'
 import { format } from 'date-fns'
 import { useData } from '@/components/context/DataContext'
+import WorkoutReactions from '@/components/WorkoutReactions'
 import { 
   getBest1RM, 
   roundTo, 
@@ -147,7 +148,12 @@ export default function WorkoutDetail() {
 
         {/* Exercises */}
         <div className="space-y-4">
-          <h3 className="text-lg font-bold uppercase tracking-wide text-muted-foreground">Exercises</h3>
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-bold uppercase tracking-wide text-muted-foreground">Exercises</h3>
+            
+            {/* Workout Reactions */}
+            <WorkoutReactions workoutId={workoutId!} />
+          </div>
           {workout.exercises.map((exercise, i) => {
             const best1RM = getBest1RM(exercise);
             const exerciseVolume = exercise.sets.filter(s => s.completed).reduce((acc, s) => acc + (s.weight * s.reps), 0);
