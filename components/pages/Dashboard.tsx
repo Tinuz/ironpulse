@@ -14,6 +14,7 @@ import PlateauDetectionWidget from '@/components/PlateauDetectionWidget';
 import DeloadRecommendationWidget from '@/components/DeloadRecommendationWidget';
 import AchievementsWidget from '@/components/AchievementsWidget';
 import AchievementToast from '@/components/AchievementToast';
+import AccessorySuggestionsWidget from '@/components/AccessorySuggestionsWidget';
 
 const container = {
   hidden: { opacity: 0 },
@@ -196,6 +197,9 @@ export default function Dashboard() {
 
       {/* Achievements Widget */}
       <AchievementsWidget />
+
+      {/* AI Accessory Suggestions Widget */}
+      <AccessorySuggestionsWidget />
 
       {/* Quick Start Schemas */}
       <div className="space-y-4">

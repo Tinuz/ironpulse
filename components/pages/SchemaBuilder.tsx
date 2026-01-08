@@ -41,15 +41,24 @@ export default function SchemaBuilder() {
     }
   }, [editId, schemas]);
 
-  // Handle selected exercise from Exercise Library
+  // Handle selected exercise from Exercise Library or AI Suggestions
   useEffect(() => {
     const selectedExercise = searchParams.get('selectedExercise');
+    const sets = searchParams.get('sets');
+    const reps = searchParams.get('reps');
+    
     if (selectedExercise) {
       setNewExName(decodeURIComponent(selectedExercise));
+      
+      // Use suggested sets/reps if provided (from AI)
+      if (sets) setNewExSets(parseInt(sets, 10) || 3);
+      if (reps) setNewExReps(parseInt(reps, 10) || 10);
+      
       // Auto-open add form if not already adding/editing
       if (!isAddingEx && !editingExercise) {
         setIsAddingEx(true);
       }
+      
       // Clean up URL params
       router.replace(editId ? `/schema?edit=${editId}` : '/schema');
     }
