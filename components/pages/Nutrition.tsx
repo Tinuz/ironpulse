@@ -1,8 +1,8 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft, Plus, Trash2, Utensils, Flame, Droplet, Check, Scan, AlertTriangle, TrendingUp, TrendingDown, Target, ChevronLeft, ChevronRight, Calendar, BarChart3, Clock } from 'lucide-react'
+import { ArrowLeft, Plus, Trash2, Utensils, Flame, Droplet, Check, Scan, AlertTriangle, TrendingUp, TrendingDown, Target, ChevronLeft, ChevronRight, Calendar, BarChart3, Clock, Search, Loader2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useData, NutritionItem } from '@/components/context/DataContext'
 import { useLanguage } from '@/components/context/LanguageContext'
@@ -11,6 +11,8 @@ import { nl } from 'date-fns/locale'
 import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts'
 import BarcodeScanner from '@/components/BarcodeScanner'
 import WaterTracker from '@/components/WaterTracker'
+import { NutritionSearchResult } from '@/types/nutrition'
+import { getCachedResults, setCachedResults } from '@/lib/nutritionSearch'
 
 type ViewMode = 'day' | 'week' | 'month';
 
@@ -23,6 +25,13 @@ export default function Nutrition() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<ViewMode>('day');
   const [showHistory, setShowHistory] = useState(false);
+  
+  // Nutrition search state
+  const [searchResults, setSearchResults] = useState<NutritionSearchResult[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   const today = format(new Date(), 'yyyy-MM-dd');
   const currentDateStr = format(selectedDate, 'yyyy-MM-dd');
@@ -194,6 +203,100 @@ export default function Nutrition() {
     setIsScannerOpen(false);
     setIsAdding(true);
   };
+
+  // Debounced nutrition search
+  const searchNutrition = useCallback(async (query: string) => {
+    if (query.trim().length < 3) {
+      setSearchResults([]);
+      setShowDropdown(false);
+      return;
+    }
+
+    // Check cache first
+    const cached = getCachedResults(query);
+    if (cached) {
+      setSearchResults(cached);
+      setShowDropdown(true);
+      setIsSearching(false);
+      return;
+    }
+
+    setIsSearching(true);
+
+    try {
+      const response = await fetch(`/api/search-nutrition?query=${encodeURIComponent(query)}&limit=8`);
+      
+      if (response.ok) {
+        const data = await response.json();
+        setSearchResults(data.results);
+        setShowDropdown(true);
+        
+        // Cache results
+        setCachedResults(query, data.results);
+      } else {
+        setSearchResults([]);
+        setShowDropdown(false);
+      }
+    } catch (error) {
+      console.error('Search error:', error);
+      setSearchResults([]);
+      setShowDropdown(false);
+    } finally {
+      setIsSearching(false);
+    }
+  }, []);
+
+  // Handle search input with debouncing
+  const handleSearchInput = (value: string) => {
+    setNewItem({...newItem, name: value});
+
+    // Clear previous timeout
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    // Debounce search (300ms)
+    searchTimeoutRef.current = setTimeout(() => {
+      searchNutrition(value);
+    }, 300);
+  };
+
+  // Handle result selection
+  const handleSelectResult = (result: NutritionSearchResult) => {
+    const selectedName = result.brand ? `${result.brand} - ${result.name}` : result.name;
+    setNewItem({
+      name: selectedName,
+      calories: result.nutrients.calories.toString(),
+      protein: result.nutrients.protein.toString(),
+      carbs: result.nutrients.carbs.toString(),
+      fats: result.nutrients.fats.toString(),
+      volume: '',
+      type: newItem.type
+    });
+    setShowDropdown(false);
+    setSearchResults([]);
+  };
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowDropdown(false);
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Get recent unique items from all nutrition logs
   const getRecentItems = () => {
@@ -837,15 +940,90 @@ export default function Nutrition() {
                   </div>
                 )}
 
-                <div>
+                <div className="relative" ref={dropdownRef}>
                   <label className="text-xs font-bold text-muted-foreground uppercase mb-2 block">{t.nutrition.mealName}</label>
-                  <input
-                    type="text"
-                    value={newItem.name}
-                    onChange={(e) => setNewItem({...newItem, name: e.target.value})}
-                    placeholder={language === 'nl' ? 'Kip filet' : 'Chicken breast'}
-                    className="w-full bg-card border border-white/10 rounded-xl p-3 focus:border-primary outline-none"
-                  />
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={newItem.name}
+                      onChange={(e) => handleSearchInput(e.target.value)}
+                      onFocus={() => {
+                        if (searchResults.length > 0) {
+                          setShowDropdown(true);
+                        }
+                      }}
+                      placeholder={language === 'nl' ? 'Zoek product... (bijv. "halfvolle melk")' : 'Search product...'}
+                      className="w-full bg-card border border-white/10 rounded-xl p-3 pr-10 focus:border-primary outline-none"
+                    />
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                      {isSearching ? (
+                        <Loader2 size={16} className="text-muted-foreground animate-spin" />
+                      ) : (
+                        <Search size={16} className="text-muted-foreground" />
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Autocomplete Dropdown */}
+                  <AnimatePresence>
+                    {showDropdown && searchResults.length > 0 && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        className="absolute z-50 w-full mt-2 bg-card border border-white/10 rounded-xl shadow-2xl overflow-hidden max-h-80 overflow-y-auto"
+                      >
+                        {searchResults.map((result) => (
+                          <button
+                            key={result.id}
+                            onClick={() => handleSelectResult(result)}
+                            className="w-full p-4 text-left hover:bg-white/5 transition-colors border-b border-white/5 last:border-0"
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="flex-1 min-w-0">
+                                <div className="font-bold text-sm truncate">
+                                  {result.name}
+                                </div>
+                                {result.brand && (
+                                  <div className="text-xs text-muted-foreground truncate mt-0.5">
+                                    {result.brand}
+                                  </div>
+                                )}
+                                <div className="flex items-center gap-2 mt-2 text-xs">
+                                  <span className="font-mono font-bold text-primary">
+                                    {result.nutrients.calories} kcal
+                                  </span>
+                                  {result.nutrients.protein > 0 && (
+                                    <span className="text-pink-400">
+                                      {result.nutrients.protein}g P
+                                    </span>
+                                  )}
+                                  {result.nutrients.carbs > 0 && (
+                                    <span className="text-blue-400">
+                                      {result.nutrients.carbs}g C
+                                    </span>
+                                  )}
+                                  {result.nutrients.fats > 0 && (
+                                    <span className="text-amber-400">
+                                      {result.nutrients.fats}g F
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="flex-shrink-0 text-[10px] text-muted-foreground uppercase tracking-wider">
+                                {result.source === 'openfoodfacts' ? 'OFF' : 'USDA'}
+                              </div>
+                            </div>
+                          </button>
+                        ))}
+                        <div className="p-2 text-[10px] text-center text-muted-foreground border-t border-white/5">
+                          {language === 'nl' 
+                            ? 'Data van Open Food Facts & USDA • per 100g/ml' 
+                            : 'Data from Open Food Facts & USDA • per 100g/ml'}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
 
                 <div className="flex gap-2 mb-4">
