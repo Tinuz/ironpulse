@@ -1,12 +1,21 @@
 // Exercise Substitution Engine
 // Finds alternative exercises based on muscle groups, equipment, and difficulty
 
-import exercisesData from '@/exercisesv2.json';
+import exercisesData from '@/exercisesv3.json';
 
 export interface ExerciseData {
   name: string;
   group: string;
   groups: string[];
+  profile: {
+    targetMuscleGroup?: string;
+    exerciseType?: string;
+    equipmentRequired?: string;
+    mechanics?: string;
+    forceType?: string;
+    experienceLevel?: string;
+    secondaryMuscles?: string[];
+  };
   meta: {
     Type?: string;
     Equipment?: string;
@@ -84,26 +93,41 @@ function calculateMatchScore(
   score += muscleMatchRatio * 40;
   
   // Primary muscle group exact match (bonus 20 points)
-  const sourcePrimary = getPrimaryMuscleGroup(sourceMuscles);
-  const targetPrimary = getPrimaryMuscleGroup(targetMuscles);
-  if (sourcePrimary === targetPrimary) {
+  // Use profile.targetMuscleGroup if available, fallback to groups
+  const sourceTarget = source.profile?.targetMuscleGroup?.toLowerCase() || getPrimaryMuscleGroup(sourceMuscles);
+  const targetTarget = target.profile?.targetMuscleGroup?.toLowerCase() || getPrimaryMuscleGroup(targetMuscles);
+  if (sourceTarget === targetTarget) {
     score += 20;
   }
   
-  // Mechanics match (15 points)
-  if (source.meta.Mechanics === target.meta.Mechanics) {
+  // Secondary muscles match (bonus 5 points)
+  const sourceSecondary = source.profile?.secondaryMuscles || [];
+  const targetSecondary = target.profile?.secondaryMuscles || [];
+  const commonSecondary = sourceSecondary.filter(m => targetSecondary.includes(m));
+  if (commonSecondary.length > 0) {
+    score += 5;
+  }
+  
+  // Mechanics match (15 points) - prefer profile.mechanics over meta
+  const sourceMechanics = source.profile?.mechanics || source.meta.Mechanics;
+  const targetMechanics = target.profile?.mechanics || target.meta.Mechanics;
+  if (sourceMechanics === targetMechanics) {
     score += 15;
   }
   
-  // Equipment similarity (10 points)
-  if (source.meta.Equipment === target.meta.Equipment) {
+  // Equipment similarity (10 points) - prefer profile.equipmentRequired over meta
+  const sourceEquipment = source.profile?.equipmentRequired || source.meta.Equipment;
+  const targetEquipment = target.profile?.equipmentRequired || target.meta.Equipment;
+  if (sourceEquipment === targetEquipment) {
     score += 10;
   }
   
-  // Difficulty level (10 points for exact match, 5 for adjacent)
+  // Difficulty level (10 points for exact match, 5 for adjacent) - prefer profile.experienceLevel
   const difficultyOrder = ['Beginner', 'Intermediate', 'Advanced'];
-  const sourceDiff = difficultyOrder.indexOf(source.meta['Exp. Level'] || 'Intermediate');
-  const targetDiff = difficultyOrder.indexOf(target.meta['Exp. Level'] || 'Intermediate');
+  const sourceDiffLevel = source.profile?.experienceLevel || source.meta['Exp. Level'] || 'Intermediate';
+  const targetDiffLevel = target.profile?.experienceLevel || target.meta['Exp. Level'] || 'Intermediate';
+  const sourceDiff = difficultyOrder.indexOf(sourceDiffLevel);
+  const targetDiff = difficultyOrder.indexOf(targetDiffLevel);
   const diffDelta = Math.abs(sourceDiff - targetDiff);
   if (diffDelta === 0) score += 10;
   else if (diffDelta === 1) score += 5;
@@ -112,7 +136,8 @@ function calculateMatchScore(
   if (filters) {
     // Equipment filter (hard requirement)
     if (filters.equipment && filters.equipment.length > 0) {
-      if (!filters.equipment.includes(target.meta.Equipment || '')) {
+      const targetEq = target.profile?.equipmentRequired || target.meta.Equipment || '';
+      if (!filters.equipment.includes(targetEq)) {
         return 0; // Exclude if equipment not available
       }
     }
@@ -120,7 +145,9 @@ function calculateMatchScore(
     // Max difficulty filter
     if (filters.maxDifficulty) {
       const maxDiffIndex = difficultyOrder.indexOf(filters.maxDifficulty);
-      if (targetDiff > maxDiffIndex) {
+      const targetDiffLevel = target.profile?.experienceLevel || target.meta['Exp. Level'] || 'Intermediate';
+      const currentDiffIndex = difficultyOrder.indexOf(targetDiffLevel);
+      if (currentDiffIndex > maxDiffIndex) {
         return 0; // Exclude if too difficult
       }
     }
@@ -128,7 +155,8 @@ function calculateMatchScore(
     // Low impact bonus for injuries
     if (filters.lowImpact) {
       const lowImpactEquipment = ['Cable', 'Machine', 'Bodyweight', 'Dumbbell'];
-      if (lowImpactEquipment.includes(target.meta.Equipment || '')) {
+      const targetEq = target.profile?.equipmentRequired || target.meta.Equipment || '';
+      if (lowImpactEquipment.includes(targetEq)) {
         score += 5;
       }
       // Penalize high-impact exercises
@@ -139,8 +167,11 @@ function calculateMatchScore(
     }
     
     // Mechanics filter
-    if (filters.mechanics && target.meta.Mechanics !== filters.mechanics) {
-      score -= 10;
+    if (filters.mechanics) {
+      const targetMech = target.profile?.mechanics || target.meta.Mechanics;
+      if (targetMech !== filters.mechanics) {
+        score -= 10;
+      }
     }
   }
   
@@ -163,14 +194,18 @@ function generateReason(
     reasons.push(`Targets ${commonMuscles.slice(0, 2).join(', ')}`);
   }
   
-  if (source.meta.Mechanics === target.meta.Mechanics) {
-    reasons.push(`Same ${source.meta.Mechanics?.toLowerCase()} movement`);
+  const sourceMechanics = source.profile?.mechanics || source.meta.Mechanics;
+  const targetMechanics = target.profile?.mechanics || target.meta.Mechanics;
+  if (sourceMechanics === targetMechanics) {
+    reasons.push(`Same ${sourceMechanics?.toLowerCase()} movement`);
   }
   
-  if (source.meta.Equipment === target.meta.Equipment) {
-    reasons.push(`Uses ${source.meta.Equipment?.toLowerCase()}`);
-  } else if (target.meta.Equipment) {
-    reasons.push(`${target.meta.Equipment} alternative`);
+  const sourceEquipment = source.profile?.equipmentRequired || source.meta.Equipment;
+  const targetEquipment = target.profile?.equipmentRequired || target.meta.Equipment;
+  if (sourceEquipment === targetEquipment) {
+    reasons.push(`Uses ${sourceEquipment?.toLowerCase()}`);
+  } else if (targetEquipment) {
+    reasons.push(`${targetEquipment} alternative`);
   }
   
   if (matchScore >= 80) {
@@ -212,9 +247,9 @@ export function findSubstitutes(
         name: ex.name.replace(/Video Exercise Guide/i, '').trim(),
         matchScore,
         muscleGroups: ex.groups || [],
-        equipment: ex.meta.Equipment || 'Unknown',
-        difficulty: ex.meta['Exp. Level'] || 'Intermediate',
-        mechanics: ex.meta.Mechanics || 'Unknown',
+        equipment: ex.profile?.equipmentRequired || ex.meta.Equipment || 'Unknown',
+        difficulty: ex.profile?.experienceLevel || ex.meta['Exp. Level'] || 'Intermediate',
+        mechanics: ex.profile?.mechanics || ex.meta.Mechanics || 'Unknown',
         reason: generateReason(sourceExercise, ex, matchScore)
       };
     })
@@ -231,8 +266,9 @@ export function findSubstitutes(
 export function getAvailableEquipment(): string[] {
   const equipmentSet = new Set<string>();
   exercises.forEach(ex => {
-    if (ex.meta.Equipment) {
-      equipmentSet.add(ex.meta.Equipment);
+    const equipment = ex.profile?.equipmentRequired || ex.meta.Equipment;
+    if (equipment) {
+      equipmentSet.add(equipment);
     }
   });
   return Array.from(equipmentSet).sort();

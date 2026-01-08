@@ -1,5 +1,5 @@
 import { WorkoutLog } from '@/components/context/DataContext';
-import exercisesData from '@/exercisesv2.json';
+import exercisesData from '@/exercisesv3.json';
 
 // Muscle group mapping (Engels → Nederlands voor UI)
 export const MUSCLE_GROUPS = {
@@ -15,14 +15,17 @@ export const MUSCLE_GROUPS = {
 
 export type MuscleGroup = keyof typeof MUSCLE_GROUPS;
 
-// Exercise → Muscle Group mapping (vanuit exercisesv2.json)
+// Exercise → Muscle Group mapping (vanuit exercisesv3.json)
 const exerciseToMuscleGroup = new Map<string, MuscleGroup>();
 
-// Initialize mapping from exercisesv2.json
+// Initialize mapping from exercisesv3.json
 interface ExerciseData {
   name: string;
   group: string;
   groups?: string[];
+  profile?: {
+    targetMuscleGroup?: string;
+  };
 }
 
 (exercisesData as ExerciseData[]).forEach((ex) => {
