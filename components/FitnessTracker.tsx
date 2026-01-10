@@ -11,6 +11,11 @@ import Profile from '@/components/pages/Profile'
 import WorkoutLogger from '@/components/pages/WorkoutLogger'
 import History from '@/components/pages/History'
 import Progress from '@/components/pages/Progress'
+import RecoveryDashboard from '@/components/pages/RecoveryDashboard'
+import ImportTemplate from '@/components/pages/ImportTemplate'
+import SharedTemplates from '@/components/pages/SharedTemplates'
+import ProgressPhotos from '@/components/pages/ProgressPhotos'
+import SquadDetail from '@/components/pages/SquadDetail'
 import AITrainer from '@/components/pages/AITrainer'
 import Nutrition from '@/components/pages/Nutrition'
 import Settings from '@/components/pages/Settings'
@@ -57,9 +62,15 @@ const ProtectedLayout = () => {
     if (pathname === '/dashboard') return <Dashboard />
     if (pathname === '/social') return <Social />
     if (pathname.startsWith('/profile/')) return <Profile />
+    if (pathname.startsWith('/squad/')) {
+      const squadId = pathname.split('/squad/')[1]
+      return squadId ? <SquadDetail squadId={squadId} /> : <Social />
+    }
     if (pathname === '/schema') return <SchemaBuilder />
     if (pathname === '/exercises') return <ExerciseLibrary />
     if (pathname === '/exercise-progress') return <ExerciseProgress />
+    if (pathname.startsWith('/import/')) return <ImportTemplate />
+    if (pathname === '/shared-templates') return <SharedTemplates />
     if (pathname.startsWith('/workout/')) {
       const id = pathname.split('/workout/')[1]
       const isEdit = searchParams.get('edit') === 'true'
@@ -69,6 +80,8 @@ const ProtectedLayout = () => {
     if (pathname === '/workout') return <WorkoutLogger />
     if (pathname === '/history') return <History />
     if (pathname === '/progress') return <Progress />
+    if (pathname === '/recovery') return <RecoveryDashboard />
+    if (pathname === '/progress-photos') return <ProgressPhotos />
     if (pathname === '/trainer') return <AITrainer />
     if (pathname === '/nutrition') return <Nutrition />
     if (pathname === '/settings') return <Settings />

@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { ArrowLeft, Plus, Check, X, Clock, Play, Trash2, TrendingUp, TrendingDown, Minus, Award, Zap, StickyNote, Flame, RefreshCw } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import clsx from 'clsx'
-import { useData, WorkoutSet, WorkoutExercise } from '@/components/context/DataContext'
+import { useData, WorkoutExercise } from '@/components/context/DataContext'
 import { 
   getBest1RM, 
   calculateVolume, 
@@ -19,95 +19,9 @@ import { calculateBurnedCalories } from '@/components/utils/calorieCalculations'
 import { getExerciseProgression, formatProgressionDelta, findLastWorkoutWithExercise } from '@/components/utils/progressionAnalytics'
 import ProgressionBadge from '@/components/ProgressionBadge'
 import ExerciseSubstitutionModal from '@/components/ExerciseSubstitutionModal'
-
-const SetRow = React.forwardRef<HTMLDivElement, { 
-  set: WorkoutSet; 
-  index: number; 
-  onUpdate: (field: 'weight' | 'reps', value: number) => void;
-  onToggle: () => void;
-  onRemove: () => void;
-  canRemove: boolean;
-}>(({ 
-  set, 
-  index, 
-  onUpdate, 
-  onToggle,
-  onRemove,
-  canRemove
-}, ref) => {
-  return (
-    <motion.div 
-      ref={ref}
-      initial={{ opacity: 0, x: -10 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -10, height: 0 }}
-      className={clsx(
-        "grid grid-cols-[auto_1fr_1fr_auto_auto] gap-2 items-center py-2 px-1 rounded-lg transition-colors group",
-        set.completed ? "bg-primary/10" : "hover:bg-white/5"
-      )}
-    >
-      <div className="w-6 text-center text-xs font-mono text-muted-foreground font-bold">
-        {index + 1}
-      </div>
-      
-      <div className="relative">
-        <input
-          type="number"
-          value={set.weight || ''}
-          placeholder="0"
-          onChange={(e) => onUpdate('weight', Number(e.target.value))}
-          className={clsx(
-            "w-full bg-transparent text-center font-black text-xl focus:outline-none p-1 border-b border-transparent focus:border-primary transition-colors",
-            set.completed && "text-primary"
-          )}
-        />
-        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground font-bold pointer-events-none">KG</span>
-      </div>
-
-      <div className="relative">
-        <input
-          type="number"
-          value={set.reps || ''}
-          placeholder="0"
-          onChange={(e) => onUpdate('reps', Number(e.target.value))}
-          className={clsx(
-            "w-full bg-transparent text-center font-black text-xl focus:outline-none p-1 border-b border-transparent focus:border-primary transition-colors",
-            set.completed && "text-primary"
-          )}
-        />
-        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground font-bold pointer-events-none">REPS</span>
-      </div>
-
-      <button
-        onClick={onToggle}
-        className={clsx(
-          "h-8 w-8 rounded-lg flex items-center justify-center transition-all duration-200",
-          set.completed 
-            ? "bg-primary text-background shadow-[0_0_15px_rgba(245,158,11,0.5)] scale-110" 
-            : "bg-white/10 text-muted-foreground hover:bg-white/20"
-        )}
-      >
-        <Check size={16} strokeWidth={3} />
-      </button>
-
-      <button
-        onClick={onRemove}
-        disabled={!canRemove}
-        className={clsx(
-          "h-8 w-8 rounded-lg flex items-center justify-center transition-all duration-200",
-          canRemove 
-            ? "text-red-500/60 hover:bg-red-500/20 hover:text-red-600 md:invisible md:group-hover:visible" 
-            : "invisible cursor-not-allowed"
-        )}
-        title={canRemove ? "Verwijder set" : "Minimaal 1 set vereist"}
-      >
-        <X size={16} strokeWidth={2.5} />
-      </button>
-    </motion.div>
-  );
-});
-
-SetRow.displayName = 'SetRow';
+import EnhancedSetRow from '@/components/EnhancedSetRow'
+import { useWorkoutPreferences } from '@/components/utils/useWorkoutPreferences'
+import { generateProgressiveOverloadSuggestion } from '@/components/utils/progressiveOverload'
 
 const ExerciseStats = ({ 
   exercise, 
@@ -234,6 +148,7 @@ const ExerciseStats = ({
 export default function WorkoutLogger() {
   const { activeWorkout, updateActiveWorkout, finishWorkout, cancelWorkout, history, bodyStats, userProfile } = useData();
   const router = useRouter();
+  const workoutPreferences = useWorkoutPreferences();
   const [elapsed, setElapsed] = useState(0);
   const [workoutData, setWorkoutData] = useState<typeof activeWorkout>(null);
   const [isReady, setIsReady] = useState(false);
@@ -319,10 +234,10 @@ export default function WorkoutLogger() {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const updateSet = (exerciseIndex: number, setIndex: number, field: 'weight' | 'reps', value: number) => {
+  const updateSet = (exerciseIndex: number, setIndex: number, field: 'weight' | 'reps' | 'rir' | 'rpe', value: number | undefined) => {
     if (!workoutData) return;
     const newExercises = [...workoutData.exercises];
-    newExercises[exerciseIndex].sets[setIndex][field] = value;
+    newExercises[exerciseIndex].sets[setIndex][field] = value as any;
     const updated = { ...workoutData, exercises: newExercises };
     setWorkoutData(updated);
     updateActiveWorkout(updated);
@@ -632,17 +547,59 @@ export default function WorkoutLogger() {
                 </div>
 
                 <AnimatePresence mode="popLayout">
-                  {exercise.sets.map((set, setIndex) => (
-                    <SetRow 
-                      key={set.id}
-                      set={set}
-                      index={setIndex}
-                      onUpdate={(field, val) => updateSet(exerciseIndex, setIndex, field, val)}
-                      onToggle={() => toggleSet(exerciseIndex, setIndex)}
-                      onRemove={() => removeSet(exerciseIndex, setIndex)}
-                      canRemove={exercise.sets.length > 1}
-                    />
-                  ))}
+                  {exercise.sets.map((set, setIndex) => {
+                    // Get progressive overload suggestion
+                    const suggestion = generateProgressiveOverloadSuggestion(exercise.name, history)
+                    const previousWorkout = getPreviousWorkoutsForExercise(exercise.name, history)[0]
+                    const previousExercise = previousWorkout ? getExerciseFromWorkout(previousWorkout, exercise.name) : null
+                    const previousBest = previousExercise 
+                      ? getBest1RM(previousExercise) 
+                      : null
+                    
+                    return (
+                      <EnhancedSetRow 
+                        key={set.id}
+                        set={set}
+                        index={setIndex}
+                        onUpdate={(field, val) => {
+                          if (field === 'rir' || field === 'rpe') {
+                            updateSet(exerciseIndex, setIndex, field, val)
+                          } else {
+                            updateSet(exerciseIndex, setIndex, field, val as number)
+                          }
+                        }}
+                        onToggleComplete={() => toggleSet(exerciseIndex, setIndex)}
+                        onToggleWarmup={() => {
+                          // Toggle isWarmup field
+                          const updatedExercises = [...(workoutData?.exercises || [])]
+                          if (updatedExercises[exerciseIndex]) {
+                            const updatedSets = [...updatedExercises[exerciseIndex].sets]
+                            updatedSets[setIndex] = {
+                              ...updatedSets[setIndex],
+                              isWarmup: !updatedSets[setIndex].isWarmup
+                            }
+                            updatedExercises[exerciseIndex] = {
+                              ...updatedExercises[exerciseIndex],
+                              sets: updatedSets
+                            }
+                            setWorkoutData(prev => prev ? { ...prev, exercises: updatedExercises } : null)
+                          }
+                        }}
+                        onRemove={() => removeSet(exerciseIndex, setIndex)}
+                        canRemove={exercise.sets.length > 1}
+                        showRIR={workoutPreferences.showRIR}
+                        showRPE={workoutPreferences.showRPE}
+                        previousBest={previousBest ? {
+                          weight: previousBest.weight,
+                          reps: previousBest.reps
+                        } : null}
+                        suggestion={suggestion && !set.completed && !set.isWarmup ? {
+                          weight: suggestion.suggestedWeight,
+                          reason: suggestion.reason
+                        } : null}
+                      />
+                    )
+                  })}
                 </AnimatePresence>
 
                 <button 

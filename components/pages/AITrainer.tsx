@@ -6,6 +6,7 @@ import { ArrowLeft, Bot, Send, Sparkles, Zap, BrainCircuit, AlertTriangle, Check
 import { useRouter } from 'next/navigation'
 import { useData } from '@/components/context/DataContext'
 import { generateUserContext, getRandomTip, Message, generateProactiveInsights, ProactiveInsight } from '@/components/utils/aiTrainer'
+import WorkoutGeneratorModal from '@/components/WorkoutGeneratorModal'
 
 export default function AITrainer() {
   const router = useRouter()
@@ -15,6 +16,7 @@ export default function AITrainer() {
   const [isTyping, setIsTyping] = useState(false);
   const [dailyTip, setDailyTip] = useState<string>('');
   const [insights, setInsights] = useState<ProactiveInsight[]>([]);
+  const [showWorkoutGenerator, setShowWorkoutGenerator] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Initial greeting and insights on mount
@@ -156,13 +158,45 @@ export default function AITrainer() {
         
         {/* Quick Actions / Featured Tip */}
         <div className="grid grid-cols-1 gap-4 mb-6">
+          {/* AI Workout Generator CTA */}
+          <motion.button
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            onClick={() => setShowWorkoutGenerator(true)}
+            className="bg-gradient-to-br from-primary to-red-500 p-6 rounded-2xl relative overflow-hidden group hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-primary/20"
+          >
+            <div className="absolute top-0 right-0 p-3 opacity-20 group-hover:opacity-30 transition-opacity">
+              <Sparkles size={64} />
+            </div>
+            <div className="relative">
+              <div className="flex items-center gap-2 mb-2">
+                <Sparkles size={20} className="text-white" />
+                <h3 className="text-sm font-black uppercase text-white tracking-wide">
+                  AI Workout Generator
+                </h3>
+              </div>
+              <p className="text-white/90 text-sm font-medium leading-relaxed mb-3">
+                Laat AI een volledig gepersonaliseerd workout programma voor je maken op basis van je doelen, apparatuur en ervaring
+              </p>
+              <div className="flex items-center gap-2 text-white/80 text-xs">
+                <span className="px-2 py-1 bg-white/20 rounded-md font-bold">
+                  ✨ Nieuw
+                </span>
+                <span>
+                  Kost ~$0.05 per programma
+                </span>
+              </div>
+            </div>
+          </motion.button>
+
           <motion.div 
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
             className="bg-gradient-to-br from-primary/20 to-purple-500/10 border border-primary/20 p-5 rounded-2xl relative overflow-hidden"
           >
             <div className="absolute top-0 right-0 p-3 opacity-20">
-              <Sparkles size={48} />
+              <Zap size={48} />
             </div>
             <h3 className="text-xs font-bold uppercase text-primary mb-2 flex items-center gap-2">
               <Zap size={14} /> Daily Tip
@@ -308,6 +342,12 @@ export default function AITrainer() {
           </button>
         </div>
       </div>
+
+      {/* Workout Generator Modal */}
+      <WorkoutGeneratorModal
+        isOpen={showWorkoutGenerator}
+        onClose={() => setShowWorkoutGenerator(false)}
+      />
     </div>
   );
 }

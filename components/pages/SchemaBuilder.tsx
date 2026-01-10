@@ -2,13 +2,15 @@
 
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft, Plus, Trash2, GripHorizontal, RotateCcw, Edit2, Search, RefreshCw } from 'lucide-react'
+import { ArrowLeft, Plus, Trash2, GripHorizontal, RotateCcw, Edit2, Search, RefreshCw, Share2, Lightbulb } from 'lucide-react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useData, Schema, Exercise } from '@/components/context/DataContext'
 import ExerciseSubstitutionModal from '@/components/ExerciseSubstitutionModal'
+import TemplateShareModal from '@/components/TemplateShareModal'
+import { suggestStartingWeight, StartingWeightSuggestion } from '@/components/utils/startingWeightSuggestions'
 
 export default function SchemaBuilder() {
-  const { addSchema, schemas, updateSchema } = useData();
+  const { addSchema, schemas, updateSchema, history, userProfile } = useData();
   const router = useRouter();
   const searchParams = useSearchParams();
   const editId = searchParams.get('edit');
@@ -24,10 +26,17 @@ export default function SchemaBuilder() {
   const [newExSets, setNewExSets] = useState(3);
   const [newExReps, setNewExReps] = useState(10);
   const [newExStartWeight, setNewExStartWeight] = useState<number | undefined>(undefined);
+  
+  // AI Weight Suggestion State
+  const [weightSuggestion, setWeightSuggestion] = useState<StartingWeightSuggestion | null>(null);
+  const [showSuggestion, setShowSuggestion] = useState(false);
 
   // Substitution Modal State
   const [substitutionModalOpen, setSubstitutionModalOpen] = useState(false);
   const [exerciseToSubstitute, setExerciseToSubstitute] = useState<Exercise | null>(null);
+
+  // Share Modal State
+  const [shareModalOpen, setShareModalOpen] = useState(false);
 
   // Load schema for editing
   useEffect(() => {
@@ -63,6 +72,23 @@ export default function SchemaBuilder() {
       router.replace(editId ? `/schema?edit=${editId}` : '/schema');
     }
   }, [searchParams, router, editId, isAddingEx, editingExercise]);
+
+  // Generate AI weight suggestion when exercise name changes
+  useEffect(() => {
+    if (newExName.trim() && history.length > 0) {
+      const suggestion = suggestStartingWeight(newExName, history, userProfile);
+      setWeightSuggestion(suggestion);
+      setShowSuggestion(true);
+      
+      // Only auto-apply if user hasn't manually set a weight
+      if (suggestion && newExStartWeight === undefined && !editingExercise) {
+        setNewExStartWeight(suggestion.suggestedWeight);
+      }
+    } else {
+      setWeightSuggestion(null);
+      setShowSuggestion(false);
+    }
+  }, [newExName, history, userProfile, editingExercise]); // Excluded newExStartWeight to avoid infinite loop
 
   const handleAddExercise = () => {
     if (!newExName.trim()) return;
@@ -155,6 +181,8 @@ export default function SchemaBuilder() {
     setNewExReps(10);
     setNewExStartWeight(undefined);
     setIsAddingEx(false);
+    setWeightSuggestion(null);
+    setShowSuggestion(false);
   };
 
   const openSubstitutionModal = (exercise: Exercise) => {
@@ -183,13 +211,24 @@ export default function SchemaBuilder() {
           <ArrowLeft size={24} />
         </button>
         <h1 className="font-bold text-lg">{isEditMode ? 'Edit Routine' : 'New Routine'}</h1>
-        <button 
-          onClick={handleSaveSchema}
-          disabled={!name.trim() || exercises.length === 0}
-          className="text-primary font-bold text-sm disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-wider"
-        >
-          Save
-        </button>
+        <div className="flex gap-2">
+          {isEditMode && exercises.length > 0 && (
+            <button
+              onClick={() => setShareModalOpen(true)}
+              className="p-2 text-primary hover:bg-primary/10 rounded-lg transition-colors"
+              title="Share Template"
+            >
+              <Share2 size={20} />
+            </button>
+          )}
+          <button 
+            onClick={handleSaveSchema}
+            disabled={!name.trim() || exercises.length === 0}
+            className="text-primary font-bold text-sm disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-wider"
+          >
+            Save
+          </button>
+        </div>
       </div>
 
       <div className="p-6 max-w-2xl mx-auto space-y-8">
@@ -312,7 +351,65 @@ export default function SchemaBuilder() {
                 </div>
               </div>
               <div>
-                <label className="text-[10px] uppercase font-bold text-muted-foreground">Start Weight (kg) - Optioneel</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-[10px] uppercase font-bold text-muted-foreground">Start Weight (kg) - Optioneel</label>
+                  {weightSuggestion && showSuggestion && (
+                    <button
+                      onClick={() => setNewExStartWeight(weightSuggestion.suggestedWeight)}
+                      className="flex items-center gap-1 text-xs font-bold text-primary hover:underline"
+                    >
+                      <Lightbulb size={12} />
+                      AI Suggestie
+                    </button>
+                  )}
+                </div>
+                
+                {/* AI Weight Suggestion Banner */}
+                <AnimatePresence>
+                  {weightSuggestion && showSuggestion && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0, marginBottom: 0 }}
+                      animate={{ opacity: 1, height: 'auto', marginBottom: 8 }}
+                      exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+                      className="bg-primary/10 border border-primary/30 rounded-lg p-3 overflow-hidden"
+                    >
+                      <div className="flex items-start gap-2">
+                        <div className="mt-0.5">
+                          <Lightbulb size={16} className="text-primary" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-baseline gap-2 mb-1">
+                            <span className="text-sm font-bold text-primary">
+                              {weightSuggestion.suggestedWeight}kg
+                            </span>
+                            <span className={`text-[9px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded ${
+                              weightSuggestion.confidence === 'high' ? 'bg-green-500/20 text-green-400' :
+                              weightSuggestion.confidence === 'medium' ? 'bg-yellow-500/20 text-yellow-400' :
+                              'bg-orange-500/20 text-orange-400'
+                            }`}>
+                              {weightSuggestion.confidence === 'high' ? 'Hoge zekerheid' :
+                               weightSuggestion.confidence === 'medium' ? 'Gemiddelde zekerheid' :
+                               'Lage zekerheid'}
+                            </span>
+                          </div>
+                          <p className="text-[10px] text-muted-foreground leading-relaxed">
+                            {weightSuggestion.reasoning}
+                          </p>
+                          <p className="text-[9px] text-muted-foreground/60 mt-1 italic">
+                            Op basis van: {weightSuggestion.basedOn}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => setShowSuggestion(false)}
+                          className="text-muted-foreground/40 hover:text-muted-foreground text-xs font-bold"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+                
                 <input
                   type="number"
                   value={newExStartWeight ?? ''}
@@ -354,6 +451,19 @@ export default function SchemaBuilder() {
           )}
         </div>
       </div>
+
+      {/* Share Modal */}
+      {shareModalOpen && editId && (
+        <TemplateShareModal
+          schema={{
+            id: editId,
+            name,
+            exercises,
+            color: schemas.find(s => s.id === editId)?.color
+          }}
+          onClose={() => setShareModalOpen(false)}
+        />
+      )}
 
       {/* Exercise Substitution Modal */}
       <ExerciseSubstitutionModal

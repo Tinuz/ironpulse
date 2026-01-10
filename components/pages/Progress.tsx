@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft, Ruler, Scale, Plus, Trash2, TrendingUp, User, Dumbbell, Award, TrendingDown, Minus, Activity, BarChart3, AlertCircle, Trophy } from 'lucide-react'
+import { ArrowLeft, Ruler, Scale, Plus, Trash2, TrendingUp, User, Dumbbell, Award, TrendingDown, Minus, Activity, BarChart3, AlertCircle, Trophy, Settings, ChevronRight, Share2, Camera } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useData, BodyStats } from '@/components/context/DataContext'
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
@@ -143,6 +143,107 @@ export default function Progress() {
       </div>
 
       <div className="p-4 max-w-2xl mx-auto space-y-6">
+        {/* Quick Actions - Me Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-card border border-white/5 rounded-2xl overflow-hidden"
+        >
+          <div className="p-4 border-b border-white/5">
+            <h3 className="font-bold flex items-center gap-2">
+              <User size={20} />
+              Mijn Overzicht
+            </h3>
+          </div>
+          
+          <div className="divide-y divide-white/5">
+            {/* Recovery Dashboard */}
+            <button
+              onClick={() => router.push('/recovery')}
+              className="w-full p-4 flex items-center justify-between hover:bg-white/5 transition-colors group"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-green-500/20 to-blue-500/20 flex items-center justify-center">
+                  <Activity size={20} className="text-green-500" />
+                </div>
+                <div className="text-left">
+                  <p className="font-bold">Herstel Dashboard</p>
+                  <p className="text-xs text-muted-foreground">Spierherstel en gereedheid</p>
+                </div>
+              </div>
+              <ChevronRight size={20} className="text-muted-foreground group-hover:text-primary transition-colors" />
+            </button>
+
+            {/* Exercise Progress */}
+            <button
+              onClick={() => router.push('/exercise-progress')}
+              className="w-full p-4 flex items-center justify-between hover:bg-white/5 transition-colors group"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/20 to-red-500/20 flex items-center justify-center">
+                  <TrendingUp size={20} className="text-primary" />
+                </div>
+                <div className="text-left">
+                  <p className="font-bold">Oefening Voortgang</p>
+                  <p className="text-xs text-muted-foreground">PR's en krachtontwikkeling</p>
+                </div>
+              </div>
+              <ChevronRight size={20} className="text-muted-foreground group-hover:text-primary transition-colors" />
+            </button>
+
+            {/* Shared Templates */}
+            <button
+              onClick={() => router.push('/shared-templates')}
+              className="w-full p-4 flex items-center justify-between hover:bg-white/5 transition-colors group"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500/20 to-cyan-500/20 flex items-center justify-center">
+                  <Share2 size={20} className="text-blue-500" />
+                </div>
+                <div className="text-left">
+                  <p className="font-bold">Gedeelde Templates</p>
+                  <p className="text-xs text-muted-foreground">Beheer gedeelde workouts</p>
+                </div>
+              </div>
+              <ChevronRight size={20} className="text-muted-foreground group-hover:text-primary transition-colors" />
+            </button>
+
+            {/* Progress Photos */}
+            <button
+              onClick={() => router.push('/progress-photos')}
+              className="w-full p-4 flex items-center justify-between hover:bg-white/5 transition-colors group"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-pink-500/20 to-orange-500/20 flex items-center justify-center">
+                  <Camera size={20} className="text-pink-500" />
+                </div>
+                <div className="text-left">
+                  <p className="font-bold">Progress Foto's</p>
+                  <p className="text-xs text-muted-foreground">Visuele transformatie</p>
+                </div>
+              </div>
+              <ChevronRight size={20} className="text-muted-foreground group-hover:text-primary transition-colors" />
+            </button>
+
+            {/* Settings */}
+            <button
+              onClick={() => router.push('/settings')}
+              className="w-full p-4 flex items-center justify-between hover:bg-white/5 transition-colors group"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 flex items-center justify-center">
+                  <Settings size={20} className="text-purple-500" />
+                </div>
+                <div className="text-left">
+                  <p className="font-bold">Instellingen</p>
+                  <p className="text-xs text-muted-foreground">Account en voorkeuren</p>
+                </div>
+              </div>
+              <ChevronRight size={20} className="text-muted-foreground group-hover:text-primary transition-colors" />
+            </button>
+          </div>
+        </motion.div>
+
         {activeTab === 'strength' && (
           <motion.div
             key="strength"

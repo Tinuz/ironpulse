@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { User, TrendingUp, Utensils } from 'lucide-react'
+import { User, TrendingUp, Utensils, Calendar } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useData } from '@/components/context/DataContext'
 import { useAuth } from '@/components/context/AuthContext'
@@ -57,10 +57,20 @@ export default function Dashboard() {
       </div>
 
       {/* Stats Overview */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-3 gap-3">
+        <div 
+          onClick={() => router.push('/history')}
+          className="bg-card border border-border p-4 rounded-2xl shadow-sm hover:shadow-md transition-all cursor-pointer group"
+        >
+          <div className="flex items-center gap-2 text-muted-foreground text-xs uppercase font-bold mb-2">
+            <Calendar size={14} /> History
+          </div>
+          <div className="text-3xl font-black tabular-nums group-hover:text-primary transition-colors">{totalWorkouts}</div>
+        </div>
+        
         <div className="bg-card border border-border p-4 rounded-2xl shadow-sm">
           <div className="flex items-center gap-2 text-muted-foreground text-xs uppercase font-bold mb-2">
-            <TrendingUp size={14} /> Total Workouts
+            <TrendingUp size={14} /> Workouts
           </div>
           <div className="text-3xl font-black tabular-nums">{totalWorkouts}</div>
         </div>
@@ -74,10 +84,10 @@ export default function Dashboard() {
              <Utensils size={40} />
           </div>
           <div className="flex items-center gap-2 text-muted-foreground text-xs uppercase font-bold mb-2 relative z-10">
-            <Utensils size={14} /> Nutrition Today
+            <Utensils size={14} /> Nutrition
           </div>
-          <div className="text-3xl font-black tabular-nums text-pink-500 relative z-10">
-            {totalCalories} <span className="text-sm font-medium text-muted-foreground">kcal</span>
+          <div className="text-2xl font-black tabular-nums text-pink-500 relative z-10">
+            {totalCalories} <span className="text-xs font-medium text-muted-foreground">kcal</span>
           </div>
         </div>
       </div>

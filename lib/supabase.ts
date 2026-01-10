@@ -240,6 +240,58 @@ export type Database = {
           updated_at?: string
         }
       }
+      shared_templates: {
+        Row: {
+          id: string
+          user_id: string
+          schema_id: string
+          share_code: string
+          name: string
+          description: string | null
+          exercises: any
+          color: string | null
+          created_by_username: string
+          created_by_avatar: string | null
+          view_count: number
+          import_count: number
+          is_active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          schema_id: string
+          share_code: string
+          name: string
+          description?: string | null
+          exercises: any
+          color?: string | null
+          created_by_username: string
+          created_by_avatar?: string | null
+          view_count?: number
+          import_count?: number
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          schema_id?: string
+          share_code?: string
+          name?: string
+          description?: string | null
+          exercises?: any
+          color?: string | null
+          created_by_username?: string
+          created_by_avatar?: string | null
+          view_count?: number
+          import_count?: number
+          is_active?: boolean
+          updated_at?: string
+        }
+      }
     }
   }
 }

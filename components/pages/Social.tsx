@@ -2,12 +2,15 @@
 
 import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Users, UserPlus, UserCheck, Search, TrendingUp, Dumbbell, X } from 'lucide-react'
+import { Users, UserPlus, UserCheck, Search, TrendingUp, Dumbbell, X, Plus } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/context/AuthContext'
 import { supabase } from '@/lib/supabase'
 import { formatDistance } from 'date-fns'
 import { nl } from 'date-fns/locale'
+import { getUserSquads, Squad } from '@/lib/squads'
+import SquadCard from '@/components/SquadCard'
+import CreateSquadModal from '@/components/CreateSquadModal'
 
 interface SocialProfile {
   user_id: string
@@ -36,13 +39,17 @@ interface FriendActivity {
 export default function Social() {
   const { user } = useAuth()
   const router = useRouter()
-  const [activeTab, setActiveTab] = useState<'feed' | 'discover'>('feed')
+  const [activeTab, setActiveTab] = useState<'feed' | 'squads' | 'discover'>('feed')
   const [searchQuery, setSearchQuery] = useState('')
   const [following, setFollowing] = useState<SocialProfile[]>([])
   const [suggested, setSuggested] = useState<SocialProfile[]>([])
   const [friendActivity, setFriendActivity] = useState<FriendActivity[]>([])
   const [followingIds, setFollowingIds] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(true)
+  
+  // Squads state
+  const [squads, setSquads] = useState<Squad[]>([])
+  const [createSquadModalOpen, setCreateSquadModalOpen] = useState(false)
 
   useEffect(() => {
     if (user) {
@@ -55,6 +62,10 @@ export default function Social() {
     
     setLoading(true)
     try {
+      // Load user's squads
+      const userSquads = await getUserSquads(user.id)
+      setSquads(userSquads)
+      
       // Load who current user is following
       const { data: followsData } = await supabase
         .from('user_follows')
@@ -184,6 +195,19 @@ export default function Social() {
             </div>
           </button>
           <button
+            onClick={() => setActiveTab('squads')}
+            className={`flex-1 py-2 px-4 rounded-lg font-bold transition-colors ${
+              activeTab === 'squads'
+                ? 'bg-primary text-white'
+                : 'bg-white/5 text-muted-foreground hover:bg-white/10'
+            }`}
+          >
+            <div className="flex items-center justify-center gap-2">
+              <Users size={18} />
+              Squads
+            </div>
+          </button>
+          <button
             onClick={() => setActiveTab('discover')}
             className={`flex-1 py-2 px-4 rounded-lg font-bold transition-colors ${
               activeTab === 'discover'
@@ -255,6 +279,61 @@ export default function Social() {
               </div>
             )}
           </>
+        ) : activeTab === 'squads' ? (
+          <>
+            {/* Squads Section */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-bold flex items-center gap-2">
+                  <Users size={20} className="text-primary" />
+                  Mijn Squads ({squads.length})
+                </h3>
+                <button
+                  onClick={() => setCreateSquadModalOpen(true)}
+                  className="flex items-center gap-2 px-4 py-2 bg-primary text-background font-bold rounded-lg hover:scale-105 transition-transform"
+                >
+                  <Plus size={18} />
+                  Nieuw
+                </button>
+              </div>
+
+              {squads.length > 0 ? (
+                <div className="space-y-3">
+                  {squads.map(squad => (
+                    <SquadCard key={squad.id} squad={squad} />
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12 bg-card border border-white/5 rounded-xl">
+                  <Users size={48} className="mx-auto text-muted-foreground mb-4" />
+                  <h3 className="font-bold text-lg mb-2">Nog geen squads</h3>
+                  <p className="text-muted-foreground text-sm mb-6 max-w-sm mx-auto">
+                    Maak een squad aan om samen te trainen met een kleine groep vrienden
+                  </p>
+                  <button
+                    onClick={() => setCreateSquadModalOpen(true)}
+                    className="px-6 py-3 bg-primary text-background rounded-lg font-bold hover:scale-105 transition-transform inline-flex items-center gap-2"
+                  >
+                    <Plus size={18} />
+                    Eerste Squad Aanmaken
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Info Box */}
+            <div className="bg-gradient-to-br from-primary/10 via-purple-500/10 to-transparent border border-primary/20 rounded-xl p-4">
+              <h4 className="font-bold text-sm mb-2">💪 Wat zijn Squads?</h4>
+              <p className="text-xs text-muted-foreground leading-relaxed mb-3">
+                Kleine groepen voor accountability. Deel workouts, moedig elkaar aan, en blijf consistent zonder de ruis van grote social media.
+              </p>
+              <div className="flex flex-wrap gap-2 text-xs">
+                <span className="px-2 py-1 bg-white/10 rounded">Privé groepen</span>
+                <span className="px-2 py-1 bg-white/10 rounded">Alleen op uitnodiging</span>
+                <span className="px-2 py-1 bg-white/10 rounded">Deel check-ins</span>
+              </div>
+            </div>
+          </>
         ) : (
           <>
             {/* Search Bar */}
@@ -306,6 +385,16 @@ export default function Social() {
           </>
         )}
       </div>
+
+      {/* Create Squad Modal */}
+      <CreateSquadModal
+        isOpen={createSquadModalOpen}
+        onClose={() => setCreateSquadModalOpen(false)}
+        onSuccess={(_squad) => {
+          setCreateSquadModalOpen(false)
+          loadSocialData() // Refresh squads list
+        }}
+      />
     </div>
   )
 }

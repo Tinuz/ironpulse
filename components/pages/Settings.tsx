@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Bot, Check, LogOut, User, Languages, Coffee, UserCircle, Lock, Eye, EyeOff } from 'lucide-react'
+import { ArrowLeft, Bot, Check, LogOut, User, Languages, Coffee, UserCircle, Lock, Eye, EyeOff, Dumbbell } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useData } from '@/components/context/DataContext'
 import { useAuth } from '@/components/context/AuthContext'
@@ -31,12 +31,26 @@ export default function Settings() {
   const [editedProfile, setEditedProfile] = useState<SocialProfile | null>(null)
   const [usernameError, setUsernameError] = useState('')
   const [saving, setSaving] = useState(false)
+  const [showRIR, setShowRIR] = useState(false)
+  const [showRPE, setShowRPE] = useState(false)
+  const [showWarmupToggle, setShowWarmupToggle] = useState(true)
 
   useEffect(() => {
     if (user) {
       loadSocialProfile()
+      loadWorkoutPreferences()
     }
   }, [user])
+
+  const loadWorkoutPreferences = () => {
+    const savedRIR = localStorage.getItem('workout_show_rir')
+    const savedRPE = localStorage.getItem('workout_show_rpe')
+    const savedWarmup = localStorage.getItem('workout_show_warmup_toggle')
+    
+    if (savedRIR !== null) setShowRIR(savedRIR === 'true')
+    if (savedRPE !== null) setShowRPE(savedRPE === 'true')
+    if (savedWarmup !== null) setShowWarmupToggle(savedWarmup === 'true')
+  }
 
   const loadSocialProfile = async () => {
     if (!user) return
@@ -369,6 +383,88 @@ export default function Settings() {
                 <LogOut size={18} />
                 <span>{t.settings.logout}</span>
               </motion.button>
+            </div>
+          </div>
+        </div>
+
+        {/* Workout Preferences Section */}
+        <div>
+          <div className="flex items-center gap-2 mb-4">
+            <Dumbbell className="text-primary" size={20} />
+            <h2 className="text-lg font-bold">Workout Voorkeuren</h2>
+          </div>
+          
+          <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-4">
+            <label className="flex items-center justify-between cursor-pointer">
+              <div>
+                <p className="font-medium text-sm">RIR Tracking</p>
+                <p className="text-xs text-muted-foreground">Reps In Reserve (0-10) per set</p>
+              </div>
+              <button
+                onClick={() => {
+                  const newValue = !showRIR
+                  setShowRIR(newValue)
+                  localStorage.setItem('workout_show_rir', String(newValue))
+                }}
+                className={`relative w-12 h-6 rounded-full transition-colors ${
+                  showRIR ? 'bg-primary' : 'bg-white/20'
+                }`}
+              >
+                <div className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform ${
+                  showRIR ? 'translate-x-6' : 'translate-x-0'
+                }`} />
+              </button>
+            </label>
+
+            <label className="flex items-center justify-between cursor-pointer">
+              <div>
+                <p className="font-medium text-sm">RPE Tracking</p>
+                <p className="text-xs text-muted-foreground">Rate of Perceived Exertion (1-10) per set</p>
+              </div>
+              <button
+                onClick={() => {
+                  const newValue = !showRPE
+                  setShowRPE(newValue)
+                  localStorage.setItem('workout_show_rpe', String(newValue))
+                }}
+                className={`relative w-12 h-6 rounded-full transition-colors ${
+                  showRPE ? 'bg-primary' : 'bg-white/20'
+                }`}
+              >
+                <div className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform ${
+                  showRPE ? 'translate-x-6' : 'translate-x-0'
+                }`} />
+              </button>
+            </label>
+
+            <label className="flex items-center justify-between cursor-pointer">
+              <div>
+                <p className="font-medium text-sm">Warm-up Sets</p>
+                <p className="text-xs text-muted-foreground">Markeer sets als warm-up (uitgesloten van volume)</p>
+              </div>
+              <button
+                onClick={() => {
+                  const newValue = !showWarmupToggle
+                  setShowWarmupToggle(newValue)
+                  localStorage.setItem('workout_show_warmup_toggle', String(newValue))
+                }}
+                className={`relative w-12 h-6 rounded-full transition-colors ${
+                  showWarmupToggle ? 'bg-primary' : 'bg-white/20'
+                }`}
+              >
+                <div className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform ${
+                  showWarmupToggle ? 'translate-x-6' : 'translate-x-0'
+                }`} />
+              </button>
+            </label>
+
+            <div className="pt-3 border-t border-white/10">
+              <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-3">
+                <p className="text-xs text-blue-400">
+                  <span className="font-bold">💡 Tip:</span> RIR en RPE helpen bij progressive overload en recovery tracking. 
+                  Warm-up sets worden automatisch uitgesloten van je totale volume berekeningen.
+                </p>
+              </div>
             </div>
           </div>
         </div>

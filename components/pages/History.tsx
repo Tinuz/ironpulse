@@ -2,22 +2,30 @@
 
 import React, { useState } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Calendar, Clock, Trophy, Dumbbell, Edit2, Trash2, MoreVertical, Flame } from 'lucide-react'
+import { ArrowLeft, Calendar, Clock, Trophy, Dumbbell, Edit2, Trash2, MoreVertical, Flame, List, CalendarDays } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { format } from 'date-fns'
 import { useData } from '@/components/context/DataContext'
 import { getBest1RM, roundTo } from '@/components/utils/workoutCalculations'
+import WorkoutCalendar from '@/components/WorkoutCalendar'
+import type { WorkoutLog } from '@/components/context/DataContext'
 
 export default function History() {
   const { history, deleteWorkout } = useData();
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
+  const [viewMode, setViewMode] = useState<'list' | 'calendar'>('calendar')
+  const [selectedDateWorkouts, setSelectedDateWorkouts] = useState<WorkoutLog[] | null>(null)
 
   const handleDelete = async (id: string) => {
     await deleteWorkout(id)
     setConfirmDelete(null)
     setMenuOpen(null)
+  }
+
+  const handleDateClick = (_date: Date, workouts: WorkoutLog[]) => {
+    setSelectedDateWorkouts(workouts)
   }
 
   return (
@@ -28,7 +36,24 @@ export default function History() {
           <ArrowLeft size={24} />
         </button>
         <h1 className="font-bold text-lg">Workout History</h1>
-        <div className="w-8" /> {/* Spacer */}
+        <div className="flex gap-2">
+          <button
+            onClick={() => setViewMode('calendar')}
+            className={`p-2 rounded-lg transition-colors ${
+              viewMode === 'calendar' ? 'bg-primary text-white' : 'bg-white/5 text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <CalendarDays size={20} />
+          </button>
+          <button
+            onClick={() => setViewMode('list')}
+            className={`p-2 rounded-lg transition-colors ${
+              viewMode === 'list' ? 'bg-primary text-white' : 'bg-white/5 text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <List size={20} />
+          </button>
+        </div>
       </div>
 
       <div className="p-4 max-w-2xl mx-auto space-y-6">
@@ -44,6 +69,8 @@ export default function History() {
               </p>
             </div>
           </div>
+        ) : viewMode === 'calendar' ? (
+          <WorkoutCalendar onDateClick={handleDateClick} />
         ) : (
           <div className="space-y-4">
             {history.map((log, i) => {
@@ -206,6 +233,74 @@ export default function History() {
                 </motion.div>
               );
             })}
+
+        {/* Multi-workout day modal */}
+        {selectedDateWorkouts && selectedDateWorkouts.length > 1 && (
+          <div 
+            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            onClick={() => setSelectedDateWorkouts(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-card border border-white/10 rounded-2xl p-6 max-w-md w-full max-h-[80vh] overflow-y-auto space-y-4"
+            >
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-xl font-bold">
+                  {selectedDateWorkouts.length} Workouts
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  {format(new Date(selectedDateWorkouts[0].date), 'MMM d, yyyy')}
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                {selectedDateWorkouts.map((workout) => {
+                  const totalSets = workout.exercises.reduce((acc, ex) => acc + ex.sets.filter(s => s.completed).length, 0)
+                  const volume = workout.exercises.reduce((acc, ex) => 
+                    acc + ex.sets.filter(s => s.completed).reduce((sAcc, s) => sAcc + (s.weight * s.reps), 0)
+                  , 0)
+
+                  return (
+                    <button
+                      key={workout.id}
+                      onClick={() => {
+                        setSelectedDateWorkouts(null)
+                        router.push(`/workout/${workout.id}`)
+                      }}
+                      className="w-full bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl p-4 text-left transition-colors"
+                    >
+                      <div className="flex justify-between items-start mb-2">
+                        <h4 className="font-bold text-primary">{workout.name}</h4>
+                        <span className="text-xs text-muted-foreground font-mono">
+                          {format(new Date(workout.date), 'h:mm a')}
+                        </span>
+                      </div>
+                      <div className="flex gap-4 text-sm">
+                        <span className="text-muted-foreground">
+                          <span className="font-bold text-foreground">{totalSets}</span> sets
+                        </span>
+                        <span className="text-muted-foreground">
+                          <span className="font-bold text-foreground">
+                            {volume >= 1000 ? `${(volume / 1000).toFixed(1)}k` : volume.toFixed(0)}
+                          </span> kg
+                        </span>
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
+
+              <button
+                onClick={() => setSelectedDateWorkouts(null)}
+                className="w-full py-3 bg-white/5 hover:bg-white/10 rounded-full font-bold transition-colors mt-4"
+              >
+                Close
+              </button>
+            </motion.div>
+          </div>
+        )}
           </div>
         )}
       </div>

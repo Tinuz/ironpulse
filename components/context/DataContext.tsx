@@ -26,6 +26,9 @@ export interface WorkoutSet {
   weight: number;
   reps: number;
   completed: boolean;
+  rir?: number; // Reps In Reserve (0-10)
+  rpe?: number; // Rate of Perceived Exertion (1-10)
+  isWarmup?: boolean; // Exclude from volume calculations
 }
 
 export interface WorkoutExercise {
@@ -423,6 +426,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [activeWorkout]);
 
   const addSchema = async (schema: Schema) => {
+    console.log('🔧 Adding schema to database:', schema.name)
+    
     const { data, error } = await supabase
       .from('schemas')
       .insert({
@@ -435,7 +440,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       .select()
       .single();
 
-    if (!error && data) {
+    if (error) {
+      console.error('❌ Error adding schema:', error)
+      throw new Error(`Failed to add schema: ${error.message}`)
+    }
+
+    if (data) {
+      console.log('✅ Schema added successfully:', data.id)
       setSchemas(prev => [...prev, {
         id: data.id,
         name: data.name,
