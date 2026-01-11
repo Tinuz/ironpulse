@@ -175,7 +175,7 @@ export async function getSquadMembers(squadId: string): Promise<SquadMember[]> {
 
     // Fetch social profiles separately
     const { data: profiles, error: profilesError } = await supabase
-      .from('social_profiles')
+      .from('user_social_profiles')
       .select('user_id, username, display_name, avatar_url')
       .in('user_id', userIds);
 
