@@ -21,14 +21,14 @@ ON workout_history ((cardio_summary->>'totalDuration'))
 WHERE (cardio_summary->>'totalDuration')::int > 0;
 
 -- Add user preferences for cardio units
-ALTER TABLE user_profiles
+ALTER TABLE user_profile
 ADD COLUMN IF NOT EXISTS cardio_preferences JSONB DEFAULT '{
   "distanceUnit": "km",
   "paceUnit": "min/km",
   "weeklyCardioGoal": 150
 }'::jsonb;
 
-COMMENT ON COLUMN user_profiles.cardio_preferences IS 'User preferences for cardio: distance unit (km/miles), pace format, weekly cardio goal in minutes';
+COMMENT ON COLUMN user_profile.cardio_preferences IS 'User preferences for cardio: distance unit (km/miles), pace format, weekly cardio goal in minutes';
 
 -- Backward compatibility: all existing workouts are strength by default
 -- Exercise type ('strength' | 'cardio') and cardioData are stored in exercises JSONB array
