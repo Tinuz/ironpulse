@@ -6,12 +6,27 @@ import { CoachProfileType } from '@/components/utils/coachProfiles';
 import { useAuth } from '@/components/context/AuthContext';
 import { checkAchievements, getNewlyUnlocked } from '@/components/utils/achievementEngine';
 
+export type ExerciseType = 'strength' | 'cardio';
+
+export interface CardioData {
+  duration: number; // in seconds
+  distance?: number; // in meters
+  heartRate?: number; // average bpm
+  intensity?: 'low' | 'moderate' | 'high' | number; // RPE 1-10
+  pace?: string; // calculated, e.g., "5:30/km"
+  estimatedCalories?: number;
+}
+
 export interface Exercise {
   id: string;
   name: string;
+  type?: ExerciseType; // 'strength' (default) or 'cardio'
+  // Strength fields
   targetSets: number;
   targetReps: number;
   startWeight?: number;
+  // Cardio fields
+  cardioData?: CardioData;
 }
 
 export interface Schema {
@@ -35,9 +50,11 @@ export interface WorkoutExercise {
   id: string; // instance id
   exerciseId: string;
   name: string;
-  sets: WorkoutSet[];
+  type?: ExerciseType; // 'strength' or 'cardio'
+  sets: WorkoutSet[]; // for strength exercises
+  cardioData?: CardioData; // for cardio exercises
   notes?: string;
-  durationMinutes?: number; // Duration of exercise in minutes
+  durationMinutes?: number; // Duration of exercise in minutes (deprecated, use cardioData.duration)
   estimatedCalories?: number; // Calculated calories for this exercise
 }
 
@@ -52,6 +69,12 @@ export interface WorkoutLog {
   totalCalories?: number; // Total estimated calories burned
   metValue?: number; // MET value used for calculation (default: 5)
   completedAt?: string; // ISO timestamp when workout was completed
+  cardioSummary?: {
+    totalDuration: number; // total cardio seconds
+    totalDistance?: number; // total meters
+    avgHeartRate?: number; // average bpm
+    estimatedCalories?: number; // cardio-specific calories
+  };
 }
 
 export interface BodyStats {

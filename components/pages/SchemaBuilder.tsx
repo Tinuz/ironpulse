@@ -2,9 +2,9 @@
 
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft, Plus, Trash2, GripHorizontal, RotateCcw, Edit2, Search, RefreshCw, Share2, Lightbulb } from 'lucide-react'
+import { ArrowLeft, Plus, Trash2, GripHorizontal, RotateCcw, Edit2, Search, RefreshCw, Share2, Lightbulb, Heart, Dumbbell, Clock, Route } from 'lucide-react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useData, Schema, Exercise } from '@/components/context/DataContext'
+import { useData, Schema, Exercise, ExerciseType } from '@/components/context/DataContext'
 import ExerciseSubstitutionModal from '@/components/ExerciseSubstitutionModal'
 import TemplateShareModal from '@/components/TemplateShareModal'
 import { suggestStartingWeight, StartingWeightSuggestion } from '@/components/utils/startingWeightSuggestions'
@@ -22,10 +22,17 @@ export default function SchemaBuilder() {
   const [editingExercise, setEditingExercise] = useState<Exercise | null>(null);
   
   // New Exercise Form State
+  const [exerciseType, setExerciseType] = useState<ExerciseType>('strength');
   const [newExName, setNewExName] = useState('');
   const [newExSets, setNewExSets] = useState(3);
   const [newExReps, setNewExReps] = useState(10);
   const [newExStartWeight, setNewExStartWeight] = useState<number | undefined>(undefined);
+  
+  // Cardio-specific state
+  const [cardioDuration, setCardioDuration] = useState<number>(1800); // 30 min default in seconds
+  const [cardioDistance, setCardioDistance] = useState<number | undefined>(undefined); // in meters
+  const [cardioHeartRate, setCardioHeartRate] = useState<number | undefined>(undefined); // bpm
+  const [cardioIntensity, setCardioIntensity] = useState<'low' | 'moderate' | 'high'>('moderate');
   
   // AI Weight Suggestion State
   const [weightSuggestion, setWeightSuggestion] = useState<StartingWeightSuggestion | null>(null);
@@ -96,16 +103,28 @@ export default function SchemaBuilder() {
     const exercise: Exercise = {
       id: crypto.randomUUID(),
       name: newExName,
-      targetSets: newExSets,
-      targetReps: newExReps,
-      startWeight: newExStartWeight
+      type: exerciseType,
+      targetSets: exerciseType === 'strength' ? newExSets : 0,
+      targetReps: exerciseType === 'strength' ? newExReps : 0,
+      startWeight: exerciseType === 'strength' ? newExStartWeight : undefined,
+      cardioData: exerciseType === 'cardio' ? {
+        duration: cardioDuration,
+        distance: cardioDistance,
+        heartRate: cardioHeartRate,
+        intensity: cardioIntensity
+      } : undefined
     };
     
     setExercises([...exercises, exercise]);
     setNewExName('');
+    setExerciseType('strength');
     setNewExSets(3);
     setNewExReps(10);
     setNewExStartWeight(undefined);
+    setCardioDuration(1800);
+    setCardioDistance(undefined);
+    setCardioHeartRate(undefined);
+    setCardioIntensity('moderate');
     setIsAddingEx(false);
   };
 
@@ -152,10 +171,21 @@ export default function SchemaBuilder() {
 
   const startEditExercise = (exercise: Exercise) => {
     setEditingExercise(exercise);
+    setExerciseType(exercise.type || 'strength');
     setNewExName(exercise.name);
     setNewExSets(exercise.targetSets);
     setNewExReps(exercise.targetReps);
     setNewExStartWeight(exercise.startWeight);
+    
+    // Load cardio data if exists
+    if (exercise.cardioData) {
+      setCardioDuration(exercise.cardioData.duration);
+      setCardioDistance(exercise.cardioData.distance);
+      setCardioHeartRate(exercise.cardioData.heartRate);
+      setCardioIntensity(typeof exercise.cardioData.intensity === 'string' 
+        ? exercise.cardioData.intensity 
+        : 'moderate');
+    }
   };
 
   const handleUpdateExercise = () => {
@@ -163,23 +193,46 @@ export default function SchemaBuilder() {
     
     setExercises(exercises.map(ex => 
       ex.id === editingExercise.id 
-        ? { ...ex, name: newExName, targetSets: newExSets, targetReps: newExReps, startWeight: newExStartWeight }
+        ? { 
+            ...ex, 
+            name: newExName, 
+            type: exerciseType,
+            targetSets: exerciseType === 'strength' ? newExSets : 0, 
+            targetReps: exerciseType === 'strength' ? newExReps : 0, 
+            startWeight: exerciseType === 'strength' ? newExStartWeight : undefined,
+            cardioData: exerciseType === 'cardio' ? {
+              duration: cardioDuration,
+              distance: cardioDistance,
+              heartRate: cardioHeartRate,
+              intensity: cardioIntensity
+            } : undefined
+          }
         : ex
     ));
     
     setEditingExercise(null);
     setNewExName('');
+    setExerciseType('strength');
     setNewExSets(3);
     setNewExReps(10);
     setNewExStartWeight(undefined);
+    setCardioDuration(1800);
+    setCardioDistance(undefined);
+    setCardioHeartRate(undefined);
+    setCardioIntensity('moderate');
   };
 
   const cancelEdit = () => {
     setEditingExercise(null);
     setNewExName('');
+    setExerciseType('strength');
     setNewExSets(3);
     setNewExReps(10);
     setNewExStartWeight(undefined);
+    setCardioDuration(1800);
+    setCardioDistance(undefined);
+    setCardioHeartRate(undefined);
+    setCardioIntensity('moderate');
     setIsAddingEx(false);
     setWeightSuggestion(null);
     setShowSuggestion(false);
@@ -260,15 +313,55 @@ export default function SchemaBuilder() {
                 className="bg-card border border-white/5 rounded-xl p-4 flex items-center justify-between group"
               >
                 <div className="flex items-center gap-4">
-                  <div className="h-10 w-10 rounded-full bg-white/5 flex items-center justify-center text-muted-foreground font-mono text-sm font-bold">
-                    {i + 1}
+                  <div className={`h-10 w-10 rounded-full flex items-center justify-center text-sm font-bold ${
+                    ex.type === 'cardio' 
+                      ? 'bg-green-500/20 text-green-400' 
+                      : 'bg-white/5 text-muted-foreground'
+                  }`}>
+                    {ex.type === 'cardio' ? <Heart size={18} /> : i + 1}
                   </div>
                   <div>
-                    <h4 className="font-bold text-lg leading-tight">{ex.name}</h4>
+                    <div className="flex items-center gap-2">
+                      <h4 className="font-bold text-lg leading-tight">{ex.name}</h4>
+                      {ex.type === 'cardio' && (
+                        <span className="text-[9px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-green-500/20 text-green-400">
+                          Cardio
+                        </span>
+                      )}
+                    </div>
                     <div className="flex gap-3 text-xs text-muted-foreground mt-1 font-mono">
-                      <span className="flex items-center gap-1"><GripHorizontal size={12}/> {ex.targetSets} Sets</span>
-                      <span className="flex items-center gap-1"><RotateCcw size={12}/> {ex.targetReps} Reps</span>
-                      {ex.startWeight && <span className="text-primary">@ {ex.startWeight}kg</span>}
+                      {ex.type === 'cardio' ? (
+                        <>
+                          {ex.cardioData && (
+                            <>
+                              <span className="flex items-center gap-1">
+                                <Clock size={12}/> {Math.floor(ex.cardioData.duration / 60)}:{(ex.cardioData.duration % 60).toString().padStart(2, '0')}
+                              </span>
+                              {ex.cardioData.distance && (
+                                <span className="flex items-center gap-1">
+                                  <Route size={12}/> {(ex.cardioData.distance / 1000).toFixed(1)}km
+                                </span>
+                              )}
+                              {ex.cardioData.intensity && (
+                                <span className={`uppercase font-bold ${
+                                  ex.cardioData.intensity === 'high' ? 'text-red-400' :
+                                  ex.cardioData.intensity === 'moderate' ? 'text-yellow-400' :
+                                  'text-blue-400'
+                                }`}>
+                                  {ex.cardioData.intensity === 'high' ? 'Hoog' :
+                                   ex.cardioData.intensity === 'moderate' ? 'Matig' : 'Laag'}
+                                </span>
+                              )}
+                            </>
+                          )}
+                        </>
+                      ) : (
+                        <>
+                          <span className="flex items-center gap-1"><GripHorizontal size={12}/> {ex.targetSets} Sets</span>
+                          <span className="flex items-center gap-1"><RotateCcw size={12}/> {ex.targetReps} Reps</span>
+                          {ex.startWeight && <span className="text-primary">@ {ex.startWeight}kg</span>}
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -309,6 +402,38 @@ export default function SchemaBuilder() {
                   {editingExercise ? 'Edit Exercise' : 'Add Exercise'}
                 </h3>
               </div>
+              
+              {/* Exercise Type Toggle */}
+              <div>
+                <label className="text-[10px] uppercase font-bold text-muted-foreground mb-2 block">
+                  Exercise Type
+                </label>
+                <div className="grid grid-cols-2 gap-2 bg-white/5 p-1 rounded-lg">
+                  <button
+                    onClick={() => setExerciseType('strength')}
+                    className={`flex items-center justify-center gap-2 py-2.5 rounded-md font-bold text-sm transition-all ${
+                      exerciseType === 'strength'
+                        ? 'bg-primary text-background shadow-lg shadow-primary/20'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    <Dumbbell size={16} />
+                    Strength
+                  </button>
+                  <button
+                    onClick={() => setExerciseType('cardio')}
+                    className={`flex items-center justify-center gap-2 py-2.5 rounded-md font-bold text-sm transition-all ${
+                      exerciseType === 'cardio'
+                        ? 'bg-green-500 text-white shadow-lg shadow-green-500/20'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    <Heart size={16} />
+                    Cardio
+                  </button>
+                </div>
+              </div>
+              
               <div>
                 <div className="flex items-center justify-between mb-1">
                   <label className="text-[10px] uppercase font-bold text-muted-foreground">Exercise Name</label>
@@ -332,25 +457,29 @@ export default function SchemaBuilder() {
                   placeholder="e.g. Bench Press"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-[10px] uppercase font-bold text-muted-foreground">Sets</label>
-                  <div className="flex items-center mt-1 bg-white/5 rounded-lg overflow-hidden">
-                    <button onClick={() => setNewExSets(s => Math.max(1, s - 1))} className="p-2 hover:bg-white/10">-</button>
-                    <div className="flex-1 text-center font-mono font-bold">{newExSets}</div>
-                    <button onClick={() => setNewExSets(s => s + 1)} className="p-2 hover:bg-white/10">+</button>
+              
+              {/* Strength-specific fields */}
+              {exerciseType === 'strength' && (
+                <>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-[10px] uppercase font-bold text-muted-foreground">Sets</label>
+                      <div className="flex items-center mt-1 bg-white/5 rounded-lg overflow-hidden">
+                        <button onClick={() => setNewExSets(s => Math.max(1, s - 1))} className="p-2 hover:bg-white/10">-</button>
+                        <div className="flex-1 text-center font-mono font-bold">{newExSets}</div>
+                        <button onClick={() => setNewExSets(s => s + 1)} className="p-2 hover:bg-white/10">+</button>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-[10px] uppercase font-bold text-muted-foreground">Reps</label>
+                      <div className="flex items-center mt-1 bg-white/5 rounded-lg overflow-hidden">
+                        <button onClick={() => setNewExReps(r => Math.max(1, r - 1))} className="p-2 hover:bg-white/10">-</button>
+                        <div className="flex-1 text-center font-mono font-bold">{newExReps}</div>
+                        <button onClick={() => setNewExReps(r => r + 1)} className="p-2 hover:bg-white/10">+</button>
+                      </div>
+                    </div>
                   </div>
-                </div>
-                <div>
-                  <label className="text-[10px] uppercase font-bold text-muted-foreground">Reps</label>
-                  <div className="flex items-center mt-1 bg-white/5 rounded-lg overflow-hidden">
-                    <button onClick={() => setNewExReps(r => Math.max(1, r - 1))} className="p-2 hover:bg-white/10">-</button>
-                    <div className="flex-1 text-center font-mono font-bold">{newExReps}</div>
-                    <button onClick={() => setNewExReps(r => r + 1)} className="p-2 hover:bg-white/10">+</button>
-                  </div>
-                </div>
-              </div>
-              <div>
+                  <div>
                 <div className="flex items-center justify-between mb-1">
                   <label className="text-[10px] uppercase font-bold text-muted-foreground">Start Weight (kg) - Optioneel</label>
                   {weightSuggestion && showSuggestion && (
@@ -421,6 +550,107 @@ export default function SchemaBuilder() {
                 />
                 <p className="text-[9px] text-muted-foreground mt-1 px-1">Dit wordt automatisch ingevuld bij nieuwe workouts</p>
               </div>
+                </>
+              )}
+              
+              {/* Cardio-specific fields */}
+              {exerciseType === 'cardio' && (
+                <>
+                  <div>
+                    <label className="text-[10px] uppercase font-bold text-muted-foreground flex items-center gap-1">
+                      <Clock size={12} />
+                      Duur (verplicht)
+                    </label>
+                    <div className="grid grid-cols-2 gap-2 mt-1">
+                      <div>
+                        <div className="text-[9px] text-muted-foreground mb-1">Minuten</div>
+                        <div className="flex items-center bg-white/5 rounded-lg overflow-hidden">
+                          <button onClick={() => setCardioDuration(d => Math.max(0, d - 60))} className="p-2 hover:bg-white/10">-</button>
+                          <div className="flex-1 text-center font-mono font-bold">{Math.floor(cardioDuration / 60)}</div>
+                          <button onClick={() => setCardioDuration(d => d + 60)} className="p-2 hover:bg-white/10">+</button>
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-[9px] text-muted-foreground mb-1">Seconden</div>
+                        <div className="flex items-center bg-white/5 rounded-lg overflow-hidden">
+                          <button onClick={() => setCardioDuration(d => Math.max(0, Math.floor(d / 60) * 60 + ((d % 60) - 15 + 60) % 60))} className="p-2 hover:bg-white/10">-15s</button>
+                          <div className="flex-1 text-center font-mono font-bold">{cardioDuration % 60}</div>
+                          <button onClick={() => setCardioDuration(d => Math.floor(d / 60) * 60 + (d % 60 + 15) % 60 + (d % 60 + 15 >= 60 ? 60 : 0))} className="p-2 hover:bg-white/10">+15s</button>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="mt-2 text-center text-sm font-bold text-green-500">
+                      {Math.floor(cardioDuration / 60)}:{(cardioDuration % 60).toString().padStart(2, '0')}
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <label className="text-[10px] uppercase font-bold text-muted-foreground flex items-center gap-1">
+                      <Route size={12} />
+                      Afstand (optioneel)
+                    </label>
+                    <div className="flex gap-2 mt-1">
+                      <input
+                        type="number"
+                        value={cardioDistance ? (cardioDistance / 1000).toFixed(2) : ''}
+                        onChange={(e) => setCardioDistance(e.target.value ? parseFloat(e.target.value) * 1000 : undefined)}
+                        className="flex-1 bg-white/5 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-green-500 font-mono font-bold"
+                        placeholder="0.00"
+                        step="0.1"
+                        min="0"
+                      />
+                      <div className="flex items-center px-3 bg-white/5 rounded-lg text-muted-foreground font-bold">
+                        km
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <label className="text-[10px] uppercase font-bold text-muted-foreground flex items-center gap-1">
+                      <Heart size={12} />
+                      Gemiddelde Hartslag (optioneel)
+                    </label>
+                    <div className="flex gap-2 mt-1">
+                      <input
+                        type="number"
+                        value={cardioHeartRate ?? ''}
+                        onChange={(e) => setCardioHeartRate(e.target.value ? parseInt(e.target.value) : undefined)}
+                        className="flex-1 bg-white/5 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-green-500 font-mono font-bold"
+                        placeholder="145"
+                        min="40"
+                        max="220"
+                      />
+                      <div className="flex items-center px-3 bg-white/5 rounded-lg text-muted-foreground font-bold">
+                        bpm
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <label className="text-[10px] uppercase font-bold text-muted-foreground">
+                      Intensiteit
+                    </label>
+                    <div className="grid grid-cols-3 gap-2 mt-1">
+                      {(['low', 'moderate', 'high'] as const).map((level) => (
+                        <button
+                          key={level}
+                          onClick={() => setCardioIntensity(level)}
+                          className={`py-2 rounded-lg font-bold text-xs transition-all ${
+                            cardioIntensity === level
+                              ? level === 'low' ? 'bg-blue-500 text-white' :
+                                level === 'moderate' ? 'bg-yellow-500 text-white' :
+                                'bg-red-500 text-white'
+                              : 'bg-white/5 text-muted-foreground hover:bg-white/10'
+                          }`}
+                        >
+                          {level === 'low' ? 'Laag' : level === 'moderate' ? 'Matig' : 'Hoog'}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
+              
               <div className="flex gap-2 pt-2">
                 <button 
                   onClick={cancelEdit}
