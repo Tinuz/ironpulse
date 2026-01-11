@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft, Plus, Check, X, Clock, Play, Trash2, TrendingUp, TrendingDown, Minus, Award, Zap, StickyNote, Flame, RefreshCw } from 'lucide-react'
+import { ArrowLeft, Plus, Check, X, Clock, Play, Trash2, TrendingUp, TrendingDown, Minus, Award, Zap, StickyNote, Flame, RefreshCw, Heart } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import clsx from 'clsx'
 import { useData, WorkoutExercise } from '@/components/context/DataContext'
@@ -22,6 +22,8 @@ import ExerciseSubstitutionModal from '@/components/ExerciseSubstitutionModal'
 import EnhancedSetRow from '@/components/EnhancedSetRow'
 import { useWorkoutPreferences } from '@/components/utils/useWorkoutPreferences'
 import { generateProgressiveOverloadSuggestion } from '@/components/utils/progressiveOverload'
+import CardioExerciseLogger from '@/components/CardioExerciseLogger'
+import { formatDuration, formatDistance } from '@/components/utils/cardioCalculations'
 
 const ExerciseStats = ({ 
   exercise, 
@@ -157,6 +159,9 @@ export default function WorkoutLogger() {
   // Substitution modal state
   const [substitutionModalOpen, setSubstitutionModalOpen] = useState(false);
   const [exerciseIndexToSubstitute, setExerciseIndexToSubstitute] = useState<number | null>(null);
+  
+  // Cardio logging modal state
+  const [cardioLoggingIndex, setCardioLoggingIndex] = useState<number | null>(null);
 
   // Load workout on mount - check both context and localStorage
   useEffect(() => {
@@ -342,6 +347,16 @@ export default function WorkoutLogger() {
     setWorkoutData(updated);
     updateActiveWorkout(updated);
   };
+  
+  const handleCardioComplete = (exerciseIndex: number, cardioData: any) => {
+    if (!workoutData) return;
+    const newExercises = [...workoutData.exercises];
+    newExercises[exerciseIndex].cardioData = cardioData;
+    const updated = { ...workoutData, exercises: newExercises };
+    setWorkoutData(updated);
+    updateActiveWorkout(updated);
+    setCardioLoggingIndex(null);
+  };
 
   // Helper: Get user weight from latest BodyStats or UserProfile
   const getUserWeight = (): number | null => {
@@ -440,8 +455,8 @@ export default function WorkoutLogger() {
   };
 
   // Calculate progress
-  const totalSets = workoutData.exercises.reduce((acc, ex) => acc + ex.sets.length, 0);
-  const completedSets = workoutData.exercises.reduce((acc, ex) => acc + ex.sets.filter(s => s.completed).length, 0);
+  const totalSets = workoutData.exercises.reduce((acc, ex) => acc + (ex.sets?.length || 0), 0);
+  const completedSets = workoutData.exercises.reduce((acc, ex) => acc + (ex.sets?.filter(s => s.completed)?.length || 0), 0);
   const progress = totalSets > 0 ? (completedSets / totalSets) * 100 : 0;
 
   return (
@@ -506,13 +521,14 @@ export default function WorkoutLogger() {
             >
               <div className="p-4 bg-white/5 border-b border-white/5 flex justify-between items-center gap-3">
                 <div className="flex-1 flex items-center gap-2">
+                  {exercise.type === 'cardio' && <Heart size={18} className="text-green-500" />}
                   <input
                     type="text"
                     value={exercise.name}
                     onChange={(e) => updateExerciseName(exerciseIndex, e.target.value)}
                     className="flex-1 bg-transparent font-bold text-lg focus:outline-none focus:bg-white/5 px-2 py-1 rounded transition-colors"
                   />
-                  {progression.previousBest && (
+                  {progression.previousBest && exercise.type !== 'cardio' && (
                     <ProgressionBadge 
                       status={progression.status}
                       delta={formatProgressionDelta(progression)}
@@ -521,13 +537,15 @@ export default function WorkoutLogger() {
                   )}
                 </div>
                 <div className="flex gap-2">
-                  <button 
-                    onClick={() => openSubstitutionModal(exerciseIndex)}
-                    className="text-blue-400 hover:bg-blue-400/10 p-2 rounded-lg transition-colors"
-                    title="Can't do this exercise?"
-                  >
-                    <RefreshCw size={18} />
-                  </button>
+                  {exercise.type !== 'cardio' && (
+                    <button 
+                      onClick={() => openSubstitutionModal(exerciseIndex)}
+                      className="text-blue-400 hover:bg-blue-400/10 p-2 rounded-lg transition-colors"
+                      title="Can't do this exercise?"
+                    >
+                      <RefreshCw size={18} />
+                    </button>
+                  )}
                   <button 
                     onClick={() => removeExercise(exerciseIndex)}
                     className="text-red-500 hover:bg-red-500/10 p-2 rounded-lg transition-colors"
@@ -537,16 +555,63 @@ export default function WorkoutLogger() {
                 </div>
               </div>
               
-              <div className="p-4 space-y-2">
-                <div className="grid grid-cols-[auto_1fr_1fr_auto_auto] gap-2 text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-2 px-1">
-                  <div className="w-6 text-center">Set</div>
-                  <div className="text-center">KG</div>
-                  <div className="text-center">Reps</div>
-                  <div className="w-8 text-center">✓</div>
-                  <div className="w-8"></div>
+              {exercise.type === 'cardio' ? (
+                <div className="p-4 space-y-3">
+                  {exercise.cardioData ? (
+                    <div className="bg-green-500/10 border border-green-500/20 rounded-xl p-4 space-y-2">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <div className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Duration</div>
+                          <div className="text-lg font-bold text-green-500">{formatDuration(exercise.cardioData.duration)}</div>
+                        </div>
+                        {exercise.cardioData.distance && exercise.cardioData.distance > 0 && (
+                          <div>
+                            <div className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Distance</div>
+                            <div className="text-lg font-bold text-green-500">{formatDistance(exercise.cardioData.distance, 'km')}</div>
+                          </div>
+                        )}
+                        {exercise.cardioData.pace && (
+                          <div>
+                            <div className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Pace</div>
+                            <div className="text-lg font-bold text-green-500">{exercise.cardioData.pace}</div>
+                          </div>
+                        )}
+                        {exercise.cardioData.heartRate && (
+                          <div>
+                            <div className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Heart Rate</div>
+                            <div className="text-lg font-bold text-green-500">{exercise.cardioData.heartRate} bpm</div>
+                          </div>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => setCardioLoggingIndex(exerciseIndex)}
+                        className="w-full px-4 py-2 bg-green-500/20 hover:bg-green-500/30 text-green-500 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+                      >
+                        <RefreshCw size={16} />
+                        Update Cardio Data
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setCardioLoggingIndex(exerciseIndex)}
+                      className="w-full px-6 py-4 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white rounded-xl font-bold text-lg transition-all flex items-center justify-center gap-2 shadow-lg shadow-green-500/20"
+                    >
+                      <Heart size={20} />
+                      Log Cardio Activity
+                    </button>
+                  )}
                 </div>
+              ) : (
+                <div className="p-4 space-y-2">
+                  <div className="grid grid-cols-[auto_1fr_1fr_auto_auto] gap-2 text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-2 px-1">
+                    <div className="w-6 text-center">Set</div>
+                    <div className="text-center">KG</div>
+                    <div className="text-center">Reps</div>
+                    <div className="w-8 text-center">✓</div>
+                    <div className="w-8"></div>
+                  </div>
 
-                <AnimatePresence mode="popLayout">
+                  <AnimatePresence mode="popLayout">
                   {exercise.sets.map((set, setIndex) => {
                     // Get progressive overload suggestion
                     const suggestion = generateProgressiveOverloadSuggestion(exercise.name, history)
@@ -662,13 +727,14 @@ export default function WorkoutLogger() {
                     )}
                   </div>
                 </div>
-              </div>
 
-              {/* Stats Section */}
-              <ExerciseStats 
-                exercise={exercise}
-                previousExercises={previousExercises}
-              />
+                {/* Stats Section */}
+                <ExerciseStats 
+                  exercise={exercise}
+                  previousExercises={previousExercises}
+                />
+              </div>
+              )}
             </motion.div>
           );
         })}
@@ -836,6 +902,17 @@ export default function WorkoutLogger() {
         }
         onSelectSubstitute={handleSubstituteExercise}
       />
+
+      {/* Cardio Exercise Logger Modal */}
+      {cardioLoggingIndex !== null && workoutData && (
+        <CardioExerciseLogger
+          exerciseName={workoutData.exercises[cardioLoggingIndex]?.name || ''}
+          initialData={workoutData.exercises[cardioLoggingIndex]?.cardioData}
+          userWeight={getUserWeight()}
+          onComplete={(data) => handleCardioComplete(cardioLoggingIndex, data)}
+          onCancel={() => setCardioLoggingIndex(null)}
+        />
+      )}
     </div>
   );
 }
