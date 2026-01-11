@@ -306,3 +306,101 @@ export function getSparklineData(
     return best?.oneRM || 0;
   });
 }
+
+/**
+ * Get 1RM progression over time for top exercises
+ */
+export interface StrengthProgressionPoint {
+  date: string
+  exercises: Array<{
+    name: string
+    estimated1RM: number
+  }>
+}
+
+export function get1RMProgression(
+  workouts: WorkoutLog[],
+  timeRange: 'week' | 'month' | 'quarter' | 'year'
+): StrengthProgressionPoint[] {
+  if (workouts.length === 0) return []
+  
+  const now = new Date()
+  const points: StrengthProgressionPoint[] = []
+  
+  // Determine number of data points
+  let numPoints = 7
+  let daysPerPoint = 1
+  
+  switch (timeRange) {
+    case 'week':
+      numPoints = 7
+      daysPerPoint = 1
+      break
+    case 'month':
+      numPoints = 30
+      daysPerPoint = 1
+      break
+    case 'quarter':
+      numPoints = 13
+      daysPerPoint = 7
+      break
+    case 'year':
+      numPoints = 12
+      daysPerPoint = 30
+      break
+  }
+  
+  // Get all exercises from workouts to determine top ones
+  const allExerciseData = new Map<string, number[]>()
+  
+  workouts.forEach(w => {
+    w.exercises.forEach(ex => {
+      const best = getBest1RM(ex)
+      if (best) {
+        if (!allExerciseData.has(ex.name)) {
+          allExerciseData.set(ex.name, [])
+        }
+        allExerciseData.get(ex.name)!.push(best.oneRM)
+      }
+    })
+  })
+  
+  // Get top 5 exercises by average 1RM
+  const topExercises = Array.from(allExerciseData.entries())
+    .map(([name, rms]) => ({
+      name,
+      avgRM: rms.reduce((a, b) => a + b, 0) / rms.length
+    }))
+    .sort((a, b) => b.avgRM - a.avgRM)
+    .slice(0, 5)
+    .map(e => e.name)
+  
+  // Generate data points
+  for (let i = numPoints - 1; i >= 0; i--) {
+    const pointDate = new Date(now)
+    pointDate.setDate(pointDate.getDate() - (i * daysPerPoint))
+    const endDate = new Date(pointDate)
+    endDate.setDate(endDate.getDate() + daysPerPoint)
+    
+    // Get best 1RM for each top exercise up to this point
+    const workoutsUpToPoint = workouts.filter(w => {
+      const wDate = new Date(w.date)
+      return wDate <= endDate
+    })
+    
+    const exercises = topExercises.map(name => {
+      const pr = getPersonalRecord(name, workoutsUpToPoint)
+      return {
+        name,
+        estimated1RM: pr?.oneRM || 0
+      }
+    }).filter(e => e.estimated1RM > 0)
+    
+    points.push({
+      date: pointDate.toISOString(),
+      exercises
+    })
+  }
+  
+  return points
+}

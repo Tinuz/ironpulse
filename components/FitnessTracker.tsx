@@ -19,6 +19,7 @@ import SquadDetail from '@/components/pages/SquadDetail'
 import AITrainer from '@/components/pages/AITrainer'
 import Nutrition from '@/components/pages/Nutrition'
 import Settings from '@/components/pages/Settings'
+import Analytics from '@/components/pages/Analytics'
 import Login from '@/components/pages/Login'
 import WorkoutDetail from '@/components/pages/WorkoutDetail'
 import WorkoutEditor from '@/components/pages/WorkoutEditor'
@@ -81,6 +82,7 @@ const ProtectedLayout = () => {
     if (pathname === '/history') return <History />
     if (pathname === '/progress') return <Progress />
     if (pathname === '/recovery') return <RecoveryDashboard />
+    if (pathname === '/analytics') return <Analytics />
     if (pathname === '/progress-photos') return <ProgressPhotos />
     if (pathname === '/trainer') return <AITrainer />
     if (pathname === '/nutrition') return <Nutrition />

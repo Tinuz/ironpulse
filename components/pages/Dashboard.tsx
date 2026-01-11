@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { User, TrendingUp, Utensils, Calendar } from 'lucide-react'
+import { User, Utensils, Calendar, BarChart3 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useData } from '@/components/context/DataContext'
 import { useAuth } from '@/components/context/AuthContext'
@@ -57,7 +57,7 @@ export default function Dashboard() {
       </div>
 
       {/* Stats Overview */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 gap-3">
         <div 
           onClick={() => router.push('/history')}
           className="bg-card border border-border p-4 rounded-2xl shadow-sm hover:shadow-md transition-all cursor-pointer group"
@@ -68,17 +68,22 @@ export default function Dashboard() {
           <div className="text-3xl font-black tabular-nums group-hover:text-primary transition-colors">{totalWorkouts}</div>
         </div>
         
-        <div className="bg-card border border-border p-4 rounded-2xl shadow-sm">
+        <div 
+          onClick={() => router.push('/analytics')}
+          className="bg-card border border-border p-4 rounded-2xl shadow-sm hover:shadow-md transition-all cursor-pointer group"
+        >
           <div className="flex items-center gap-2 text-muted-foreground text-xs uppercase font-bold mb-2">
-            <TrendingUp size={14} /> Workouts
+            <BarChart3 size={14} /> Analytics
           </div>
-          <div className="text-3xl font-black tabular-nums">{totalWorkouts}</div>
+          <div className="text-3xl font-black tabular-nums group-hover:text-primary transition-colors">
+            <BarChart3 size={32} />
+          </div>
         </div>
         
         {/* Nutrition Card */}
         <div 
           onClick={() => router.push('/nutrition')}
-          className="bg-card border border-border p-4 rounded-2xl cursor-pointer hover:shadow-md transition-all group relative overflow-hidden shadow-sm"
+          className="bg-card border border-border p-4 rounded-2xl cursor-pointer hover:shadow-md transition-all group relative overflow-hidden shadow-sm col-span-2"
         >
           <div className="absolute right-0 top-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
              <Utensils size={40} />

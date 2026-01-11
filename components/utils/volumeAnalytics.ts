@@ -153,6 +153,43 @@ export function calculateMuscleGroupVolume(
 }
 
 /**
+ * Calculate total volume by muscle group (simple version for charts)
+ */
+export function calculateVolumeByMuscleGroup(workouts: WorkoutLog[]): Record<string, number> {
+  const volumeData = calculateMuscleGroupVolume(workouts, 999) // Get all workouts
+  const result: Record<string, number> = {}
+  
+  volumeData.forEach(({ group, totalVolume }) => {
+    result[group] = totalVolume
+  })
+  
+  return result
+}
+
+/**
+ * Calculate push/pull/legs volume split
+ */
+export interface PushPullVolume {
+  pushVolume: number
+  pullVolume: number
+  legsVolume: number
+}
+
+export function calculatePushPullVolume(workouts: WorkoutLog[]): PushPullVolume {
+  const muscleVolumes = calculateVolumeByMuscleGroup(workouts)
+  
+  const pushVolume = (muscleVolumes.chest || 0) + (muscleVolumes.shoulders || 0) + (muscleVolumes.arms || 0) * 0.5
+  const pullVolume = (muscleVolumes.back || 0) + (muscleVolumes.arms || 0) * 0.5
+  const legsVolume = (muscleVolumes.legs || 0) + (muscleVolumes.glutes || 0) + (muscleVolumes.calves || 0)
+  
+  return {
+    pushVolume: Math.round(pushVolume),
+    pullVolume: Math.round(pullVolume),
+    legsVolume: Math.round(legsVolume)
+  }
+}
+
+/**
  * Detect muscle imbalances (e.g., chest >> back)
  */
 export interface MuscleImbalance {
@@ -255,4 +292,83 @@ export function compareWeeklyVolume(workouts: WorkoutLog[]): VolumeComparison {
     previousWeek,
     changes
   };
+}
+
+/**
+ * Get volume time series data for charting
+ * Returns data points with push/pull/legs volume and volume by muscle group
+ */
+export interface VolumeTimeSeriesPoint {
+  date: string
+  pushVolume: number
+  pullVolume: number
+  legsVolume: number
+  chestVolume: number
+  backVolume: number
+  shouldersVolume: number
+  legsvolume: number
+  armsVolume: number
+}
+
+export function getVolumeTimeSeries(
+  workouts: WorkoutLog[], 
+  timeRange: 'week' | 'month' | 'quarter' | 'year'
+): VolumeTimeSeriesPoint[] {
+  const now = new Date()
+  const points: VolumeTimeSeriesPoint[] = []
+  
+  // Determine number of data points
+  let numPoints = 7
+  let daysPerPoint = 1
+  
+  switch (timeRange) {
+    case 'week':
+      numPoints = 7
+      daysPerPoint = 1
+      break
+    case 'month':
+      numPoints = 30
+      daysPerPoint = 1
+      break
+    case 'quarter':
+      numPoints = 13
+      daysPerPoint = 7
+      break
+    case 'year':
+      numPoints = 12
+      daysPerPoint = 30
+      break
+  }
+  
+  // Generate data points
+  for (let i = numPoints - 1; i >= 0; i--) {
+    const pointDate = new Date(now)
+    pointDate.setDate(pointDate.getDate() - (i * daysPerPoint))
+    const endDate = new Date(pointDate)
+    endDate.setDate(endDate.getDate() + daysPerPoint)
+    
+    // Filter workouts for this time period
+    const periodWorkouts = workouts.filter(w => {
+      const wDate = new Date(w.date)
+      return wDate >= pointDate && wDate < endDate
+    })
+    
+    // Calculate volumes
+    const pushPull = calculatePushPullVolume(periodWorkouts)
+    const muscleGroups = calculateVolumeByMuscleGroup(periodWorkouts)
+    
+    points.push({
+      date: pointDate.toISOString(),
+      pushVolume: pushPull.pushVolume,
+      pullVolume: pushPull.pullVolume,
+      legsVolume: pushPull.legsVolume,
+      chestVolume: muscleGroups.chest || 0,
+      backVolume: muscleGroups.back || 0,
+      shouldersVolume: muscleGroups.shoulders || 0,
+      legsvolume: muscleGroups.legs || 0,
+      armsVolume: muscleGroups.arms || 0
+    })
+  }
+  
+  return points
 }

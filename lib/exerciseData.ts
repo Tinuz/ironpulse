@@ -142,3 +142,19 @@ export function getSimilarExercises(exercise: LibraryExercise, count: number = 5
   
   return similar.slice(0, count)
 }
+
+/**
+ * Get muscle groups from exercise names
+ */
+export function getMuscleGroupsFromExercises(exerciseNames: string[]): string[] {
+  const groups = new Set<string>()
+  
+  exerciseNames.forEach(name => {
+    const exercise = getExerciseByName(name)
+    if (exercise) {
+      groups.add(exercise.group)
+    }
+  })
+  
+  return Array.from(groups)
+}
