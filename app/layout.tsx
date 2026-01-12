@@ -26,7 +26,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={`${oswald.variable} ${jetbrainsMono.variable}`}>
-      <body className="w-full h-screen font-sans">{children}</body>
+      <body className="w-full font-sans">{children}</body>
     </html>
   )
 }

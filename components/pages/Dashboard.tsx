@@ -29,7 +29,7 @@ export default function Dashboard() {
   const totalCalories = todaysLog ? todaysLog.items.reduce((acc, i) => acc + i.calories, 0) : 0;
 
   return (
-    <div className="p-6 pb-24 max-w-2xl mx-auto space-y-8">
+    <div className="p-6 pb-24 max-w-2xl mx-auto space-y-8" data-tour="dashboard">
       {/* Header */}
       <div className="flex justify-between items-start">
         <div>
@@ -73,6 +73,7 @@ export default function Dashboard() {
         <div 
           onClick={() => router.push('/analytics')}
           className="bg-card border border-border p-4 rounded-2xl shadow-sm hover:shadow-md transition-all cursor-pointer group"
+          data-tour="progress"
         >
           <div className="flex items-center gap-2 text-muted-foreground text-xs uppercase font-bold mb-2">
             <BarChart3 size={14} /> {t.dashboard.analytics}
@@ -85,6 +86,7 @@ export default function Dashboard() {
         {/* Nutrition Card */}
         <div 
           onClick={() => router.push('/nutrition')}
+          data-tour="nutrition"
           className="bg-card border border-border p-4 rounded-2xl cursor-pointer hover:shadow-md transition-all group relative overflow-hidden shadow-sm col-span-2"
         >
           <div className="absolute right-0 top-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
@@ -99,25 +101,12 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Streak Widget */}
       <StreakWidget history={history} />
-
-      {/* Weekly Summary Widget */}
       <WeeklySummaryWidget />
-
-      {/* Muscle Group Volume Widget */}
       <MuscleGroupVolumeWidget />
-
-      {/* Plateau Detection Widget */}
       <PlateauDetectionWidget />
-
-      {/* Deload Recommendation Widget */}
       <DeloadRecommendationWidget />
-
-      {/* Achievements Widget */}
       <AchievementsWidget />
-
-      {/* AI Accessory Suggestions Widget */}
       <AccessorySuggestionsWidget />
 
       {/* Support Button */}
@@ -136,7 +125,6 @@ export default function Dashboard() {
         </div>
       </a>
 
-      {/* Achievement Toast */}
       <AchievementToast 
         achievement={unlockedAchievement ? {
           id: unlockedAchievement.id,

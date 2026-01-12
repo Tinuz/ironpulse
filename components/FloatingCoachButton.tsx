@@ -31,6 +31,7 @@ export default function FloatingCoachButton() {
       }}
       whileHover={{ scale: 1.05 }}
       whileTap={{ scale: 0.95 }}
+      data-tour="ai-trainer"
     >
       {/* Glow effect */}
       <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-purple-500 to-pink-500 blur-xl opacity-50 group-hover:opacity-75 transition-opacity" />
