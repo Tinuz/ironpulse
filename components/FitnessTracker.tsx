@@ -2,7 +2,6 @@
 
 import React from 'react'
 import { usePathname, useSearchParams } from 'next/navigation'
-import { AnimatePresence } from 'framer-motion'
 import Dashboard from '@/components/pages/Dashboard'
 import SchemaBuilder from '@/components/pages/SchemaBuilder'
 import Play from '@/components/pages/Play'
