@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { ArrowLeft, Ruler, Scale, Plus, Trash2, TrendingUp, User, Dumbbell, Award, TrendingDown, Minus, Activity, BarChart3, AlertCircle, Trophy, Settings, ChevronRight, Share2, Camera } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useData, BodyStats } from '@/components/context/DataContext'
+import { useLanguage } from '@/components/context/LanguageContext'
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
 import { format } from 'date-fns'
 import FitnessCalculator from '@/components/FitnessCalculator'
@@ -20,6 +21,7 @@ import {
 } from '@/components/utils/strengthAnalytics'
 
 export default function Progress() {
+  const { t } = useLanguage();
   const { bodyStats, addBodyStats, deleteBodyStats, history } = useData();
   const router = useRouter();
   const [isAdding, setIsAdding] = useState(false);
@@ -107,7 +109,7 @@ export default function Progress() {
           <button onClick={() => router.push('/')} className="p-2 -ml-2 text-muted-foreground hover:text-foreground">
             <ArrowLeft size={24} />
           </button>
-          <h1 className="font-bold text-lg">My Progress</h1>
+          <h1 className="font-bold text-lg">{t.progress.title}</h1>
           <button 
             onClick={() => setIsAdding(true)}
             className="p-2 -mr-2 text-primary hover:text-primary/80"
@@ -126,7 +128,7 @@ export default function Progress() {
             }`}
           >
             <Dumbbell size={16} />
-            Kracht
+            {t.schema.strength}
           </button>
           <button
             onClick={() => setActiveTab('body')}
@@ -137,7 +139,7 @@ export default function Progress() {
             }`}
           >
             <Scale size={16} />
-            Lichaam
+            {t.progress.bodyStats}
           </button>
         </div>
       </div>
@@ -152,7 +154,7 @@ export default function Progress() {
           <div className="p-4 border-b border-white/5">
             <h3 className="font-bold flex items-center gap-2">
               <User size={20} />
-              Mijn Overzicht
+              {t.nav.progress}
             </h3>
           </div>
           
@@ -167,8 +169,8 @@ export default function Progress() {
                   <Activity size={20} className="text-green-500" />
                 </div>
                 <div className="text-left">
-                  <p className="font-bold">Herstel Dashboard</p>
-                  <p className="text-xs text-muted-foreground">Spierherstel en gereedheid</p>
+                  <p className="font-bold">{t.workout.title} {t.dashboard.title}</p>
+                  <p className="text-xs text-muted-foreground">{t.workout.duration}</p>
                 </div>
               </div>
               <ChevronRight size={20} className="text-muted-foreground group-hover:text-primary transition-colors" />
@@ -184,8 +186,8 @@ export default function Progress() {
                   <TrendingUp size={20} className="text-primary" />
                 </div>
                 <div className="text-left">
-                  <p className="font-bold">Oefening Voortgang</p>
-                  <p className="text-xs text-muted-foreground">PR's en krachtontwikkeling</p>
+                  <p className="font-bold">{t.workout.title} {t.progress.title}</p>
+                  <p className="text-xs text-muted-foreground">{t.workout.exercises}</p>
                 </div>
               </div>
               <ChevronRight size={20} className="text-muted-foreground group-hover:text-primary transition-colors" />
@@ -201,8 +203,8 @@ export default function Progress() {
                   <Share2 size={20} className="text-blue-500" />
                 </div>
                 <div className="text-left">
-                  <p className="font-bold">Gedeelde Templates</p>
-                  <p className="text-xs text-muted-foreground">Beheer gedeelde workouts</p>
+                  <p className="font-bold">{t.schema.mySchemas}</p>
+                  <p className="text-xs text-muted-foreground">{t.schema.myRoutines}</p>
                 </div>
               </div>
               <ChevronRight size={20} className="text-muted-foreground group-hover:text-primary transition-colors" />
@@ -218,8 +220,8 @@ export default function Progress() {
                   <Camera size={20} className="text-pink-500" />
                 </div>
                 <div className="text-left">
-                  <p className="font-bold">Progress Foto's</p>
-                  <p className="text-xs text-muted-foreground">Visuele transformatie</p>
+                  <p className="font-bold">{t.progress.photos}</p>
+                  <p className="text-xs text-muted-foreground">{t.progress.compare}</p>
                 </div>
               </div>
               <ChevronRight size={20} className="text-muted-foreground group-hover:text-primary transition-colors" />
@@ -235,8 +237,8 @@ export default function Progress() {
                   <Settings size={20} className="text-purple-500" />
                 </div>
                 <div className="text-left">
-                  <p className="font-bold">Instellingen</p>
-                  <p className="text-xs text-muted-foreground">Account en voorkeuren</p>
+                  <p className="font-bold">{t.settings.title}</p>
+                  <p className="text-xs text-muted-foreground">{t.settings.preferences}</p>
                 </div>
               </div>
               <ChevronRight size={20} className="text-muted-foreground group-hover:text-primary transition-colors" />
@@ -255,9 +257,9 @@ export default function Progress() {
             {history.length === 0 ? (
               <div className="text-center py-20 bg-white/5 rounded-2xl border border-dashed border-white/10">
                 <Dumbbell size={48} className="mx-auto mb-3 text-muted-foreground opacity-50" />
-                <h3 className="font-bold text-muted-foreground">Nog geen workouts</h3>
+                <h3 className="font-bold text-muted-foreground">{t.dashboard.noWorkouts}</h3>
                 <p className="text-xs text-muted-foreground/60 mt-1">
-                  Voltooi je eerste workout om je krachtvoortgang te volgen
+                  {t.workout.startWorkout}
                 </p>
               </div>
             ) : (
@@ -266,7 +268,7 @@ export default function Progress() {
                   <div className="bg-gradient-to-br from-primary/20 via-primary/10 to-transparent border border-primary/30 rounded-2xl p-6">
                     <div className="flex items-center gap-2 mb-4">
                       <Trophy size={24} className="text-primary" />
-                      <h3 className="font-bold text-lg">Total Krachtscore</h3>
+                      <h3 className="font-bold text-lg">{t.schema.strength} {t.profile.stats}</h3>
                     </div>
                     <div className="flex items-baseline gap-2 mb-2">
                       <span className="text-5xl font-black text-primary">
@@ -281,7 +283,7 @@ export default function Progress() {
                         {strengthScore.change >= 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
                         {strengthScore.change >= 0 ? '+' : ''}{roundTo(strengthScore.change, 0.5)}kg
                         <span className="text-muted-foreground ml-1">
-                          ({strengthScore.percentageChange >= 0 ? '+' : ''}{strengthScore.percentageChange.toFixed(1)}% laatste maand)
+                          ({strengthScore.percentageChange >= 0 ? '+' : ''}{strengthScore.percentageChange.toFixed(1)}% {t.time.lastMonth})
                         </span>
                       </div>
                     )}
@@ -298,10 +300,10 @@ export default function Progress() {
 
                 <div className="flex gap-2 overflow-x-auto pb-2">
                   {[
-                    { days: 28, label: '4 Weken' },
-                    { days: 90, label: '3 Maanden' },
-                    { days: 180, label: '6 Maanden' },
-                    { days: 365, label: '1 Jaar' }
+                    { days: 28, label: '4 ' + t.time.thisWeek },
+                    { days: 90, label: '3 ' + t.nutrition.month },
+                    { days: 180, label: '6 ' + t.nutrition.month },
+                    { days: 365, label: '1 ' + t.nutrition.year }
                   ].map(period => (
                     <button
                       key={period.days}
@@ -320,12 +322,12 @@ export default function Progress() {
                 <div className="space-y-4">
                   <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground flex items-center gap-2">
                     <BarChart3 size={16} />
-                    Voortgang per Exercise
+                    {t.progress.title} {t.workout.exercises}
                   </h3>
                   
                   {exerciseProgress.length === 0 ? (
                     <div className="text-center py-8 bg-white/5 rounded-xl">
-                      <p className="text-muted-foreground text-sm">Geen exercises gevonden voor deze periode</p>
+                      <p className="text-muted-foreground text-sm">{t.exercises.noExercisesFound}</p>
                     </div>
                   ) : (
                     exerciseProgress.map(ex => (
@@ -341,21 +343,21 @@ export default function Progress() {
                           {ex.plateau.isPlateaued && (
                             <div className="flex items-center gap-1 text-xs bg-yellow-500/10 text-yellow-500 px-2 py-1 rounded-full">
                               <AlertCircle size={12} />
-                              Plateau
+                              {t.workout.rest}
                             </div>
                           )}
                         </div>
 
                         <div className="grid grid-cols-2 gap-4 mb-4">
                           <div>
-                            <div className="text-xs text-muted-foreground mb-1">Huidige 1RM</div>
+                            <div className="text-xs text-muted-foreground mb-1">{t.workout.estimated1RM}</div>
                             <div className="text-2xl font-black text-primary">
                               {ex.current1RM ? roundTo(ex.current1RM, 0.5) : '--'}
                               <span className="text-sm text-muted-foreground ml-1">kg</span>
                             </div>
                           </div>
                           <div>
-                            <div className="text-xs text-muted-foreground mb-1">Progressie</div>
+                            <div className="text-xs text-muted-foreground mb-1">{t.nutrition.progress}</div>
                             <div className={`text-2xl font-black ${
                               ex.change > 0 ? 'text-green-500' :
                               ex.change < 0 ? 'text-red-500' :
@@ -367,7 +369,7 @@ export default function Progress() {
                                   <span className="text-sm ml-1">kg</span>
                                 </>
                               ) : (
-                                <span className="text-sm text-muted-foreground">Nieuw</span>
+                                <span className="text-sm text-muted-foreground">{t.schema.new}</span>
                               )}
                             </div>
                           </div>
@@ -385,11 +387,11 @@ export default function Progress() {
                         <div className="flex items-center justify-between text-xs pt-3 border-t border-white/5">
                           <div className="flex items-center gap-1">
                             {ex.trend === 'increasing' ? (
-                              <><TrendingUp size={12} className="text-green-500" /> <span className="text-green-500">Stijgend</span></>
+                              <><TrendingUp size={12} className="text-green-500" /> <span className="text-green-500">{t.workout.improved}</span></>
                             ) : ex.trend === 'decreasing' ? (
-                              <><TrendingDown size={12} className="text-red-500" /> <span className="text-red-500">Dalend</span></>
+                              <><TrendingDown size={12} className="text-red-500" /> <span className="text-red-500">{t.workout.declined}</span></>
                             ) : (
-                              <><Minus size={12} /> <span>Stabiel</span></>
+                              <><Minus size={12} /> <span>{t.workout.maintained}</span></>
                             )}
                           </div>
                           <div className="text-muted-foreground">
@@ -405,7 +407,7 @@ export default function Progress() {
                   <div className="space-y-4">
                     <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground flex items-center gap-2">
                       <Award size={16} />
-                      Recente PR's (30 dagen)
+                      {t.dashboard.recentWorkouts} (30 {t.nutrition.day})
                     </h3>
                     <div className="space-y-2">
                       {recentPRs.slice(0, 5).map((pr, idx) => (
@@ -423,7 +425,7 @@ export default function Progress() {
                             <div>
                               <div className="font-bold text-sm">{pr.exerciseName}</div>
                               <div className="text-xs text-muted-foreground">
-                                {pr.weight}kg × {pr.reps} reps • {pr.daysAgo === 0 ? 'Vandaag' : `${pr.daysAgo} dagen geleden`}
+                                {pr.weight}kg × {pr.reps} reps • {pr.daysAgo === 0 ? t.time.today : `${pr.daysAgo} ${t.nutrition.day}`}
                               </div>
                             </div>
                           </div>
@@ -440,9 +442,7 @@ export default function Progress() {
                 <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 flex gap-3">
                   <Activity size={20} className="text-blue-400 flex-shrink-0 mt-0.5" />
                   <div className="text-xs text-blue-600 leading-relaxed">
-                    <strong>Opmerking:</strong> Krachtvoortgang is gebaseerd op geschatte 1RM waarden. 
-                    Factoren zoals techniek, vermoeidheid en herstel beïnvloeden prestaties. 
-                    Gebruik deze data als richtlijn voor je progressie.
+                    <strong>{t.workout.calorieDisclaimer}</strong> {t.workout.calorieDisclaimerText}
                   </div>
                 </div>
               </>
@@ -467,8 +467,8 @@ export default function Progress() {
                   <TrendingUp size={20} className="text-primary" />
                 </div>
                 <div className="text-left">
-                  <div className="font-bold">Fitness Calculator</div>
-                  <div className="text-xs text-muted-foreground">BMI, caloriebehoefte & meer</div>
+                  <div className="font-bold">{t.progress.fitnessCalculator}</div>
+                  <div className="text-xs text-muted-foreground">{t.progress.calculateNeeds}</div>
                 </div>
               </div>
               <div className={`transform transition-transform ${showCalculator ? 'rotate-180' : ''}`}>
@@ -494,7 +494,7 @@ export default function Progress() {
                   <div className="absolute top-0 right-0 p-3 opacity-10">
                     <Scale size={48} />
                   </div>
-                  <div className="text-xs uppercase font-bold text-muted-foreground mb-1">Current Weight</div>
+                  <div className="text-xs uppercase font-bold text-muted-foreground mb-1">{t.progress.weight}</div>
                   <div className="text-3xl font-black tabular-nums text-primary">
                     {latestStats.weight || '--'} <span className="text-sm font-normal text-muted-foreground">kg</span>
                   </div>
@@ -503,7 +503,7 @@ export default function Progress() {
                   <div className="absolute top-0 right-0 p-3 opacity-10">
                     <Ruler size={48} />
                   </div>
-                  <div className="text-xs uppercase font-bold text-muted-foreground mb-1">Height</div>
+                  <div className="text-xs uppercase font-bold text-muted-foreground mb-1">{t.progress.height}</div>
                   <div className="text-3xl font-black tabular-nums">
                     {latestStats.height || '--'} <span className="text-sm font-normal text-muted-foreground">cm</span>
                   </div>
@@ -512,8 +512,8 @@ export default function Progress() {
             ) : (
               <div className="text-center py-8 bg-white/5 rounded-2xl border border-dashed border-white/10">
                 <User size={48} className="mx-auto mb-3 text-muted-foreground opacity-50" />
-                <h3 className="font-bold text-muted-foreground">No stats tracked yet</h3>
-                <p className="text-xs text-muted-foreground/60 mt-1">Tap + to add your first measurement</p>
+                <h3 className="font-bold text-muted-foreground">{t.dashboard.noWorkouts}</h3>
+                <p className="text-xs text-muted-foreground/60 mt-1">{t.progress.addMeasurement}</p>
               </div>
             )}
 
@@ -521,7 +521,7 @@ export default function Progress() {
               <div className="space-y-6">
                 <div className="h-64 w-full">
                   <h3 className="font-bold text-sm mb-4 flex items-center gap-2">
-                    <TrendingUp size={16} className="text-primary" /> Weight Trend
+                    <TrendingUp size={16} className="text-primary" /> {t.progress.weight}
                   </h3>
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={chartData}>
@@ -558,7 +558,7 @@ export default function Progress() {
             )}
 
             <div className="space-y-4">
-              <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground">Measurement History</h3>
+              <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground">{t.progress.measurements}</h3>
               <AnimatePresence>
                 {bodyStats.map((stat) => (
                   <motion.div
@@ -610,7 +610,7 @@ export default function Progress() {
             >
               <div className="p-6">
                 <div className="flex justify-between items-center mb-6 sticky top-0 bg-card z-10 -mx-6 px-6 -mt-6 pt-6 pb-2">
-                  <h2 className="text-xl font-bold">New Measurement</h2>
+                  <h2 className="text-xl font-bold">{t.progress.addMeasurement}</h2>
                   <button onClick={() => setIsAdding(false)} className="p-2 hover:bg-white/10 rounded-full">
                     <span className="sr-only">Close</span>
                     <ArrowLeft className="rotate-[-90deg]" />
@@ -619,7 +619,7 @@ export default function Progress() {
 
                 <div className="grid grid-cols-2 gap-4 mb-6">
                   <div className="space-y-2">
-                    <label className="text-xs uppercase font-bold text-muted-foreground">Weight (kg)</label>
+                    <label className="text-xs uppercase font-bold text-muted-foreground">{t.progress.weight} (kg)</label>
                     <input
                       type="number"
                       value={weight}
@@ -630,7 +630,7 @@ export default function Progress() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs uppercase font-bold text-muted-foreground">Height (cm)</label>
+                    <label className="text-xs uppercase font-bold text-muted-foreground">{t.progress.height} (cm)</label>
                     <input
                       type="number"
                       value={height}
@@ -640,7 +640,7 @@ export default function Progress() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs uppercase font-bold text-muted-foreground">Chest (cm)</label>
+                    <label className="text-xs uppercase font-bold text-muted-foreground">{t.progress.chest} (cm)</label>
                     <input
                       type="number"
                       value={chest}
@@ -650,7 +650,7 @@ export default function Progress() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs uppercase font-bold text-muted-foreground">Biceps (cm)</label>
+                    <label className="text-xs uppercase font-bold text-muted-foreground">{t.progress.biceps} (cm)</label>
                     <input
                       type="number"
                       value={biceps}
@@ -660,7 +660,7 @@ export default function Progress() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs uppercase font-bold text-muted-foreground">Waist (cm)</label>
+                    <label className="text-xs uppercase font-bold text-muted-foreground">{t.progress.waist} (cm)</label>
                     <input
                       type="number"
                       value={waist}
@@ -670,7 +670,7 @@ export default function Progress() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs uppercase font-bold text-muted-foreground">Age</label>
+                    <label className="text-xs uppercase font-bold text-muted-foreground">{t.progress.age}</label>
                     <input
                       type="number"
                       value={age}
@@ -686,7 +686,7 @@ export default function Progress() {
                   disabled={!weight && !height && !chest}
                   className="w-full py-4 bg-primary text-background font-black text-lg uppercase tracking-widest rounded-xl shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:scale-100"
                 >
-                  Save Entry
+                  {t.common.save}
                 </button>
               </div>
             </motion.div>

@@ -18,7 +18,7 @@ import { useLanguage } from '@/components/context/LanguageContext'
 const ITEMS_PER_PAGE = 48 // Show 48 items at a time (4 columns x 12 rows)
 
 export default function ExerciseLibrary() {
-  const { language } = useLanguage()
+  const { t } = useLanguage()
   const searchParams = useSearchParams()
   const router = useRouter()
   const isSelectMode = searchParams.get('mode') === 'select'
@@ -97,8 +97,8 @@ export default function ExerciseLibrary() {
             <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-3">
               <Dumbbell className="text-primary" size={28} />
               {isSelectMode 
-                ? (language === 'nl' ? 'Selecteer Oefening' : 'Select Exercise')
-                : (language === 'nl' ? 'Oefeningen Bibliotheek' : 'Exercise Library')
+                ? t.exercises.selectExercise
+                : t.exercises.library
               }
             </h1>
             <button
@@ -107,7 +107,7 @@ export default function ExerciseLibrary() {
             >
               <Filter size={18} />
               <span className="hidden sm:inline">
-                {language === 'nl' ? 'Filters' : 'Filters'}
+                {t.exercises.filters}
               </span>
               {hasActiveFilters && (
                 <span className="w-2 h-2 bg-primary rounded-full" />
@@ -122,7 +122,7 @@ export default function ExerciseLibrary() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={language === 'nl' ? 'Zoek oefeningen...' : 'Search exercises...'}
+              placeholder={t.exercises.searchPlaceholder}
               className="w-full pl-11 pr-4 py-3 bg-muted/50 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
             />
             {searchQuery && (
@@ -148,7 +148,7 @@ export default function ExerciseLibrary() {
                 <div className="pt-4 space-y-3 pb-2">
                   {/* Muscle Group Filter */}
                   <FilterDropdown
-                    label={language === 'nl' ? 'Spiergroep' : 'Muscle Group'}
+                    label={t.exercises.muscleGroup}
                     options={MUSCLE_GROUPS}
                     value={filters.muscleGroup}
                     onChange={(val) => handleFilterChange('muscleGroup', val)}
@@ -156,7 +156,7 @@ export default function ExerciseLibrary() {
 
                   {/* Equipment Filter */}
                   <FilterDropdown
-                    label={language === 'nl' ? 'Apparatuur' : 'Equipment'}
+                    label={t.exercises.equipment}
                     options={EQUIPMENT_TYPES}
                     value={filters.equipment}
                     onChange={(val) => handleFilterChange('equipment', val)}
@@ -164,7 +164,7 @@ export default function ExerciseLibrary() {
 
                   {/* Experience Level Filter */}
                   <FilterDropdown
-                    label={language === 'nl' ? 'Niveau' : 'Level'}
+                    label={t.exercises.level}
                     options={EXPERIENCE_LEVELS}
                     value={filters.experienceLevel}
                     onChange={(val) => handleFilterChange('experienceLevel', val)}
@@ -172,7 +172,7 @@ export default function ExerciseLibrary() {
 
                   {/* Mechanics Filter */}
                   <FilterDropdown
-                    label={language === 'nl' ? 'Type' : 'Type'}
+                    label={t.exercises.type}
                     options={MECHANICS_TYPES}
                     value={filters.mechanics}
                     onChange={(val) => handleFilterChange('mechanics', val)}
@@ -183,7 +183,7 @@ export default function ExerciseLibrary() {
                       onClick={clearFilters}
                       className="w-full py-2 text-sm text-destructive hover:underline"
                     >
-                      {language === 'nl' ? 'Wis alle filters' : 'Clear all filters'}
+                      {t.exercises.clearFilters}
                     </button>
                   )}
                 </div>
@@ -196,10 +196,7 @@ export default function ExerciseLibrary() {
       {/* Results Count */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
         <p className="text-sm text-muted-foreground">
-          {language === 'nl' 
-            ? `${displayedExercises.length} van ${filteredExercises.length} oefeningen getoond`
-            : `Showing ${displayedExercises.length} of ${filteredExercises.length} exercises`
-          }
+          {t.exercises.showing} {displayedExercises.length} {t.exercises.of} {filteredExercises.length} {t.exercises.exercises}
         </p>
       </div>
 
@@ -208,13 +205,13 @@ export default function ExerciseLibrary() {
         {filteredExercises.length === 0 ? (
           <div className="text-center py-16">
             <p className="text-muted-foreground text-lg">
-              {language === 'nl' ? 'Geen oefeningen gevonden' : 'No exercises found'}
+              {t.exercises.noExercisesFound}
             </p>
             <button
               onClick={clearFilters}
               className="mt-4 text-primary hover:underline"
             >
-              {language === 'nl' ? 'Reset filters' : 'Reset filters'}
+              {t.exercises.resetFilters}
             </button>
           </div>
         ) : (
@@ -237,10 +234,7 @@ export default function ExerciseLibrary() {
                   className="px-6 py-3 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-colors font-medium flex items-center gap-2"
                 >
                   <span>
-                    {language === 'nl' 
-                      ? `Meer laden (nog ${filteredExercises.length - displayCount})`
-                      : `Load More (${filteredExercises.length - displayCount} remaining)`
-                    }
+                    {t.exercises.loadMore} ({filteredExercises.length - displayCount} {t.exercises.remaining})
                   </span>
                 </button>
               </div>
@@ -418,7 +412,7 @@ function ExerciseDetailModal({
   onSelect?: (name: string) => void
   isSelectMode?: boolean
 }) {
-  const { language } = useLanguage()
+  const { t } = useLanguage()
 
   return (
     <>
@@ -497,7 +491,7 @@ function ExerciseDetailModal({
           {exercise.overview && (
             <div>
               <h3 className="font-semibold mb-2">
-                {language === 'nl' ? 'Overzicht' : 'Overview'}
+                {t.exercises.overview}
               </h3>
               <p className="text-muted-foreground leading-relaxed">
                 {exercise.overview}
@@ -509,7 +503,7 @@ function ExerciseDetailModal({
           {exercise.instructions.length > 0 && (
             <div>
               <h3 className="font-semibold mb-3">
-                {language === 'nl' ? 'Instructies' : 'Instructions'}
+                {t.exercises.instructions}
               </h3>
               <ol className="space-y-2">
                 {exercise.instructions.map((instruction, index) => (
@@ -528,7 +522,7 @@ function ExerciseDetailModal({
           {exercise.tips && exercise.tips.length > 0 && (
             <div>
               <h3 className="font-semibold mb-3">
-                {language === 'nl' ? 'Tips' : 'Tips'}
+                {t.exercises.tips}
               </h3>
               <ul className="space-y-2">
                 {exercise.tips.map((tip, index) => (
@@ -553,7 +547,7 @@ function ExerciseDetailModal({
               className="w-full py-3 bg-primary text-primary-foreground rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-primary/90 transition-colors"
             >
               <Plus size={20} />
-              {language === 'nl' ? 'Toevoegen aan Workout' : 'Add to Workout'}
+              {t.exercises.addToWorkout}
             </button>
           </div>
         )}

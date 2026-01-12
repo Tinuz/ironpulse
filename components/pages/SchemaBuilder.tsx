@@ -8,8 +8,10 @@ import { useData, Schema, Exercise, ExerciseType } from '@/components/context/Da
 import ExerciseSubstitutionModal from '@/components/ExerciseSubstitutionModal'
 import TemplateShareModal from '@/components/TemplateShareModal'
 import { suggestStartingWeight, StartingWeightSuggestion } from '@/components/utils/startingWeightSuggestions'
+import { useLanguage } from '@/components/context/LanguageContext'
 
 export default function SchemaBuilder() {
+  const { t } = useLanguage();
   const { addSchema, schemas, updateSchema, history, userProfile } = useData();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -263,13 +265,13 @@ export default function SchemaBuilder() {
         <button onClick={() => router.back()} className="p-2 -ml-2 text-muted-foreground hover:text-foreground">
           <ArrowLeft size={24} />
         </button>
-        <h1 className="font-bold text-lg">{isEditMode ? 'Edit Routine' : 'New Routine'}</h1>
+        <h1 className="font-bold text-lg">{isEditMode ? t.schema.editSchema : t.schema.newRoutine}</h1>
         <div className="flex gap-2">
           {isEditMode && exercises.length > 0 && (
             <button
               onClick={() => setShareModalOpen(true)}
               className="p-2 text-primary hover:bg-primary/10 rounded-lg transition-colors"
-              title="Share Template"
+              title={t.schema.shareSchema}
             >
               <Share2 size={20} />
             </button>
@@ -279,7 +281,7 @@ export default function SchemaBuilder() {
             disabled={!name.trim() || exercises.length === 0}
             className="text-primary font-bold text-sm disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-wider"
           >
-            Save
+            {t.common.save}
           </button>
         </div>
       </div>
@@ -287,12 +289,12 @@ export default function SchemaBuilder() {
       <div className="p-6 max-w-2xl mx-auto space-y-8">
         {/* Name Input */}
         <div className="space-y-2">
-          <label className="text-xs uppercase tracking-widest text-muted-foreground font-bold pl-1">Routine Name</label>
+          <label className="text-xs uppercase tracking-widest text-muted-foreground font-bold pl-1">{t.schema.schemaName}</label>
           <input
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="bijv. Upper Body Strength"
+            placeholder={t.schema.schemaName}
             className="w-full bg-transparent border-b-2 border-white/10 py-2 text-2xl font-black placeholder:text-muted-foreground/40 focus:border-primary focus:outline-none transition-colors"
           />
         </div>
@@ -300,7 +302,7 @@ export default function SchemaBuilder() {
         {/* Exercises List */}
         <div className="space-y-4">
           <div className="flex justify-between items-center">
-            <label className="text-xs uppercase tracking-widest text-muted-foreground font-bold pl-1">Exercises ({exercises.length})</label>
+            <label className="text-xs uppercase tracking-widest text-muted-foreground font-bold pl-1">{t.workout.exercises} ({exercises.length})</label>
           </div>
 
           <AnimatePresence mode="popLayout">
@@ -325,7 +327,7 @@ export default function SchemaBuilder() {
                       <h4 className="font-bold text-lg leading-tight">{ex.name}</h4>
                       {ex.type === 'cardio' && (
                         <span className="text-[9px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-green-500/20 text-green-400">
-                          Cardio
+                          {t.schema.cardio}
                         </span>
                       )}
                     </div>
@@ -348,8 +350,8 @@ export default function SchemaBuilder() {
                                   ex.cardioData.intensity === 'moderate' ? 'text-yellow-400' :
                                   'text-blue-400'
                                 }`}>
-                                  {ex.cardioData.intensity === 'high' ? 'Hoog' :
-                                   ex.cardioData.intensity === 'moderate' ? 'Matig' : 'Laag'}
+                                  {ex.cardioData.intensity === 'high' ? t.schema.high :
+                                   ex.cardioData.intensity === 'moderate' ? t.schema.moderate : t.schema.low}
                                 </span>
                               )}
                             </>
@@ -357,8 +359,8 @@ export default function SchemaBuilder() {
                         </>
                       ) : (
                         <>
-                          <span className="flex items-center gap-1"><GripHorizontal size={12}/> {ex.targetSets} Sets</span>
-                          <span className="flex items-center gap-1"><RotateCcw size={12}/> {ex.targetReps} Reps</span>
+                          <span className="flex items-center gap-1"><GripHorizontal size={12}/> {ex.targetSets} {t.workout.sets}</span>
+                          <span className="flex items-center gap-1"><RotateCcw size={12}/> {ex.targetReps} {t.workout.reps}</span>
                           {ex.startWeight && <span className="text-primary">@ {ex.startWeight}kg</span>}
                         </>
                       )}
@@ -369,7 +371,7 @@ export default function SchemaBuilder() {
                   <button 
                     onClick={() => openSubstitutionModal(ex)}
                     className="p-2 text-blue-400/60 md:opacity-0 md:group-hover:opacity-100 hover:text-blue-400 transition-colors"
-                    title="Find substitute exercise"
+                    title={t.common.search}
                   >
                     <RefreshCw size={18} />
                   </button>
@@ -399,14 +401,14 @@ export default function SchemaBuilder() {
             >
               <div className="flex items-center justify-between mb-2">
                 <h3 className="font-bold text-sm text-primary uppercase tracking-wider">
-                  {editingExercise ? 'Edit Exercise' : 'Add Exercise'}
+                  {editingExercise ? t.common.edit : t.workout.addExercise}
                 </h3>
               </div>
               
               {/* Exercise Type Toggle */}
               <div>
                 <label className="text-[10px] uppercase font-bold text-muted-foreground mb-2 block">
-                  Exercise Type
+                  {t.schema.exerciseType}
                 </label>
                 <div className="grid grid-cols-2 gap-2 bg-white/5 p-1 rounded-lg">
                   <button
@@ -418,7 +420,7 @@ export default function SchemaBuilder() {
                     }`}
                   >
                     <Dumbbell size={16} />
-                    Strength
+                    {t.schema.strength}
                   </button>
                   <button
                     onClick={() => setExerciseType('cardio')}
@@ -429,14 +431,14 @@ export default function SchemaBuilder() {
                     }`}
                   >
                     <Heart size={16} />
-                    Cardio
+                    {t.schema.cardio}
                   </button>
                 </div>
               </div>
               
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <label className="text-[10px] uppercase font-bold text-muted-foreground">Exercise Name</label>
+                  <label className="text-[10px] uppercase font-bold text-muted-foreground">{t.schema.exerciseName}</label>
                   <button
                     onClick={() => {
                       const returnPath = editId ? `/schema?edit=${editId}` : '/schema';
@@ -445,7 +447,7 @@ export default function SchemaBuilder() {
                     className="flex items-center gap-1 text-xs font-bold text-primary hover:underline"
                   >
                     <Search size={12} />
-                    Browse
+                    {t.common.search}
                   </button>
                 </div>
                 <input
@@ -454,7 +456,7 @@ export default function SchemaBuilder() {
                   value={newExName}
                   onChange={(e) => setNewExName(e.target.value)}
                   className="w-full bg-white/5 rounded-lg px-3 py-2 mt-1 focus:outline-none focus:ring-1 focus:ring-primary font-bold"
-                  placeholder="e.g. Bench Press"
+                  placeholder={t.schema.exerciseName}
                 />
               </div>
               
@@ -463,7 +465,7 @@ export default function SchemaBuilder() {
                 <>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="text-[10px] uppercase font-bold text-muted-foreground">Sets</label>
+                      <label className="text-[10px] uppercase font-bold text-muted-foreground">{t.workout.sets}</label>
                       <div className="flex items-center mt-1 bg-white/5 rounded-lg overflow-hidden">
                         <button onClick={() => setNewExSets(s => Math.max(1, s - 1))} className="p-2 hover:bg-white/10">-</button>
                         <div className="flex-1 text-center font-mono font-bold">{newExSets}</div>
@@ -471,7 +473,7 @@ export default function SchemaBuilder() {
                       </div>
                     </div>
                     <div>
-                      <label className="text-[10px] uppercase font-bold text-muted-foreground">Reps</label>
+                      <label className="text-[10px] uppercase font-bold text-muted-foreground">{t.workout.reps}</label>
                       <div className="flex items-center mt-1 bg-white/5 rounded-lg overflow-hidden">
                         <button onClick={() => setNewExReps(r => Math.max(1, r - 1))} className="p-2 hover:bg-white/10">-</button>
                         <div className="flex-1 text-center font-mono font-bold">{newExReps}</div>
@@ -481,14 +483,14 @@ export default function SchemaBuilder() {
                   </div>
                   <div>
                 <div className="flex items-center justify-between mb-1">
-                  <label className="text-[10px] uppercase font-bold text-muted-foreground">Start Weight (kg) - Optioneel</label>
+                  <label className="text-[10px] uppercase font-bold text-muted-foreground">{t.schema.startWeight} (kg)</label>
                   {weightSuggestion && showSuggestion && (
                     <button
                       onClick={() => setNewExStartWeight(weightSuggestion.suggestedWeight)}
                       className="flex items-center gap-1 text-xs font-bold text-primary hover:underline"
                     >
                       <Lightbulb size={12} />
-                      AI Suggestie
+                      AI
                     </button>
                   )}
                 </div>
@@ -516,16 +518,16 @@ export default function SchemaBuilder() {
                               weightSuggestion.confidence === 'medium' ? 'bg-yellow-500/20 text-yellow-400' :
                               'bg-orange-500/20 text-orange-400'
                             }`}>
-                              {weightSuggestion.confidence === 'high' ? 'Hoge zekerheid' :
-                               weightSuggestion.confidence === 'medium' ? 'Gemiddelde zekerheid' :
-                               'Lage zekerheid'}
+                              {weightSuggestion.confidence === 'high' ? t.schema.high :
+                               weightSuggestion.confidence === 'medium' ? t.schema.moderate :
+                               t.schema.low}
                             </span>
                           </div>
                           <p className="text-[10px] text-muted-foreground leading-relaxed">
                             {weightSuggestion.reasoning}
                           </p>
                           <p className="text-[9px] text-muted-foreground/60 mt-1 italic">
-                            Op basis van: {weightSuggestion.basedOn}
+                            {weightSuggestion.basedOn}
                           </p>
                         </div>
                         <button
@@ -548,7 +550,7 @@ export default function SchemaBuilder() {
                   step="0.5"
                   min="0"
                 />
-                <p className="text-[9px] text-muted-foreground mt-1 px-1">Dit wordt automatisch ingevuld bij nieuwe workouts</p>
+                <p className="text-[9px] text-muted-foreground mt-1 px-1">{t.schema.startWeight}</p>
               </div>
                 </>
               )}
@@ -559,11 +561,11 @@ export default function SchemaBuilder() {
                   <div>
                     <label className="text-[10px] uppercase font-bold text-muted-foreground flex items-center gap-1">
                       <Clock size={12} />
-                      Duur (verplicht)
+                      {t.workout.duration}
                     </label>
                     <div className="grid grid-cols-2 gap-2 mt-1">
                       <div>
-                        <div className="text-[9px] text-muted-foreground mb-1">Minuten</div>
+                        <div className="text-[9px] text-muted-foreground mb-1">{t.workout.durationMinutes}</div>
                         <div className="flex items-center bg-white/5 rounded-lg overflow-hidden">
                           <button onClick={() => setCardioDuration(d => Math.max(0, d - 60))} className="p-2 hover:bg-white/10">-</button>
                           <div className="flex-1 text-center font-mono font-bold">{Math.floor(cardioDuration / 60)}</div>
@@ -571,7 +573,7 @@ export default function SchemaBuilder() {
                         </div>
                       </div>
                       <div>
-                        <div className="text-[9px] text-muted-foreground mb-1">Seconden</div>
+                        <div className="text-[9px] text-muted-foreground mb-1">s</div>
                         <div className="flex items-center bg-white/5 rounded-lg overflow-hidden">
                           <button onClick={() => setCardioDuration(d => Math.max(0, Math.floor(d / 60) * 60 + ((d % 60) - 15 + 60) % 60))} className="p-2 hover:bg-white/10">-15s</button>
                           <div className="flex-1 text-center font-mono font-bold">{cardioDuration % 60}</div>
@@ -587,7 +589,7 @@ export default function SchemaBuilder() {
                   <div>
                     <label className="text-[10px] uppercase font-bold text-muted-foreground flex items-center gap-1">
                       <Route size={12} />
-                      Afstand (optioneel)
+                      {t.workout.cardioStats.distance}
                     </label>
                     <div className="flex gap-2 mt-1">
                       <input
@@ -608,7 +610,7 @@ export default function SchemaBuilder() {
                   <div>
                     <label className="text-[10px] uppercase font-bold text-muted-foreground flex items-center gap-1">
                       <Heart size={12} />
-                      Gemiddelde Hartslag (optioneel)
+                      {t.workout.cardioStats.heartRate}
                     </label>
                     <div className="flex gap-2 mt-1">
                       <input
@@ -628,7 +630,7 @@ export default function SchemaBuilder() {
                   
                   <div>
                     <label className="text-[10px] uppercase font-bold text-muted-foreground">
-                      Intensiteit
+                      {t.schema.intensity}
                     </label>
                     <div className="grid grid-cols-3 gap-2 mt-1">
                       {(['low', 'moderate', 'high'] as const).map((level) => (
@@ -643,7 +645,7 @@ export default function SchemaBuilder() {
                               : 'bg-white/5 text-muted-foreground hover:bg-white/10'
                           }`}
                         >
-                          {level === 'low' ? 'Laag' : level === 'moderate' ? 'Matig' : 'Hoog'}
+                          {level === 'low' ? t.schema.low : level === 'moderate' ? t.schema.moderate : t.schema.high}
                         </button>
                       ))}
                     </div>
@@ -656,14 +658,14 @@ export default function SchemaBuilder() {
                   onClick={cancelEdit}
                   className="flex-1 py-3 text-sm font-bold text-muted-foreground hover:text-foreground hover:bg-white/5 rounded-lg transition-colors"
                 >
-                  Cancel
+                  {t.common.cancel}
                 </button>
                 <button 
                   onClick={editingExercise ? handleUpdateExercise : handleAddExercise}
                   disabled={!newExName.trim()}
                   className="flex-1 py-3 text-sm font-bold bg-primary text-background rounded-lg shadow-lg shadow-primary/20 disabled:opacity-50"
                 >
-                  {editingExercise ? 'Update Exercise' : 'Add Exercise'}
+                  {editingExercise ? t.common.edit : t.workout.addExercise}
                 </button>
               </div>
             </motion.div>
@@ -676,7 +678,7 @@ export default function SchemaBuilder() {
               <div className="h-6 w-6 rounded-full border border-current flex items-center justify-center group-hover:bg-primary group-hover:border-primary group-hover:text-background transition-colors">
                 <Plus size={14} />
               </div>
-              Add Exercise
+              {t.workout.addExercise}
             </motion.button>
           )}
         </div>

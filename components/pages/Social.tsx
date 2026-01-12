@@ -5,6 +5,7 @@ import { motion } from 'framer-motion'
 import { Users, UserPlus, UserCheck, Search, TrendingUp, Dumbbell, X, Plus } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/context/AuthContext'
+import { useLanguage } from '@/components/context/LanguageContext'
 import { supabase } from '@/lib/supabase'
 import { formatDistance } from 'date-fns'
 import { nl } from 'date-fns/locale'
@@ -38,6 +39,7 @@ interface FriendActivity {
 
 export default function Social() {
   const { user } = useAuth()
+  const { t } = useLanguage()
   const router = useRouter()
   const [activeTab, setActiveTab] = useState<'feed' | 'squads' | 'discover'>('feed')
   const [searchQuery, setSearchQuery] = useState('')
@@ -168,7 +170,7 @@ export default function Social() {
   if (loading) {
     return (
       <div className="min-h-screen bg-background pb-24 flex items-center justify-center">
-        <div className="text-muted-foreground">Laden...</div>
+        <div className="text-muted-foreground">{t.common.loading}</div>
       </div>
     )
   }
@@ -177,7 +179,7 @@ export default function Social() {
     <div className="min-h-screen bg-background pb-24">
       {/* Header */}
       <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-md border-b border-white/5 p-4">
-        <h1 className="font-black text-2xl mb-4">Social</h1>
+        <h1 className="font-black text-2xl mb-4">{t.social.title}</h1>
         
         {/* Tabs */}
         <div className="flex gap-2">
@@ -191,7 +193,7 @@ export default function Social() {
           >
             <div className="flex items-center justify-center gap-2">
               <TrendingUp size={18} />
-              Feed
+              {t.social.feed}
             </div>
           </button>
           <button
@@ -204,7 +206,7 @@ export default function Social() {
           >
             <div className="flex items-center justify-center gap-2">
               <Users size={18} />
-              Squads
+              {t.social.squads}
             </div>
           </button>
           <button
@@ -217,7 +219,7 @@ export default function Social() {
           >
             <div className="flex items-center justify-center gap-2">
               <Search size={18} />
-              Discover
+              {t.social.discover}
             </div>
           </button>
         </div>
@@ -231,7 +233,7 @@ export default function Social() {
               <div className="space-y-4">
                 <h3 className="text-lg font-bold flex items-center gap-2">
                   <Users size={20} className="text-primary" />
-                  Volgt ({following.length})
+                  {t.social.following} ({following.length})
                 </h3>
                 
                 <div className="grid gap-3">
@@ -243,6 +245,7 @@ export default function Social() {
                       onFollow={handleFollow}
                       onUnfollow={handleUnfollow}
                       onViewProfile={() => router.push(`/profile/${profile.username}`)}
+                      t={t}
                     />
                   ))}
                 </div>
@@ -254,27 +257,27 @@ export default function Social() {
               <div className="space-y-4">
                 <h3 className="text-lg font-bold flex items-center gap-2">
                   <TrendingUp size={20} className="text-green-500" />
-                  Recent Activity
+                  {t.social.recentActivity}
                 </h3>
                 
                 <div className="space-y-3">
                   {friendActivity.map(activity => (
-                    <ActivityCard key={activity.workout_id} activity={activity} router={router} />
+                    <ActivityCard key={activity.workout_id} activity={activity} router={router} t={t} />
                   ))}
                 </div>
               </div>
             ) : (
               <div className="text-center py-12">
                 <Users size={48} className="mx-auto text-muted-foreground mb-4" />
-                <h3 className="font-bold text-lg mb-2">Nog geen activiteit</h3>
+                <h3 className="font-bold text-lg mb-2">{t.social.noActivity}</h3>
                 <p className="text-muted-foreground text-sm mb-6">
-                  Volg vrienden om hun workouts te zien
+                  {t.social.followFriendsMessage}
                 </p>
                 <button
                   onClick={() => setActiveTab('discover')}
                   className="px-6 py-3 bg-primary text-white rounded-xl font-bold hover:bg-primary/90 transition-colors"
                 >
-                  Ontdek Gebruikers
+                  {t.social.discoverUsers}
                 </button>
               </div>
             )}
@@ -286,14 +289,14 @@ export default function Social() {
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-bold flex items-center gap-2">
                   <Users size={20} className="text-primary" />
-                  Mijn Squads ({squads.length})
+                  {t.social.mySquads} ({squads.length})
                 </h3>
                 <button
                   onClick={() => setCreateSquadModalOpen(true)}
                   className="flex items-center gap-2 px-4 py-2 bg-primary text-background font-bold rounded-lg hover:scale-105 transition-transform"
                 >
                   <Plus size={18} />
-                  Nieuw
+                  {t.social.newSquad}
                 </button>
               </div>
 
@@ -306,16 +309,16 @@ export default function Social() {
               ) : (
                 <div className="text-center py-12 bg-card border border-white/5 rounded-xl">
                   <Users size={48} className="mx-auto text-muted-foreground mb-4" />
-                  <h3 className="font-bold text-lg mb-2">Nog geen squads</h3>
+                  <h3 className="font-bold text-lg mb-2">{t.social.noSquads}</h3>
                   <p className="text-muted-foreground text-sm mb-6 max-w-sm mx-auto">
-                    Maak een squad aan om samen te trainen met een kleine groep vrienden
+                    {t.social.noSquadsMessage}
                   </p>
                   <button
                     onClick={() => setCreateSquadModalOpen(true)}
                     className="px-6 py-3 bg-primary text-background rounded-lg font-bold hover:scale-105 transition-transform inline-flex items-center gap-2"
                   >
                     <Plus size={18} />
-                    Eerste Squad Aanmaken
+                    {t.social.createFirstSquad}
                   </button>
                 </div>
               )}
@@ -323,14 +326,14 @@ export default function Social() {
 
             {/* Info Box */}
             <div className="bg-gradient-to-br from-primary/10 via-purple-500/10 to-transparent border border-primary/20 rounded-xl p-4">
-              <h4 className="font-bold text-sm mb-2">💪 Wat zijn Squads?</h4>
+              <h4 className="font-bold text-sm mb-2">{t.social.squadsInfoTitle}</h4>
               <p className="text-xs text-muted-foreground leading-relaxed mb-3">
-                Kleine groepen voor accountability. Deel workouts, moedig elkaar aan, en blijf consistent zonder de ruis van grote social media.
+                {t.social.squadsInfoDescription}
               </p>
               <div className="flex flex-wrap gap-2 text-xs">
-                <span className="px-2 py-1 bg-white/10 rounded">Privé groepen</span>
-                <span className="px-2 py-1 bg-white/10 rounded">Alleen op uitnodiging</span>
-                <span className="px-2 py-1 bg-white/10 rounded">Deel check-ins</span>
+                <span className="px-2 py-1 bg-white/10 rounded">{t.social.privateGroups}</span>
+                <span className="px-2 py-1 bg-white/10 rounded">{t.social.inviteOnly}</span>
+                <span className="px-2 py-1 bg-white/10 rounded">{t.social.shareCheckins}</span>
               </div>
             </div>
           </>
@@ -341,7 +344,7 @@ export default function Social() {
               <Search size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <input
                 type="text"
-                placeholder="Zoek gebruikers..."
+                placeholder={t.social.searchPlaceholder}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-12 pr-4 py-3 bg-card border border-white/10 rounded-xl focus:outline-none focus:border-primary transition-colors"
@@ -360,7 +363,7 @@ export default function Social() {
             <div className="space-y-4">
               <h3 className="text-lg font-bold flex items-center gap-2">
                 <UserPlus size={20} className="text-primary" />
-                Ontdek
+                {t.social.discover}
               </h3>
               
               {filteredSuggested.length > 0 ? (
@@ -373,12 +376,13 @@ export default function Social() {
                       onFollow={handleFollow}
                       onUnfollow={handleUnfollow}
                       onViewProfile={() => router.push(`/profile/${profile.username}`)}
+                      t={t}
                     />
                   ))}
                 </div>
               ) : (
                 <div className="text-center py-8 text-muted-foreground">
-                  {searchQuery ? 'Geen gebruikers gevonden' : 'Geen suggesties beschikbaar'}
+                  {searchQuery ? t.social.noUsersFound : t.social.noSuggestionsAvailable}
                 </div>
               )}
             </div>
@@ -405,13 +409,15 @@ function UserCard({
   isFollowing,
   onFollow,
   onUnfollow,
-  onViewProfile
+  onViewProfile,
+  t
 }: {
   profile: SocialProfile
   isFollowing: boolean
   onFollow: (userId: string) => void
   onUnfollow: (userId: string) => void
   onViewProfile: () => void
+  t: any
 }) {
   return (
     <motion.div
@@ -455,12 +461,12 @@ function UserCard({
           {isFollowing ? (
             <div className="flex items-center gap-1">
               <UserCheck size={16} />
-              Volgt
+              {t.social.following}
             </div>
           ) : (
             <div className="flex items-center gap-1">
               <UserPlus size={16} />
-              Volg
+              {t.social.follow}
             </div>
           )}
         </button>
@@ -471,15 +477,15 @@ function UserCard({
         <div className="flex gap-4 mt-3 pt-3 border-t border-white/5 text-xs">
           <div>
             <span className="font-bold text-primary">{profile.total_workouts}</span>
-            <span className="text-muted-foreground ml-1">workouts</span>
+            <span className="text-muted-foreground ml-1">{t.social.workouts}</span>
           </div>
           <div>
             <span className="font-bold text-green-500">{profile.workouts_last_30_days || 0}</span>
-            <span className="text-muted-foreground ml-1">last 30d</span>
+            <span className="text-muted-foreground ml-1">{t.social.last30d}</span>
           </div>
           <div>
             <span className="font-bold text-amber-500">{profile.achievement_count || 0}</span>
-            <span className="text-muted-foreground ml-1">badges</span>
+            <span className="text-muted-foreground ml-1">{t.social.badges}</span>
           </div>
         </div>
       )}
@@ -488,7 +494,7 @@ function UserCard({
 }
 
 // Activity Card Component
-function ActivityCard({ activity, router }: { activity: FriendActivity; router: any }) {
+function ActivityCard({ activity, router, t }: { activity: FriendActivity; router: any; t: any }) {
   return (
     <motion.div
       initial={{ opacity: 0, x: -20 }}
@@ -524,11 +530,11 @@ function ActivityCard({ activity, router }: { activity: FriendActivity; router: 
           <div className="flex items-center gap-4 text-xs text-muted-foreground">
             <div className="flex items-center gap-1">
               <Dumbbell size={14} className="text-primary" />
-              {activity.exercise_count} exercises
+              {activity.exercise_count} {t.social.exercises}
             </div>
             {activity.duration_minutes > 0 && (
               <div>
-                ⏱️ {Math.round(activity.duration_minutes)} min
+                ⏱️ {Math.round(activity.duration_minutes)} {t.social.min}
               </div>
             )}
           </div>

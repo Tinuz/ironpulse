@@ -14,6 +14,7 @@ import {
   Heart
 } from 'lucide-react'
 import { useData } from '@/components/context/DataContext'
+import { useLanguage } from '@/components/context/LanguageContext'
 import {
   calculateVolumeByMuscleGroup,
   calculatePushPullVolume,
@@ -39,6 +40,7 @@ import WeeklyCardioGoal from '@/components/WeeklyCardioGoal'
 
 export default function Analytics() {
   const { history } = useData()
+  const { t } = useLanguage()
   const [timeRange, setTimeRange] = useState<'week' | 'month' | 'quarter' | 'year'>('month')
   const [selectedMuscleGroup, setSelectedMuscleGroup] = useState<string | null>(null)
   const [analyticsTab, setAnalyticsTab] = useState<'strength' | 'cardio'>('strength')
@@ -95,8 +97,8 @@ export default function Analytics() {
     <div className="min-h-screen bg-background pb-24">
       {/* Header */}
       <div className="bg-gradient-to-r from-primary to-blue-500 text-white p-6">
-        <h1 className="text-2xl font-bold mb-2">Analytics Dashboard</h1>
-        <p className="text-white/80 text-sm">Gedetailleerde analyse van je trainingsdata</p>
+        <h1 className="text-2xl font-bold mb-2">{t.analytics.title}</h1>
+        <p className="text-white/80 text-sm">{t.analytics.subtitle}</p>
       </div>
 
       <div className="max-w-6xl mx-auto px-4 py-6 space-y-6">
@@ -111,7 +113,7 @@ export default function Analytics() {
             }`}
           >
             <Dumbbell size={18} />
-            Strength Analytics
+            {t.analytics.tabs.strength}
           </button>
           <button
             onClick={() => setAnalyticsTab('cardio')}
@@ -122,7 +124,7 @@ export default function Analytics() {
             }`}
           >
             <Heart size={18} />
-            Cardio Analytics
+            {t.analytics.tabs.cardio}
           </button>
         </div>
 
@@ -138,10 +140,7 @@ export default function Analytics() {
                   : 'bg-card text-muted-foreground hover:bg-white/5'
               }`}
             >
-              {range === 'week' && '7 dagen'}
-              {range === 'month' && '30 dagen'}
-              {range === 'quarter' && '3 maanden'}
-              {range === 'year' && '12 maanden'}
+              {t.analytics.timeRanges[range as keyof typeof t.analytics.timeRanges]}
             </button>
           ))}
         </div>
@@ -153,32 +152,32 @@ export default function Analytics() {
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               <StatCard
                 icon={<BarChart3 size={24} />}
-                label="Totaal Volume"
+                label={t.analytics.stats.totalVolume}
                 value={`${Math.round(totalVolume / 1000)}k`}
-                subtitle="kg"
+                subtitle={t.analytics.stats.volumeSubtitle}
                 color="text-primary"
               />
               <StatCard
                 icon={<Activity size={24} />}
-                label="Workouts"
+                label={t.analytics.stats.totalWorkouts}
                 value={totalWorkouts.toString()}
-                subtitle={`${timeRange === 'week' ? 'deze week' : timeRange === 'month' ? 'deze maand' : timeRange === 'quarter' ? 'dit kwartaal' : 'dit jaar'}`}
+                subtitle={timeRange === 'week' ? t.analytics.stats.thisWeek : timeRange === 'month' ? t.analytics.stats.thisMonth : timeRange === 'quarter' ? t.analytics.stats.thisQuarter : t.analytics.stats.thisYear}
                 color="text-green-500"
               />
               <StatCard
                 icon={<Zap size={24} />}
-                label="Gem. Volume"
+                label={t.analytics.stats.avgVolume}
                 value={Math.round(avgVolumePerWorkout / 1000).toString()}
-                subtitle="kg per workout"
+                subtitle={t.analytics.stats.avgVolumeSubtitle}
                 color="text-amber-500"
               />
               <StatCard
                 icon={<Target size={24} />}
-                label="Push/Pull Ratio"
+                label={t.analytics.stats.pushPullRatio}
                 value={pushPullVolume.pushVolume > 0 && pushPullVolume.pullVolume > 0
                   ? `${(pushPullVolume.pushVolume / pushPullVolume.pullVolume).toFixed(1)}`
                   : '—'}
-                subtitle="push:pull"
+                subtitle={t.analytics.stats.pushPullSubtitle}
                 color="text-blue-500"
               />
             </div>
@@ -187,7 +186,7 @@ export default function Analytics() {
             <div className="bg-card border border-white/5 rounded-xl p-6">
               <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
                 <TrendingUp size={20} className="text-primary" />
-                Push vs Pull Volume
+                {t.analytics.charts.pushPullVolume}
               </h2>
               <PushPullVolumeChart data={volumeTimeSeries} />
             </div>
@@ -196,7 +195,7 @@ export default function Analytics() {
             <div className="bg-card border border-white/5 rounded-xl p-6">
               <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
                 <Calendar size={20} className="text-primary" />
-                Muscle Group Frequency
+                {t.analytics.charts.muscleFrequency}
               </h2>
               <MuscleFrequencyHeatmap workouts={filteredWorkouts} />
             </div>
@@ -205,7 +204,7 @@ export default function Analytics() {
             <div className="bg-card border border-white/5 rounded-xl p-6">
               <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
                 <BarChart3 size={20} className="text-primary" />
-                Volume Progression
+                {t.analytics.charts.volumeProgression}
               </h2>
               <VolumeProgressionChart 
                 data={volumeTimeSeries}
@@ -218,14 +217,14 @@ export default function Analytics() {
             <div className="bg-card border border-white/5 rounded-xl p-6">
               <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
                 <Award size={20} className="text-primary" />
-                Strength Progression (Estimated 1RM)
+                {t.analytics.charts.strengthProgression}
               </h2>
               <StrengthProgressionChart data={strengthProgression} />
             </div>
 
             {/* Top Exercises by Volume */}
             <div className="bg-card border border-white/5 rounded-xl p-6">
-              <h2 className="text-lg font-bold mb-4">Top Exercises by Volume</h2>
+              <h2 className="text-lg font-bold mb-4">{t.analytics.sections.topExercises}</h2>
               <TopExercisesList workouts={filteredWorkouts} />
             </div>
           </>
@@ -249,7 +248,7 @@ export default function Analytics() {
             <div className="bg-card border border-white/5 rounded-xl p-6">
               <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
                 <TrendingUp size={20} className="text-green-500" />
-                Cardio Duur Over Tijd
+                {t.analytics.charts.cardioDuration}
               </h2>
               <CardioDurationChart data={cardioTimeSeries} />
             </div>
@@ -258,14 +257,14 @@ export default function Analytics() {
             <div className="bg-card border border-white/5 rounded-xl p-6">
               <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
                 <Activity size={20} className="text-green-500" />
-                Activiteiten Overzicht
+                {t.analytics.charts.activityBreakdown}
               </h2>
               <CardioActivityChart data={cardioActivityBreakdown} />
             </div>
 
             {/* Top Cardio Activities List */}
             <div className="bg-card border border-white/5 rounded-xl p-6">
-              <h2 className="text-lg font-bold mb-4">Top Cardio Activiteiten</h2>
+              <h2 className="text-lg font-bold mb-4">{t.analytics.sections.topCardioActivities}</h2>
               <TopCardioActivitiesList activities={cardioActivityBreakdown} />
             </div>
           </>
@@ -305,6 +304,7 @@ function StatCard({
 
 // Top Exercises List Component
 function TopExercisesList({ workouts }: { workouts: any[] }) {
+  const { t } = useLanguage()
   const exerciseVolumes = new Map<string, number>()
 
   workouts.forEach(workout => {
@@ -322,7 +322,7 @@ function TopExercisesList({ workouts }: { workouts: any[] }) {
     .slice(0, 10)
 
   if (topExercises.length === 0) {
-    return <p className="text-muted-foreground text-center py-4">Geen data beschikbaar</p>
+    return <p className="text-muted-foreground text-center py-4">{t.analytics.noData}</p>
   }
 
   const maxVolume = topExercises[0][1]
@@ -356,8 +356,9 @@ function TopExercisesList({ workouts }: { workouts: any[] }) {
 
 // Top Cardio Activities List Component
 function TopCardioActivitiesList({ activities }: { activities: any[] }) {
+  const { t } = useLanguage()
   if (activities.length === 0) {
-    return <p className="text-muted-foreground text-center py-4">Geen cardio data beschikbaar</p>
+    return <p className="text-muted-foreground text-center py-4">{t.analytics.noCardioData}</p>
   }
 
   const maxDuration = activities[0]?.duration || 1

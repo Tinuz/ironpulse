@@ -6,6 +6,7 @@ import { ArrowLeft, Calendar, Dumbbell, Trophy, UserPlus, UserCheck } from 'luci
 import { useRouter, usePathname } from 'next/navigation'
 import { format } from 'date-fns'
 import { useAuth } from '@/components/context/AuthContext'
+import { useLanguage } from '@/components/context/LanguageContext'
 import { supabase } from '@/lib/supabase'
 
 interface UserProfile {
@@ -36,6 +37,7 @@ interface WorkoutHistoryItem {
 
 export default function Profile() {
   const { user } = useAuth()
+  const { t } = useLanguage()
   const router = useRouter()
   const pathname = usePathname()
   const [profile, setProfile] = useState<UserProfile | null>(null)
@@ -155,14 +157,14 @@ export default function Profile() {
           <Calendar size={40} className="text-primary" />
         </div>
         <div>
-          <h1 className="text-2xl font-black italic">USER NOT FOUND</h1>
-          <p className="text-muted-foreground mt-2">This profile doesn't exist or is private.</p>
+          <h1 className="text-2xl font-black italic">{t.social.noUsersFound.toUpperCase()}</h1>
+          <p className="text-muted-foreground mt-2">{t.social.privateProfile}</p>
         </div>
         <button 
           onClick={() => router.push('/social')}
           className="px-8 py-3 bg-white text-black font-bold rounded-full hover:scale-105 transition-transform"
         >
-          Back to Social
+          {t.common.back}
         </button>
       </div>
     )
@@ -175,7 +177,7 @@ export default function Profile() {
         <button onClick={() => router.back()} className="p-2 -ml-2 text-muted-foreground hover:text-foreground">
           <ArrowLeft size={24} />
         </button>
-        <h1 className="font-bold text-lg">Profile</h1>
+        <h1 className="font-bold text-lg">{t.profile.title}</h1>
         <div className="w-10" />
       </div>
 
@@ -212,11 +214,11 @@ export default function Profile() {
           <div className="flex gap-4 mt-3 text-sm">
             <div>
               <span className="font-bold">{profile.followers_count || 0}</span>
-              <span className="text-muted-foreground ml-1">volgers</span>
+              <span className="text-muted-foreground ml-1">{t.social.followers.toLowerCase()}</span>
             </div>
             <div>
               <span className="font-bold">{profile.following_count || 0}</span>
-              <span className="text-muted-foreground ml-1">volgend</span>
+              <span className="text-muted-foreground ml-1">{t.social.following.toLowerCase()}</span>
             </div>
           </div>
 
@@ -233,12 +235,12 @@ export default function Profile() {
               {isFollowing ? (
                 <div className="flex items-center justify-center gap-2">
                   <UserCheck size={16} />
-                  Volgt
+                  {t.social.following}
                 </div>
               ) : (
                 <div className="flex items-center justify-center gap-2">
                   <UserPlus size={16} />
-                  Volg
+                  {t.social.follow}
                 </div>
               )}
             </button>
@@ -249,7 +251,7 @@ export default function Profile() {
               onClick={() => router.push('/settings')}
               className="mt-3 w-full py-2 rounded-lg bg-white/10 text-foreground hover:bg-white/20 font-bold transition-colors"
             >
-              Bewerk Profiel
+              {t.profile.editProfile}
             </button>
           )}
 
@@ -257,15 +259,15 @@ export default function Profile() {
           <div className="grid grid-cols-3 gap-3 mt-3 pt-3 border-t border-white/5">
             <div className="text-center">
               <div className="text-xl font-black text-primary">{profile.total_workouts || 0}</div>
-              <div className="text-[10px] text-muted-foreground uppercase">Workouts</div>
+              <div className="text-[10px] text-muted-foreground uppercase">{t.social.workouts}</div>
             </div>
             <div className="text-center">
               <div className="text-xl font-black text-green-500">{profile.workouts_last_30_days || 0}</div>
-              <div className="text-[10px] text-muted-foreground uppercase">Last 30d</div>
+              <div className="text-[10px] text-muted-foreground uppercase">{t.social.last30d}</div>
             </div>
             <div className="text-center">
               <div className="text-xl font-black text-amber-500">{profile.achievement_count || 0}</div>
-              <div className="text-[10px] text-muted-foreground uppercase">Badges</div>
+              <div className="text-[10px] text-muted-foreground uppercase">{t.social.badges}</div>
             </div>
           </div>
         </motion.div>
@@ -274,13 +276,13 @@ export default function Profile() {
         {(profile.show_workouts || isOwnProfile) && (
           <>
             <div className="flex items-center justify-between">
-              <h3 className="text-xl font-black italic">Recent Workouts</h3>
+              <h3 className="text-xl font-black italic">{t.schema.recentWorkouts}</h3>
             </div>
 
             {workouts.length === 0 ? (
               <div className="bg-card border border-white/5 rounded-2xl p-8 text-center">
                 <Dumbbell size={40} className="mx-auto text-muted-foreground mb-3" />
-                <p className="text-muted-foreground">No workouts yet</p>
+                <p className="text-muted-foreground">{t.history.noWorkouts}</p>
               </div>
             ) : (
               <div className="space-y-3">
@@ -317,15 +319,15 @@ export default function Profile() {
                       <div className="flex gap-4 text-sm">
                         <div className="flex items-center gap-1 text-muted-foreground">
                           <Dumbbell size={14} className="text-primary" />
-                          {totalSets} sets
+                          {totalSets} {t.workout.sets.toLowerCase()}
                         </div>
                         <div className="flex items-center gap-1 text-muted-foreground">
                           <Trophy size={14} className="text-amber-500" />
-                          {(volume / 1000).toFixed(1)}k volume
+                          {(volume / 1000).toFixed(1)}k {t.history.volume.toLowerCase()}
                         </div>
                         {duration > 0 && (
                           <div className="flex items-center gap-1 text-muted-foreground">
-                            ⏱️ {duration}m
+                            ⏱️ {duration}{t.history.minutesShort}
                           </div>
                         )}
                       </div>

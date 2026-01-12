@@ -6,12 +6,14 @@ import { ArrowLeft, Calendar, Clock, Trophy, Dumbbell, Edit2, Trash2, MoreVertic
 import { useRouter } from 'next/navigation'
 import { format } from 'date-fns'
 import { useData } from '@/components/context/DataContext'
+import { useLanguage } from '@/components/context/LanguageContext'
 import { getBest1RM, roundTo } from '@/components/utils/workoutCalculations'
 import WorkoutCalendar from '@/components/WorkoutCalendar'
 import type { WorkoutLog } from '@/components/context/DataContext'
 
 export default function History() {
   const { history, deleteWorkout } = useData();
+  const { t } = useLanguage();
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
@@ -35,7 +37,7 @@ export default function History() {
         <button onClick={() => router.push('/')} className="p-2 -ml-2 text-muted-foreground hover:text-foreground">
           <ArrowLeft size={24} />
         </button>
-        <h1 className="font-bold text-lg">Workout History</h1>
+        <h1 className="font-bold text-lg">{t.history.workoutHistory}</h1>
         <div className="flex gap-2">
           <button
             onClick={() => setViewMode('calendar')}
@@ -63,9 +65,9 @@ export default function History() {
               <Calendar size={40} />
             </div>
             <div>
-              <h2 className="text-xl font-bold">No History Yet</h2>
+              <h2 className="text-xl font-bold">{t.history.noHistoryYet}</h2>
               <p className="text-muted-foreground mt-2 max-w-xs mx-auto">
-                Complete your first workout to see it logged here.
+                {t.history.noHistoryMessage}
               </p>
             </div>
           </div>
@@ -112,7 +114,7 @@ export default function History() {
                           className="w-full px-4 py-3 flex items-center gap-3 hover:bg-white/5 transition-colors text-left"
                         >
                           <Edit2 size={16} className="text-primary" />
-                          <span className="font-medium">Edit Workout</span>
+                          <span className="font-medium">{t.history.editWorkout}</span>
                         </button>
                         <button
                           onClick={(e) => {
@@ -123,7 +125,7 @@ export default function History() {
                           className="w-full px-4 py-3 flex items-center gap-3 hover:bg-red-500/10 transition-colors text-left text-red-500"
                         >
                           <Trash2 size={16} />
-                          <span className="font-medium">Delete</span>
+                          <span className="font-medium">{t.common.delete}</span>
                         </button>
                       </div>
                     )}
@@ -137,22 +139,22 @@ export default function History() {
                         animate={{ scale: 1, opacity: 1 }}
                         className="bg-card border border-white/10 rounded-2xl p-6 max-w-sm w-full space-y-4"
                       >
-                        <h3 className="text-xl font-bold">Delete Workout?</h3>
+                        <h3 className="text-xl font-bold">{t.history.deleteWorkoutConfirm}</h3>
                         <p className="text-muted-foreground">
-                          Are you sure you want to delete "{log.name}"? This action cannot be undone.
+                          {t.history.deleteWorkoutMessage.replace('{name}', log.name)}
                         </p>
                         <div className="flex gap-3">
                           <button
                             onClick={() => setConfirmDelete(null)}
                             className="flex-1 py-3 bg-white/5 rounded-full font-bold hover:bg-white/10 transition-colors"
                           >
-                            Cancel
+                            {t.common.cancel}
                           </button>
                           <button
                             onClick={() => handleDelete(log.id)}
                             className="flex-1 py-3 bg-red-500 text-white rounded-full font-bold hover:bg-red-600 transition-colors"
                           >
-                            Delete
+                            {t.common.delete}
                           </button>
                         </div>
                       </motion.div>
@@ -172,7 +174,7 @@ export default function History() {
                       </div>
                       {duration > 0 && (
                         <div className="flex items-center gap-1 text-xs font-bold bg-white/5 px-2 py-1 rounded-md text-muted-foreground">
-                          <Clock size={12} /> {duration}m
+                          <Clock size={12} /> {duration}{t.history.minutesShort}
                         </div>
                       )}
                     </div>
@@ -180,18 +182,18 @@ export default function History() {
                     <div className="grid grid-cols-3 gap-3 mb-4">
                       <div className="bg-white/5 p-3 rounded-xl">
                         <div className="text-[10px] uppercase font-bold text-muted-foreground mb-1 flex items-center gap-1">
-                          <Trophy size={10} /> Volume
+                          <Trophy size={10} /> {t.history.volume}
                         </div>
                         <div className="text-xl font-black tabular-nums">
                           {volume >= 1000 
                             ? `${(volume / 1000).toFixed(1)}k` 
                             : volume.toFixed(0)
-                          } <span className="text-xs font-normal text-muted-foreground">kg</span>
+                          } <span className="text-xs font-normal text-muted-foreground">{t.history.kgShort}</span>
                         </div>
                       </div>
                       <div className="bg-white/5 p-3 rounded-xl">
                         <div className="text-[10px] uppercase font-bold text-muted-foreground mb-1 flex items-center gap-1">
-                          <Dumbbell size={10} /> Sets
+                          <Dumbbell size={10} /> {t.history.sets}
                         </div>
                         <div className="text-xl font-black tabular-nums">
                           {totalSets}
@@ -200,7 +202,7 @@ export default function History() {
                       {log.totalCalories && log.totalCalories > 0 && (
                         <div className="bg-primary/10 p-3 rounded-xl border border-primary/20">
                           <div className="text-[10px] uppercase font-bold text-primary/80 mb-1 flex items-center gap-1">
-                            <Flame size={10} /> Kcal
+                            <Flame size={10} /> {t.history.kcal}
                           </div>
                           <div className="text-xl font-black tabular-nums text-primary">
                             ~{log.totalCalories}
@@ -218,11 +220,11 @@ export default function History() {
                             <div className="flex items-center gap-3">
                               {best && (
                                 <span className="text-xs font-bold text-primary">
-                                  {roundTo(best.oneRM, 0.5)}kg 1RM
+                                  {roundTo(best.oneRM, 0.5)}{t.history.kgShort} 1RM
                                 </span>
                               )}
                               <span className="text-muted-foreground font-mono text-xs">
-                                {ex.sets.filter(s => s.completed).length} sets
+                                {ex.sets.filter(s => s.completed).length} {t.history.sets.toLowerCase()}
                               </span>
                             </div>
                           </div>
@@ -248,7 +250,7 @@ export default function History() {
             >
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-xl font-bold">
-                  {selectedDateWorkouts.length} Workouts
+                  {selectedDateWorkouts.length} {t.history.workouts}
                 </h3>
                 <p className="text-sm text-muted-foreground">
                   {format(new Date(selectedDateWorkouts[0].date), 'MMM d, yyyy')}
@@ -279,12 +281,12 @@ export default function History() {
                       </div>
                       <div className="flex gap-4 text-sm">
                         <span className="text-muted-foreground">
-                          <span className="font-bold text-foreground">{totalSets}</span> sets
+                          <span className="font-bold text-foreground">{totalSets}</span> {t.history.sets.toLowerCase()}
                         </span>
                         <span className="text-muted-foreground">
                           <span className="font-bold text-foreground">
                             {volume >= 1000 ? `${(volume / 1000).toFixed(1)}k` : volume.toFixed(0)}
-                          </span> kg
+                          </span> {t.history.kgShort}
                         </span>
                       </div>
                     </button>
@@ -296,7 +298,7 @@ export default function History() {
                 onClick={() => setSelectedDateWorkouts(null)}
                 className="w-full py-3 bg-white/5 hover:bg-white/10 rounded-full font-bold transition-colors mt-4"
               >
-                Close
+                {t.common.close}
               </button>
             </motion.div>
           </div>

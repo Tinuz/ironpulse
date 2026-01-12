@@ -812,9 +812,12 @@ export default function Nutrition() {
               <div className="bg-primary/10 border border-primary/30 p-4 rounded-xl flex items-start gap-3">
                 <AlertTriangle size={20} className="text-primary mt-0.5 flex-shrink-0" />
                 <div className="flex-1">
-                  <div className="font-bold text-primary text-sm">Stel je profiel in</div>
+                  <div className="font-bold text-primary text-sm">{language === 'nl' ? 'Stel je profiel in' : 'Set up your profile'}</div>
                   <div className="text-xs text-muted-foreground mt-1">
-                    Vul de Fitness Calculator in bij Progress om gepersonaliseerde doelen en aanbevelingen te krijgen.
+                    {language === 'nl' 
+                      ? 'Vul de Fitness Calculator in bij Progress om gepersonaliseerde doelen en aanbevelingen te krijgen.'
+                      : 'Complete the Fitness Calculator in Progress to get personalized goals and recommendations.'
+                    }
                   </div>
                 </div>
               </div>
@@ -995,7 +998,7 @@ export default function Nutrition() {
                           setShowDropdown(true);
                         }
                       }}
-                      placeholder={language === 'nl' ? 'Zoek product... (bijv. "halfvolle melk")' : 'Search product...'}
+                      placeholder={language === 'nl' ? 'Zoek product... (bijv. "halfvolle melk")' : 'Search product... (e.g. "milk")'}
                       className="w-full bg-card border border-white/10 rounded-xl p-3 pr-10 focus:border-primary outline-none"
                     />
                     <div className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -1097,7 +1100,7 @@ export default function Nutrition() {
                       {language === 'nl' ? 'Hoeveelheid (gram)' : 'Amount (grams)'}
                       {newItem.baseCalories && (
                         <span className="text-[10px] text-muted-foreground normal-case font-normal">
-                          • {language === 'nl' ? 'waarden per 100g' : 'values per 100g'}
+                          • {t.nutrition.per100g}
                         </span>
                       )}
                     </label>
@@ -1116,7 +1119,7 @@ export default function Nutrition() {
                   <div className="mb-4">
                     <label className="text-xs font-bold text-blue-400 uppercase mb-2 block flex items-center gap-2">
                       <Droplet size={14} />
-                      Volume (ml)
+                      {language === 'nl' ? 'Volume (ml)' : 'Volume (ml)'}
                     </label>
                     <input
                       type="number"

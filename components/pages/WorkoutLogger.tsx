@@ -24,21 +24,23 @@ import { useWorkoutPreferences } from '@/components/utils/useWorkoutPreferences'
 import { generateProgressiveOverloadSuggestion } from '@/components/utils/progressiveOverload'
 import CardioExerciseLogger from '@/components/CardioExerciseLogger'
 import { formatDuration, formatDistance } from '@/components/utils/cardioCalculations'
+import { useLanguage } from '@/components/context/LanguageContext'
 
 const ExerciseStats = ({ 
-  exercise, 
+  exercise,
   previousExercises
 }: { 
   exercise: WorkoutExercise;
   previousExercises: WorkoutExercise[];
 }) => {
+  const { t } = useLanguage();
   const best1RM = getBest1RM(exercise);
   const volume = calculateVolume(exercise);
   
   if (!best1RM) {
     return (
       <div className="px-4 pb-2 text-xs text-muted-foreground italic">
-        Voltooi je eerste set om statistieken te zien
+        {t.workout.completeFirstSet}
       </div>
     );
   }
@@ -52,7 +54,7 @@ const ExerciseStats = ({
       <div className="grid grid-cols-2 gap-3">
         <div className="bg-white/5 rounded-lg p-3">
           <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold mb-1">
-            Geschatte 1RM
+            {t.workout.estimated1RM}
           </div>
           <div className="flex items-baseline gap-1">
             <span className="text-2xl font-black text-primary">
@@ -67,7 +69,7 @@ const ExerciseStats = ({
 
         <div className="bg-white/5 rounded-lg p-3">
           <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold mb-1">
-            Totaal Volume
+            {t.workout.totalVolume}
           </div>
           <div className="flex items-baseline gap-1">
             <span className="text-2xl font-black">
@@ -76,7 +78,7 @@ const ExerciseStats = ({
             <span className="text-xs text-muted-foreground font-bold">KG</span>
           </div>
           <div className="text-[10px] text-muted-foreground mt-1">
-            {exercise.sets.filter(s => s.completed).length} sets voltooid
+            {exercise.sets.filter(s => s.completed).length} {t.workout.setsCompleted}
           </div>
         </div>
       </div>
@@ -94,17 +96,17 @@ const ExerciseStats = ({
               {progression.status === 'improved' ? (
                 <>
                   <TrendingUp size={12} className="text-green-500" />
-                  <span className="text-green-500">Progressie</span>
+                  <span className="text-green-500">{t.workout.improved}</span>
                 </>
               ) : progression.status === 'declined' ? (
                 <>
                   <TrendingDown size={12} className="text-red-500" />
-                  <span className="text-red-500">Afname</span>
+                  <span className="text-red-500">{t.workout.declined}</span>
                 </>
               ) : (
                 <>
                   <Minus size={12} />
-                  <span>Stabiel</span>
+                  <span>{t.workout.maintained}</span>
                 </>
               )}
             </div>
@@ -123,7 +125,7 @@ const ExerciseStats = ({
             </div>
           </div>
           <div className="text-xs text-muted-foreground">
-            Vorige: {roundTo(progression.previous1RM, 0.5)}kg 1RM
+            {t.workout.previous}: {roundTo(progression.previous1RM, 0.5)}kg 1RM
           </div>
         </div>
       )}
@@ -151,6 +153,7 @@ export default function WorkoutLogger() {
   const { activeWorkout, updateActiveWorkout, finishWorkout, cancelWorkout, history, bodyStats, userProfile } = useData();
   const router = useRouter();
   const workoutPreferences = useWorkoutPreferences();
+  const { t } = useLanguage();
   const [elapsed, setElapsed] = useState(0);
   const [workoutData, setWorkoutData] = useState<typeof activeWorkout>(null);
   const [isReady, setIsReady] = useState(false);
@@ -448,7 +451,7 @@ export default function WorkoutLogger() {
   };
 
   const handleCancel = () => {
-    if (window.confirm('Cancel workout? All progress will be lost.')) {
+    if (window.confirm(t.workout.cancelWorkoutConfirm)) {
       cancelWorkout();
       router.push('/');
     }
@@ -561,24 +564,24 @@ export default function WorkoutLogger() {
                     <div className="bg-green-500/10 border border-green-500/20 rounded-xl p-4 space-y-2">
                       <div className="grid grid-cols-2 gap-3">
                         <div>
-                          <div className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Duration</div>
+                          <div className="text-xs text-muted-foreground uppercase tracking-wider mb-1">{t.workout.cardioStats.duration}</div>
                           <div className="text-lg font-bold text-green-500">{formatDuration(exercise.cardioData.duration)}</div>
                         </div>
                         {exercise.cardioData.distance && exercise.cardioData.distance > 0 && (
                           <div>
-                            <div className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Distance</div>
+                            <div className="text-xs text-muted-foreground uppercase tracking-wider mb-1">{t.workout.cardioStats.distance}</div>
                             <div className="text-lg font-bold text-green-500">{formatDistance(exercise.cardioData.distance, 'km')}</div>
                           </div>
                         )}
                         {exercise.cardioData.pace && (
                           <div>
-                            <div className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Pace</div>
+                            <div className="text-xs text-muted-foreground uppercase tracking-wider mb-1">{t.workout.cardioStats.pace}</div>
                             <div className="text-lg font-bold text-green-500">{exercise.cardioData.pace}</div>
                           </div>
                         )}
                         {exercise.cardioData.heartRate && (
                           <div>
-                            <div className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Heart Rate</div>
+                            <div className="text-xs text-muted-foreground uppercase tracking-wider mb-1">{t.workout.cardioStats.heartRate}</div>
                             <div className="text-lg font-bold text-green-500">{exercise.cardioData.heartRate} bpm</div>
                           </div>
                         )}
@@ -588,7 +591,7 @@ export default function WorkoutLogger() {
                         className="w-full px-4 py-2 bg-green-500/20 hover:bg-green-500/30 text-green-500 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
                       >
                         <RefreshCw size={16} />
-                        Update Cardio Data
+                        {t.workout.updateCardio}
                       </button>
                     </div>
                   ) : (
@@ -597,7 +600,7 @@ export default function WorkoutLogger() {
                       className="w-full px-6 py-4 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white rounded-xl font-bold text-lg transition-all flex items-center justify-center gap-2 shadow-lg shadow-green-500/20"
                     >
                       <Heart size={20} />
-                      Log Cardio Activity
+                      {t.workout.logCardio}
                     </button>
                   )}
                 </div>
@@ -671,19 +674,19 @@ export default function WorkoutLogger() {
                   onClick={() => addSet(exerciseIndex)}
                   className="w-full py-3 mt-4 text-xs font-bold text-muted-foreground uppercase tracking-widest hover:bg-white/5 rounded-lg transition-colors flex items-center justify-center gap-2"
                 >
-                  <Plus size={14} /> Add Set
+                  <Plus size={14} /> {t.workout.addSet}
                 </button>
 
                 {/* Notes Section */}
                 <div className="mt-4 pt-4 border-t border-white/5">
                   <label className="flex items-center gap-2 text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2 px-1">
                     <StickyNote size={14} />
-                    Notities
+                    {t.workout.notes}
                   </label>
                   <textarea
                     value={exercise.notes || ''}
                     onChange={(e) => updateExerciseNotes(exerciseIndex, e.target.value)}
-                    placeholder="Voeg notities toe over vorm, gevoel, progressie..."
+                    placeholder={t.workout.notesPlaceholder}
                     className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-sm placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/50 focus:bg-white/10 transition-colors resize-none"
                     rows={3}
                   />
@@ -695,7 +698,7 @@ export default function WorkoutLogger() {
                     <div className="flex-1">
                       <label className="flex items-center gap-1.5 text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2 px-1">
                         <Clock size={12} />
-                        Duur (min)
+                        {t.workout.durationMinutes}
                       </label>
                       <input
                         type="number"
@@ -710,7 +713,7 @@ export default function WorkoutLogger() {
                       <div className="flex-1">
                         <div className="flex items-center gap-1.5 text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2 px-1">
                           <Flame size={12} />
-                          Geschat
+                          {t.workout.estimatedCalories}
                         </div>
                         <div className="bg-primary/10 border border-primary/30 rounded-lg px-3 py-2.5 flex items-baseline gap-1">
                           <span className="text-primary font-black text-xl">{exercise.estimatedCalories}</span>
@@ -721,7 +724,7 @@ export default function WorkoutLogger() {
                     {exercise.durationMinutes && !getUserWeight() && (
                       <div className="flex-1">
                         <div className="text-xs text-muted-foreground/60 italic mt-7 px-1">
-                          Vul je gewicht in bij Settings voor calorie schatting
+                          {t.workout.caloriesNote}
                         </div>
                       </div>
                     )}
@@ -746,7 +749,7 @@ export default function WorkoutLogger() {
             onClick={addExercise}
             className="w-full py-4 border-2 border-dashed border-white/10 rounded-2xl text-muted-foreground hover:border-primary/30 hover:text-primary transition-colors font-bold uppercase tracking-wide flex items-center justify-center gap-2"
           >
-            <Plus size={20} /> Add Exercise
+            <Plus size={20} /> {t.workout.addExercise}
           </button>
         </div>
 
@@ -755,7 +758,7 @@ export default function WorkoutLogger() {
             onClick={handleFinish}
             className="w-full py-4 bg-primary text-background font-black text-lg uppercase tracking-widest rounded-xl shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
           >
-            Finish Workout
+            {t.workout.finishWorkout}
           </button>
         </div>
       </div>
@@ -791,7 +794,7 @@ export default function WorkoutLogger() {
                   <div className="bg-white/5 rounded-xl p-4 border border-white/10">
                     <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1 uppercase tracking-wider">
                       <Clock size={12} />
-                      Totale Tijd
+                      {t.workout.duration}
                     </div>
                     <div className="text-2xl font-black text-foreground">
                       {formatTime(elapsed)}
@@ -802,7 +805,7 @@ export default function WorkoutLogger() {
                   <div className="bg-white/5 rounded-xl p-4 border border-white/10">
                     <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1 uppercase tracking-wider">
                       <TrendingUp size={12} />
-                      Oefeningen
+                      {t.workout.totalExercises}
                     </div>
                     <div className="text-2xl font-black text-foreground">
                       {workoutData.exercises.length}
@@ -813,7 +816,7 @@ export default function WorkoutLogger() {
                   <div className="bg-white/5 rounded-xl p-4 border border-white/10">
                     <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1 uppercase tracking-wider">
                       <Check size={12} />
-                      Sets Voltooid
+                      {t.workout.totalSets}
                     </div>
                     <div className="text-2xl font-black text-foreground">
                       {completedSets}
@@ -824,7 +827,7 @@ export default function WorkoutLogger() {
                   <div className="bg-primary/10 rounded-xl p-4 border border-primary/30">
                     <div className="flex items-center gap-2 text-xs text-primary/80 mb-1 uppercase tracking-wider font-bold">
                       <Flame size={12} />
-                      Calorieën
+                      {t.workout.estimatedBurn}
                     </div>
                     <div className="text-2xl font-black text-primary">
                       {workoutData.exercises.reduce((sum, ex) => sum + (ex.estimatedCalories || 0), 0) > 0 
@@ -840,8 +843,8 @@ export default function WorkoutLogger() {
                 {/* Disclaimer - Only show if calories were calculated */}
                 {workoutData.exercises.reduce((sum, ex) => sum + (ex.estimatedCalories || 0), 0) > 0 && (
                   <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 text-xs text-yellow-200/90 leading-relaxed">
-                    <strong className="block mb-1">⚠️ Let op - Schatting:</strong>
-                    Dit is een schatting op basis van de MET-formule. Individuele verschillen (leeftijd, geslacht, lichaamssamenstelling, intensiteit, rusttijden) kunnen de werkelijke verbranding aanzienlijk beïnvloeden. Voor nauwkeurige metingen raden we een hartslagmeter aan.
+                    <strong className="block mb-1">⚠️ {t.workout.calorieDisclaimer}</strong>
+                    {t.workout.calorieDisclaimerText}
                   </div>
                 )}
 
@@ -849,7 +852,7 @@ export default function WorkoutLogger() {
                 {workoutData.exercises.filter(ex => ex.estimatedCalories).length > 1 && (
                   <div className="border-t border-white/5 pt-4 mt-4">
                     <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">
-                      Per Oefening
+                      {t.workout.breakdown}
                     </div>
                     <div className="space-y-1.5 max-h-32 overflow-y-auto">
                       {workoutData.exercises.map((ex) => (
@@ -874,13 +877,13 @@ export default function WorkoutLogger() {
                   onClick={() => setShowSummary(false)}
                   className="flex-1 py-3 bg-white/10 text-foreground font-bold rounded-xl hover:bg-white/20 transition-colors"
                 >
-                  Annuleren
+                  {t.common.cancel}
                 </button>
                 <button 
                   onClick={confirmFinish}
                   className="flex-1 py-3 bg-primary text-black font-bold rounded-xl hover:scale-[1.02] active:scale-[0.98] transition-transform shadow-lg shadow-primary/20"
                 >
-                  Opslaan
+                  {t.common.save}
                 </button>
               </div>
             </motion.div>

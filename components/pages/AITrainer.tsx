@@ -5,11 +5,13 @@ import { motion } from 'framer-motion'
 import { ArrowLeft, Bot, Send, Sparkles, Zap, BrainCircuit, AlertTriangle, CheckCircle, Info, Lightbulb } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useData } from '@/components/context/DataContext'
+import { useLanguage } from '@/components/context/LanguageContext'
 import { generateUserContext, getRandomTip, Message, generateProactiveInsights, ProactiveInsight } from '@/components/utils/aiTrainer'
 import WorkoutGeneratorModal from '@/components/WorkoutGeneratorModal'
 
 export default function AITrainer() {
   const router = useRouter()
+  const { t } = useLanguage();
   const { history, bodyStats, nutritionLogs, coachProfile, userProfile } = useData();
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
@@ -31,7 +33,7 @@ export default function AITrainer() {
       const initialMsg: Message = {
         id: 'init-1',
         role: 'ai',
-        text: '👋 Hey! Ik ben je AI Coach. Ik heb je workouts, voeding en progressie geanalyseerd. Vraag me alles!',
+        text: t.aiTrainer.greeting,
         timestamp: Date.now()
       };
       setMessages([initialMsg]);
@@ -122,7 +124,7 @@ export default function AITrainer() {
       const errorMsg: Message = {
         id: crypto.randomUUID(),
         role: 'ai',
-        text: 'Sorry, er ging iets mis. Probeer het opnieuw! 🤖',
+        text: t.aiTrainer.errorMessage,
         timestamp: Date.now()
       };
       setMessages(prev => [...prev, errorMsg]);
@@ -148,9 +150,9 @@ export default function AITrainer() {
         </button>
         <div className="flex items-center gap-2">
           <Bot className="text-primary" size={24} />
-          <h1 className="font-bold text-lg">AI Coach</h1>
+          <h1 className="font-bold text-lg">{t.aiTrainer.title}</h1>
         </div>
-        <div className="w-10" /> {/* Spacer */}
+        <div className="w-10"></div>
       </div>
 
       {/* Main Content Area */}
@@ -172,18 +174,18 @@ export default function AITrainer() {
               <div className="flex items-center gap-2 mb-2">
                 <Sparkles size={20} className="text-white" />
                 <h3 className="text-sm font-black uppercase text-white tracking-wide">
-                  AI Workout Generator
+                  {t.aiTrainer.workoutGenerator.title}
                 </h3>
               </div>
               <p className="text-white/90 text-sm font-medium leading-relaxed mb-3">
-                Laat AI een volledig gepersonaliseerd workout programma voor je maken op basis van je doelen, apparatuur en ervaring
+                {t.aiTrainer.workoutGenerator.description}
               </p>
               <div className="flex items-center gap-2 text-white/80 text-xs">
                 <span className="px-2 py-1 bg-white/20 rounded-md font-bold">
-                  ✨ Nieuw
+                  {t.aiTrainer.workoutGenerator.newBadge}
                 </span>
                 <span>
-                  Kost ~$0.05 per programma
+                  {t.aiTrainer.workoutGenerator.costLabel}
                 </span>
               </div>
             </div>
@@ -199,7 +201,7 @@ export default function AITrainer() {
               <Zap size={48} />
             </div>
             <h3 className="text-xs font-bold uppercase text-primary mb-2 flex items-center gap-2">
-              <Zap size={14} /> Daily Tip
+              <Zap size={14} /> {t.aiTrainer.dailyTipLabel}
             </h3>
             <p className="text-sm font-medium leading-relaxed">
               "{dailyTip}"
@@ -212,7 +214,7 @@ export default function AITrainer() {
           <div className="space-y-3 mb-6">
             <div className="flex items-center gap-2">
               <div className="h-[1px] flex-1 bg-white/10"></div>
-              <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Je Coach Insights</span>
+              <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{t.aiTrainer.coachInsightsLabel}</span>
               <div className="h-[1px] flex-1 bg-white/10"></div>
             </div>
             
@@ -247,28 +249,28 @@ export default function AITrainer() {
         {history.length > 0 && (
           <div className="grid grid-cols-2 gap-3 mb-6">
             <button 
-              onClick={() => handleQuickPrompt('Genereer een push/pull workout voor me')}
+              onClick={() => handleQuickPrompt(t.aiTrainer.quickPrompts.pushPullText)}
               className="bg-card border border-white/10 p-3 rounded-xl text-xs font-medium hover:bg-white/5 transition-colors text-left"
             >
-              💪 Push/Pull Workout
+              {t.aiTrainer.quickPrompts.pushPull}
             </button>
             <button 
-              onClick={() => handleQuickPrompt('Maak een voedingsschema voor vandaag')}
+              onClick={() => handleQuickPrompt(t.aiTrainer.quickPrompts.mealPlanText)}
               className="bg-card border border-white/10 p-3 rounded-xl text-xs font-medium hover:bg-white/5 transition-colors text-left"
             >
-              🍽️ Meal Plan
+              {t.aiTrainer.quickPrompts.mealPlan}
             </button>
             <button 
-              onClick={() => handleQuickPrompt('Analyseer mijn progressie van deze maand')}
+              onClick={() => handleQuickPrompt(t.aiTrainer.quickPrompts.progressCheckText)}
               className="bg-card border border-white/10 p-3 rounded-xl text-xs font-medium hover:bg-white/5 transition-colors text-left"
             >
-              📈 Progress Check
+              {t.aiTrainer.quickPrompts.progressCheck}
             </button>
             <button 
-              onClick={() => handleQuickPrompt('Geef tips om mijn plateaus te doorbreken')}
+              onClick={() => handleQuickPrompt(t.aiTrainer.quickPrompts.breakPlateausText)}
               className="bg-card border border-white/10 p-3 rounded-xl text-xs font-medium hover:bg-white/5 transition-colors text-left"
             >
-              🎯 Break Plateaus
+              {t.aiTrainer.quickPrompts.breakPlateaus}
             </button>
           </div>
         )}
@@ -277,7 +279,7 @@ export default function AITrainer() {
         <div className="space-y-4 pb-4">
           <div className="flex items-center gap-2 mb-4">
             <div className="h-[1px] flex-1 bg-white/10"></div>
-            <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Session Chat</span>
+            <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{t.aiTrainer.sessionChatLabel}</span>
             <div className="h-[1px] flex-1 bg-white/10"></div>
           </div>
 
@@ -298,7 +300,7 @@ export default function AITrainer() {
                 {msg.role === 'ai' && (
                   <div className="flex items-center gap-2 mb-2 opacity-50">
                     <BrainCircuit size={12} />
-                    <span className="text-[10px] uppercase font-bold">Coach AI</span>
+                    <span className="text-[10px] uppercase font-bold">{t.aiTrainer.coachAiLabel}</span>
                   </div>
                 )}
                 {msg.text}
@@ -330,7 +332,7 @@ export default function AITrainer() {
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
             onKeyPress={handleKeyPress}
-            placeholder="Ask about your workout or nutrition..."
+            placeholder={t.aiTrainer.inputPlaceholder}
             className="flex-1 bg-card border border-white/10 text-foreground placeholder:text-muted-foreground/50 rounded-full py-3 pl-4 pr-12 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent shadow-lg shadow-black/20"
           />
           <button 

@@ -86,12 +86,12 @@ export default function Settings() {
 
     // Validate username
     if (editedProfile.username.length < 3 || editedProfile.username.length > 20) {
-      setUsernameError('Username moet tussen 3 en 20 karakters zijn')
+      setUsernameError(t.settings.usernameError)
       return
     }
 
     if (!/^[a-zA-Z0-9]+$/.test(editedProfile.username)) {
-      setUsernameError('Username mag alleen letters en cijfers bevatten')
+      setUsernameError(t.settings.usernameInvalidChars)
       return
     }
 
@@ -125,7 +125,7 @@ export default function Settings() {
       setIsEditingProfile(false)
     } catch (error: any) {
       if (error.code === '23505') {
-        setUsernameError('Deze username is al in gebruik')
+        setUsernameError(t.settings.usernameInUse)
       } else {
         console.error('Error saving profile:', error)
       }
@@ -159,7 +159,7 @@ export default function Settings() {
         <div>
           <div className="flex items-center gap-2 mb-4">
             <UserCircle className="text-primary" size={20} />
-            <h2 className="text-lg font-bold">Social Profiel</h2>
+            <h2 className="text-lg font-bold">{t.settings.socialProfile}</h2>
           </div>
 
           {socialProfile && (
@@ -168,7 +168,7 @@ export default function Settings() {
                 {/* Username */}
                 <div>
                   <label className="text-xs text-muted-foreground uppercase tracking-wide mb-2 block">
-                    Username *
+                    {t.settings.usernameRequired}
                   </label>
                   <input
                     type="text"
@@ -178,43 +178,43 @@ export default function Settings() {
                       setUsernameError('')
                     }}
                     className="w-full px-4 py-3 bg-card border border-white/10 rounded-xl focus:outline-none focus:border-primary transition-colors"
-                    placeholder="username"
+                    placeholder={t.settings.username.toLowerCase()}
                   />
                   {usernameError && (
                     <p className="text-xs text-red-500 mt-1">{usernameError}</p>
                   )}
-                  <p className="text-xs text-muted-foreground mt-1">3-20 karakters, alleen letters en cijfers</p>
+                  <p className="text-xs text-muted-foreground mt-1">{t.settings.usernameHint}</p>
                 </div>
 
                 {/* Display Name */}
                 <div>
                   <label className="text-xs text-muted-foreground uppercase tracking-wide mb-2 block">
-                    Weergavenaam
+                    {t.settings.displayName}
                   </label>
                   <input
                     type="text"
                     value={editedProfile?.display_name || ''}
                     onChange={(e) => setEditedProfile(prev => prev ? { ...prev, display_name: e.target.value } : null)}
                     className="w-full px-4 py-3 bg-card border border-white/10 rounded-xl focus:outline-none focus:border-primary transition-colors"
-                    placeholder="Je naam"
+                    placeholder={t.settings.yourName}
                   />
                 </div>
 
                 {/* Bio */}
                 <div>
                   <label className="text-xs text-muted-foreground uppercase tracking-wide mb-2 block">
-                    Bio
+                    {t.settings.bioLabel}
                   </label>
                   <textarea
                     value={editedProfile?.bio || ''}
                     onChange={(e) => setEditedProfile(prev => prev ? { ...prev, bio: e.target.value.slice(0, 150) } : null)}
                     className="w-full px-4 py-3 bg-card border border-white/10 rounded-xl focus:outline-none focus:border-primary transition-colors resize-none"
-                    placeholder="Vertel iets over jezelf..."
+                    placeholder={t.settings.bioPlaceholder}
                     rows={3}
                     maxLength={150}
                   />
                   <p className="text-xs text-muted-foreground mt-1">
-                    {(editedProfile?.bio?.length || 0)}/150
+                    {(editedProfile?.bio?.length || 0)}/150 {t.settings.characterCount}
                   </p>
                 </div>
 
@@ -222,14 +222,14 @@ export default function Settings() {
                 <div className="pt-4 border-t border-white/10">
                   <div className="flex items-center gap-2 mb-3">
                     <Lock size={16} className="text-muted-foreground" />
-                    <h3 className="font-bold text-sm">Privacy Instellingen</h3>
+                    <h3 className="font-bold text-sm">{t.settings.privacySettings}</h3>
                   </div>
 
                   <div className="space-y-3">
                     <label className="flex items-center justify-between">
                       <div>
-                        <p className="font-medium text-sm">Publiek Profiel</p>
-                        <p className="text-xs text-muted-foreground">Anderen kunnen je profiel zien</p>
+                        <p className="font-medium text-sm">{t.settings.publicProfile}</p>
+                        <p className="text-xs text-muted-foreground">{t.settings.publicProfileDesc}</p>
                       </div>
                       <button
                         onClick={() => setEditedProfile(prev => prev ? { ...prev, is_public: !prev.is_public } : null)}
@@ -245,8 +245,8 @@ export default function Settings() {
 
                     <label className="flex items-center justify-between">
                       <div>
-                        <p className="font-medium text-sm">Toon Workouts</p>
-                        <p className="text-xs text-muted-foreground">Vrienden zien je workout geschiedenis</p>
+                        <p className="font-medium text-sm">{t.settings.showWorkouts}</p>
+                        <p className="text-xs text-muted-foreground">{t.settings.showWorkoutsDesc}</p>
                       </div>
                       <button
                         onClick={() => setEditedProfile(prev => prev ? { ...prev, show_workouts: !prev.show_workouts } : null)}
@@ -262,8 +262,8 @@ export default function Settings() {
 
                     <label className="flex items-center justify-between">
                       <div>
-                        <p className="font-medium text-sm">Toon Achievements</p>
-                        <p className="text-xs text-muted-foreground">Vrienden zien je badges</p>
+                        <p className="font-medium text-sm">{t.settings.showAchievements}</p>
+                        <p className="text-xs text-muted-foreground">{t.settings.showAchievementsDesc}</p>
                       </div>
                       <button
                         onClick={() => setEditedProfile(prev => prev ? { ...prev, show_achievements: !prev.show_achievements } : null)}
@@ -279,8 +279,8 @@ export default function Settings() {
 
                     <label className="flex items-center justify-between">
                       <div>
-                        <p className="font-medium text-sm">Toon Statistieken</p>
-                        <p className="text-xs text-muted-foreground">Vrienden zien je workout stats</p>
+                        <p className="font-medium text-sm">{t.settings.showStats}</p>
+                        <p className="text-xs text-muted-foreground">{t.settings.showStatsDesc}</p>
                       </div>
                       <button
                         onClick={() => setEditedProfile(prev => prev ? { ...prev, show_stats: !prev.show_stats } : null)}
@@ -306,32 +306,32 @@ export default function Settings() {
                     }}
                     className="flex-1 py-3 px-4 bg-white/5 hover:bg-white/10 rounded-xl font-bold transition-colors"
                   >
-                    Annuleer
+                    {t.settings.cancel}
                   </button>
                   <button
                     onClick={handleSaveProfile}
                     disabled={saving}
                     className="flex-1 py-3 px-4 bg-primary hover:bg-primary/90 text-white rounded-xl font-bold transition-colors disabled:opacity-50"
                   >
-                    {saving ? 'Opslaan...' : 'Opslaan'}
+                    {saving ? t.settings.saving : t.common.save}
                   </button>
                 </div>
               </div>
             ) : (
               <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-3">
                 <div>
-                  <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Username</p>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">{t.settings.username}</p>
                   <p className="font-medium">@{socialProfile.username}</p>
                 </div>
                 {socialProfile.display_name && (
                   <div>
-                    <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Weergavenaam</p>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">{t.settings.displayName}</p>
                     <p className="font-medium">{socialProfile.display_name}</p>
                   </div>
                 )}
                 {socialProfile.bio && (
                   <div>
-                    <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Bio</p>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">{t.settings.bioLabel}</p>
                     <p className="text-sm">{socialProfile.bio}</p>
                   </div>
                 )}
@@ -339,11 +339,11 @@ export default function Settings() {
                 <div className="flex items-center gap-2 text-xs pt-2">
                   {socialProfile.is_public ? (
                     <span className="flex items-center gap-1 text-green-500">
-                      <Eye size={14} /> Publiek
+                      <Eye size={14} /> {t.settings.publicLabel}
                     </span>
                   ) : (
                     <span className="flex items-center gap-1 text-muted-foreground">
-                      <EyeOff size={14} /> Privé
+                      <EyeOff size={14} /> {t.settings.privateLabel}
                     </span>
                   )}
                 </div>
@@ -353,7 +353,7 @@ export default function Settings() {
                     onClick={() => setIsEditingProfile(true)}
                     className="w-full py-3 px-4 bg-primary/10 hover:bg-primary/20 text-primary rounded-xl font-bold transition-colors"
                   >
-                    Bewerk Profiel
+                    {t.settings.editProfile}
                   </button>
                 </div>
               </div>
@@ -370,7 +370,7 @@ export default function Settings() {
           
           <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-3">
             <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Email</p>
+              <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">{t.settings.email}</p>
               <p className="font-medium">{user?.email}</p>
             </div>
             
@@ -391,14 +391,14 @@ export default function Settings() {
         <div>
           <div className="flex items-center gap-2 mb-4">
             <Dumbbell className="text-primary" size={20} />
-            <h2 className="text-lg font-bold">Workout Voorkeuren</h2>
+            <h2 className="text-lg font-bold">{t.settings.workoutPreferences}</h2>
           </div>
           
           <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-4">
             <label className="flex items-center justify-between cursor-pointer">
               <div>
-                <p className="font-medium text-sm">RIR Tracking</p>
-                <p className="text-xs text-muted-foreground">Reps In Reserve (0-10) per set</p>
+                <p className="font-medium text-sm">{t.settings.rirTracking}</p>
+                <p className="text-xs text-muted-foreground">{t.settings.rirTrackingDesc}</p>
               </div>
               <button
                 onClick={() => {
@@ -418,8 +418,8 @@ export default function Settings() {
 
             <label className="flex items-center justify-between cursor-pointer">
               <div>
-                <p className="font-medium text-sm">RPE Tracking</p>
-                <p className="text-xs text-muted-foreground">Rate of Perceived Exertion (1-10) per set</p>
+                <p className="font-medium text-sm">{t.settings.rpeTracking}</p>
+                <p className="text-xs text-muted-foreground">{t.settings.rpeTrackingDesc}</p>
               </div>
               <button
                 onClick={() => {
@@ -439,8 +439,8 @@ export default function Settings() {
 
             <label className="flex items-center justify-between cursor-pointer">
               <div>
-                <p className="font-medium text-sm">Warm-up Sets</p>
-                <p className="text-xs text-muted-foreground">Markeer sets als warm-up (uitgesloten van volume)</p>
+                <p className="font-medium text-sm">{t.settings.warmupSets}</p>
+                <p className="text-xs text-muted-foreground">{t.settings.warmupSetsDesc}</p>
               </div>
               <button
                 onClick={() => {
@@ -461,8 +461,7 @@ export default function Settings() {
             <div className="pt-3 border-t border-white/10">
               <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-3">
                 <p className="text-xs text-blue-400">
-                  <span className="font-bold">💡 Tip:</span> RIR en RPE helpen bij progressive overload en recovery tracking. 
-                  Warm-up sets worden automatisch uitgesloten van je totale volume berekeningen.
+                  <span className="font-bold">{t.settings.workoutTip}</span> {t.settings.workoutTipText}
                 </p>
               </div>
             </div>
@@ -537,10 +536,10 @@ export default function Settings() {
         <div>
           <div className="flex items-center gap-2 mb-4">
             <Bot className="text-primary" size={20} />
-            <h2 className="text-lg font-bold">AI Coach Profiel</h2>
+            <h2 className="text-lg font-bold">{t.settings.aiCoachProfile}</h2>
           </div>
           <p className="text-sm text-muted-foreground mb-4">
-            Kies het gedrag en de stijl van je persoonlijke AI coach
+            {t.settings.aiCoachDesc}
           </p>
 
           <div className="space-y-3">
@@ -589,7 +588,7 @@ export default function Settings() {
           >
             <div className="flex items-center gap-2 mb-2">
               <Bot size={16} className="text-primary" />
-              <span className="text-xs font-bold uppercase text-primary">Preview</span>
+              <span className="text-xs font-bold uppercase text-primary">{t.settings.preview}</span>
             </div>
             <p className="text-sm leading-relaxed">
               {coachProfile === 'motiverend' && "🔥 Yes! Laten we samen je doelen bereiken! Elke rep telt, elke dag is een kans om beter te worden. You got this! 💪"}
@@ -606,19 +605,15 @@ export default function Settings() {
         <div>
           <div className="flex items-center gap-2 mb-4">
             <Coffee className="text-primary" size={20} />
-            <h2 className="text-lg font-bold">{language === 'nl' ? 'Support de App' : 'Support the App'}</h2>
+            <h2 className="text-lg font-bold">{t.settings.supportApp}</h2>
           </div>
           
           <div className="p-4 rounded-2xl bg-gradient-to-br from-[#FF813F]/10 to-[#FF813F]/5 border border-[#FF813F]/20">
             <p className="text-sm text-muted-foreground leading-relaxed mb-3">
-              {language === 'nl' 
-                ? 'IronPulse is volledig gratis en zonder advertenties. Als je de app waardevol vindt en de doorontwikkeling wilt ondersteunen, kun je een donatie doen.' 
-                : 'IronPulse is completely free and ad-free. If you find the app valuable and want to support its development, you can make a donation.'}
+              {t.settings.supportDesc}
             </p>
             <p className="text-xs text-muted-foreground/70">
-              {language === 'nl'
-                ? '💪 Klik op het koffie-icoontje rechtsonder om te doneren'
-                : '💪 Click the coffee icon at the bottom right to donate'}
+              {t.settings.supportTip}
             </p>
           </div>
         </div>
@@ -626,7 +621,7 @@ export default function Settings() {
         {/* Info */}
         <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
           <p className="text-xs text-muted-foreground leading-relaxed">
-            💡 <strong>Tip:</strong> Je kunt het profiel altijd aanpassen. De AI coach past zijn gedrag direct aan op basis van je keuze.
+            {t.settings.infoTip}
           </p>
         </div>
       </div>

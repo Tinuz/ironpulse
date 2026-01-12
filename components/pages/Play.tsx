@@ -5,8 +5,9 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Play, Plus, Edit2, Trash2, RotateCcw, MoreVertical, X } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useData } from '@/components/context/DataContext'
+import { useLanguage } from '@/components/context/LanguageContext'
 import { format, formatDistance } from 'date-fns'
-import { nl } from 'date-fns/locale'
+import { nl, enUS } from 'date-fns/locale'
 
 const container = {
   hidden: { opacity: 0 },
@@ -25,6 +26,7 @@ const item = {
 
 export default function PlayPage() {
   const { schemas, history, startWorkout, deleteSchema } = useData()
+  const { t, language } = useLanguage()
   const router = useRouter()
   const [schemaMenuOpen, setSchemaMenuOpen] = useState<string | null>(null)
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
@@ -75,8 +77,8 @@ export default function PlayPage() {
     <div className="min-h-screen bg-background pb-24">
       {/* Header */}
       <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-md border-b border-white/5 p-4">
-        <h1 className="font-black text-2xl">Start Workout</h1>
-        <p className="text-xs text-muted-foreground mt-1">Kies een routine of herhaal een recente workout</p>
+        <h1 className="font-black text-2xl">{t.dashboard.startWorkout}</h1>
+        <p className="text-xs text-muted-foreground mt-1">{t.schema.chooseRoutineOrRepeat}</p>
       </div>
 
       <div className="p-6 max-w-2xl mx-auto space-y-8">
@@ -84,14 +86,14 @@ export default function PlayPage() {
         <div className="space-y-4">
           <div className="flex justify-between items-center">
             <h3 className="text-xl font-bold flex items-center gap-2">
-              <Play size={20} className="text-primary" /> Mijn Routines
+              <Play size={20} className="text-primary" /> {t.schema.myRoutines}
             </h3>
             <button 
               onClick={() => setCreateModalOpen(true)}
               className="text-xs font-bold text-primary uppercase tracking-wide hover:underline flex items-center gap-1"
             >
               <Plus size={14} />
-              Nieuw
+              {t.schema.new}
             </button>
           </div>
 
@@ -113,8 +115,8 @@ export default function PlayPage() {
                     <Play size={20} className="text-primary" fill="currentColor" />
                   </div>
                   <div className="text-left">
-                    <h4 className="font-bold text-lg">Freestyle Workout</h4>
-                    <p className="text-xs text-muted-foreground">Start zonder routine</p>
+                    <h4 className="font-bold text-lg">{t.schema.freestyleWorkout}</h4>
+                    <p className="text-xs text-muted-foreground">{t.schema.startWithoutRoutine}</p>
                   </div>
                 </div>
               </div>
@@ -139,7 +141,7 @@ export default function PlayPage() {
                         </div>
                         <div className="flex-1">
                           <h4 className="font-bold text-lg leading-tight">{schema.name}</h4>
-                          <p className="text-xs text-muted-foreground">{schema.exercises.length} exercises</p>
+                          <p className="text-xs text-muted-foreground">{schema.exercises.length} {t.schema.exerciseCount}</p>
                         </div>
                       </div>
                       
@@ -173,7 +175,7 @@ export default function PlayPage() {
                         className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-white/5 rounded-lg transition-colors text-left"
                       >
                         <Edit2 size={16} />
-                        Bewerken
+                        {t.common.edit}
                       </button>
                       <button
                         onClick={() => {
@@ -183,7 +185,7 @@ export default function PlayPage() {
                         className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-500 hover:bg-red-500/10 rounded-lg transition-colors text-left"
                       >
                         <Trash2 size={16} />
-                        Verwijderen
+                        {t.common.delete}
                       </button>
                     </motion.div>
                   )}
@@ -206,22 +208,22 @@ export default function PlayPage() {
                         onClick={(e) => e.stopPropagation()}
                         className="bg-card border border-white/10 rounded-2xl p-6 max-w-sm w-full"
                       >
-                        <h3 className="font-bold text-lg mb-2">Routine verwijderen?</h3>
+                        <h3 className="font-bold text-lg mb-2">{t.schema.deleteRoutineConfirm}</h3>
                         <p className="text-sm text-muted-foreground mb-6">
-                          Weet je zeker dat je "{schema.name}" wilt verwijderen? Dit kan niet ongedaan worden.
+                          {t.schema.deleteRoutineMessage.replace('{name}', schema.name)}
                         </p>
                         <div className="flex gap-3">
                           <button
                             onClick={() => setDeleteConfirmId(null)}
                             className="flex-1 py-2 px-4 bg-white/5 hover:bg-white/10 rounded-lg font-bold text-sm transition-colors"
                           >
-                            Annuleren
+                            {t.common.cancel}
                           </button>
                           <button
                             onClick={() => handleDeleteSchema(schema.id)}
                             className="flex-1 py-2 px-4 bg-red-500 hover:bg-red-600 text-white rounded-lg font-bold text-sm transition-colors"
                           >
-                            Verwijderen
+                            {t.common.delete}
                           </button>
                         </div>
                       </motion.div>
@@ -237,7 +239,7 @@ export default function PlayPage() {
         {recentWorkouts.length > 0 && (
           <div className="space-y-4">
             <h3 className="text-xl font-bold flex items-center gap-2">
-              <RotateCcw size={20} className="text-green-500" /> Recente Workouts
+              <RotateCcw size={20} className="text-green-500" /> {t.schema.recentWorkouts}
             </h3>
             
             <div className="space-y-3">
@@ -256,16 +258,16 @@ export default function PlayPage() {
                       <div className="flex items-center gap-2 mb-1">
                         <h4 className="font-bold">{workout.name}</h4>
                         <span className="text-xs text-muted-foreground">
-                          • {workout.exercises.length} exercises
+                          • {workout.exercises.length} {t.schema.exerciseCount}
                         </span>
                       </div>
                       <p className="text-xs text-muted-foreground">
                         {formatDistance(new Date(workout.date), new Date(), { 
                           addSuffix: true, 
-                          locale: nl 
+                          locale: language === 'nl' ? nl : enUS 
                         })}
                         {' • '}
-                        {format(new Date(workout.date), 'PPP', { locale: nl })}
+                        {format(new Date(workout.date), 'PPP', { locale: language === 'nl' ? nl : enUS })}
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
@@ -275,7 +277,7 @@ export default function PlayPage() {
                           handleRepeatWorkout(workout.id)
                         }}
                         className="p-2 hover:bg-green-500/20 rounded-lg transition-all duration-200"
-                        title="Herhaal workout"
+                        title={t.schema.repeatWorkout}
                       >
                         <RotateCcw size={18} className="text-green-500" />
                       </button>
@@ -306,7 +308,7 @@ export default function PlayPage() {
               className="bg-card border border-white/10 rounded-2xl p-6 max-w-sm w-full"
             >
               <div className="flex items-center justify-between mb-4">
-                <h3 className="font-bold text-lg">Nieuwe Routine</h3>
+                <h3 className="font-bold text-lg">{t.schema.newRoutine}</h3>
                 <button
                   onClick={() => setCreateModalOpen(false)}
                   className="p-2 hover:bg-white/5 rounded-lg transition-colors"
@@ -315,7 +317,7 @@ export default function PlayPage() {
                 </button>
               </div>
               <p className="text-sm text-muted-foreground mb-6">
-                Maak een nieuwe workout routine met je favoriete oefeningen.
+                {t.schema.createNewRoutineDescription}
               </p>
               <button
                 onClick={() => {
@@ -324,7 +326,7 @@ export default function PlayPage() {
                 }}
                 className="w-full py-3 bg-primary text-white rounded-xl font-bold hover:bg-primary/90 transition-colors"
               >
-                Routine Samenstellen
+                {t.schema.buildRoutine}
               </button>
             </motion.div>
           </motion.div>

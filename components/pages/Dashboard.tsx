@@ -5,6 +5,7 @@ import { User, Utensils, Calendar, BarChart3 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useData } from '@/components/context/DataContext'
 import { useAuth } from '@/components/context/AuthContext'
+import { useLanguage } from '@/components/context/LanguageContext'
 import { format } from 'date-fns';
 import StreakWidget from '@/components/StreakWidget';
 import MuscleGroupVolumeWidget from '@/components/MuscleGroupVolumeWidget';
@@ -18,6 +19,7 @@ import AccessorySuggestionsWidget from '@/components/AccessorySuggestionsWidget'
 export default function Dashboard() {
   const { history, nutritionLogs, unlockedAchievement } = useData()
   const { user } = useAuth()
+  const { t } = useLanguage()
   const router = useRouter()
 
   const totalWorkouts = history.length;
@@ -31,8 +33,8 @@ export default function Dashboard() {
       {/* Header */}
       <div className="flex justify-between items-start">
         <div>
-          <h2 className="text-muted-foreground text-sm uppercase tracking-widest mb-1">Fitness Tracker</h2>
-          <h1 className="text-4xl font-black italic tracking-tighter">NXT <span className="text-primary">•</span> REP</h1>
+          <h2 className="text-muted-foreground text-sm uppercase tracking-widest mb-1">{t.dashboard.fitnessTracker}</h2>
+          <h1 className="text-4xl font-black italic tracking-tighter">{t.dashboard.brandName.split(' • ')[0]} <span className="text-primary">•</span> {t.dashboard.brandName.split(' • ')[1]}</h1>
         </div>
         <div className="flex flex-col items-end gap-2">
           <button 
@@ -63,7 +65,7 @@ export default function Dashboard() {
           className="bg-card border border-border p-4 rounded-2xl shadow-sm hover:shadow-md transition-all cursor-pointer group"
         >
           <div className="flex items-center gap-2 text-muted-foreground text-xs uppercase font-bold mb-2">
-            <Calendar size={14} /> History
+            <Calendar size={14} /> {t.dashboard.history}
           </div>
           <div className="text-3xl font-black tabular-nums group-hover:text-primary transition-colors">{totalWorkouts}</div>
         </div>
@@ -73,7 +75,7 @@ export default function Dashboard() {
           className="bg-card border border-border p-4 rounded-2xl shadow-sm hover:shadow-md transition-all cursor-pointer group"
         >
           <div className="flex items-center gap-2 text-muted-foreground text-xs uppercase font-bold mb-2">
-            <BarChart3 size={14} /> Analytics
+            <BarChart3 size={14} /> {t.dashboard.analytics}
           </div>
           <div className="text-3xl font-black tabular-nums group-hover:text-primary transition-colors">
             <BarChart3 size={32} />
@@ -89,10 +91,10 @@ export default function Dashboard() {
              <Utensils size={40} />
           </div>
           <div className="flex items-center gap-2 text-muted-foreground text-xs uppercase font-bold mb-2 relative z-10">
-            <Utensils size={14} /> Nutrition
+            <Utensils size={14} /> {t.nutrition.title}
           </div>
           <div className="text-2xl font-black tabular-nums text-pink-500 relative z-10">
-            {totalCalories} <span className="text-xs font-medium text-muted-foreground">kcal</span>
+            {totalCalories} <span className="text-xs font-medium text-muted-foreground">{t.nutrition.kcal}</span>
           </div>
         </div>
       </div>
@@ -128,9 +130,9 @@ export default function Dashboard() {
         <div className="flex flex-col items-center gap-1">
           <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground group-hover:text-[#FF813F] transition-colors">
             <span className="text-lg">☕</span>
-            <span>Buy Me a Coffee</span>
+            <span>{t.dashboard.buyMeACoffee}</span>
           </div>
-          <p className="text-xs text-muted-foreground/70">Steun de doorontwikkeling van NXT•REP</p>
+          <p className="text-xs text-muted-foreground/70">{t.dashboard.supportDevelopment}</p>
         </div>
       </a>
 
