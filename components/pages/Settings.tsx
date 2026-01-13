@@ -233,11 +233,11 @@ export default function Settings() {
                       </div>
                       <button
                         onClick={() => setEditedProfile(prev => prev ? { ...prev, is_public: !prev.is_public } : null)}
-                        className={`relative w-12 h-6 rounded-full transition-colors ${
-                          editedProfile?.is_public ? 'bg-primary' : 'bg-white/20'
+                        className={`relative w-12 h-6 rounded-full transition-colors border ${
+                          editedProfile?.is_public ? 'bg-primary border-primary' : 'bg-gray-700 border-gray-600'
                         }`}
                       >
-                        <div className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform ${
+                        <div className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-md transition-transform ${
                           editedProfile?.is_public ? 'translate-x-6' : 'translate-x-0'
                         }`} />
                       </button>
@@ -250,11 +250,11 @@ export default function Settings() {
                       </div>
                       <button
                         onClick={() => setEditedProfile(prev => prev ? { ...prev, show_workouts: !prev.show_workouts } : null)}
-                        className={`relative w-12 h-6 rounded-full transition-colors ${
-                          editedProfile?.show_workouts ? 'bg-primary' : 'bg-white/20'
+                        className={`relative w-12 h-6 rounded-full transition-colors border ${
+                          editedProfile?.show_workouts ? 'bg-primary border-primary' : 'bg-gray-700 border-gray-600'
                         }`}
                       >
-                        <div className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform ${
+                        <div className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-md transition-transform ${
                           editedProfile?.show_workouts ? 'translate-x-6' : 'translate-x-0'
                         }`} />
                       </button>
@@ -267,11 +267,11 @@ export default function Settings() {
                       </div>
                       <button
                         onClick={() => setEditedProfile(prev => prev ? { ...prev, show_achievements: !prev.show_achievements } : null)}
-                        className={`relative w-12 h-6 rounded-full transition-colors ${
-                          editedProfile?.show_achievements ? 'bg-primary' : 'bg-white/20'
+                        className={`relative w-12 h-6 rounded-full transition-colors border ${
+                          editedProfile?.show_achievements ? 'bg-primary border-primary' : 'bg-gray-700 border-gray-600'
                         }`}
                       >
-                        <div className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform ${
+                        <div className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-md transition-transform ${
                           editedProfile?.show_achievements ? 'translate-x-6' : 'translate-x-0'
                         }`} />
                       </button>
@@ -284,11 +284,11 @@ export default function Settings() {
                       </div>
                       <button
                         onClick={() => setEditedProfile(prev => prev ? { ...prev, show_stats: !prev.show_stats } : null)}
-                        className={`relative w-12 h-6 rounded-full transition-colors ${
-                          editedProfile?.show_stats ? 'bg-primary' : 'bg-white/20'
+                        className={`relative w-12 h-6 rounded-full transition-colors border ${
+                          editedProfile?.show_stats ? 'bg-primary border-primary' : 'bg-gray-700 border-gray-600'
                         }`}
                       >
-                        <div className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform ${
+                        <div className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-md transition-transform ${
                           editedProfile?.show_stats ? 'translate-x-6' : 'translate-x-0'
                         }`} />
                       </button>
@@ -406,11 +406,11 @@ export default function Settings() {
                   setShowRIR(newValue)
                   localStorage.setItem('workout_show_rir', String(newValue))
                 }}
-                className={`relative w-12 h-6 rounded-full transition-colors ${
-                  showRIR ? 'bg-primary' : 'bg-white/20'
+                className={`relative w-12 h-6 rounded-full transition-colors border ${
+                  showRIR ? 'bg-primary border-primary' : 'bg-gray-700 border-gray-600'
                 }`}
               >
-                <div className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform ${
+                <div className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-md transition-transform ${
                   showRIR ? 'translate-x-6' : 'translate-x-0'
                 }`} />
               </button>
@@ -427,11 +427,11 @@ export default function Settings() {
                   setShowRPE(newValue)
                   localStorage.setItem('workout_show_rpe', String(newValue))
                 }}
-                className={`relative w-12 h-6 rounded-full transition-colors ${
-                  showRPE ? 'bg-primary' : 'bg-white/20'
+                className={`relative w-12 h-6 rounded-full transition-colors border ${
+                  showRPE ? 'bg-primary border-primary' : 'bg-gray-700 border-gray-600'
                 }`}
               >
-                <div className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform ${
+                <div className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-md transition-transform ${
                   showRPE ? 'translate-x-6' : 'translate-x-0'
                 }`} />
               </button>
@@ -448,11 +448,11 @@ export default function Settings() {
                   setShowWarmupToggle(newValue)
                   localStorage.setItem('workout_show_warmup_toggle', String(newValue))
                 }}
-                className={`relative w-12 h-6 rounded-full transition-colors ${
-                  showWarmupToggle ? 'bg-primary' : 'bg-white/20'
+                className={`relative w-12 h-6 rounded-full transition-colors border ${
+                  showWarmupToggle ? 'bg-primary border-primary' : 'bg-gray-700 border-gray-600'
                 }`}
               >
-                <div className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform ${
+                <div className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-md transition-transform ${
                   showWarmupToggle ? 'translate-x-6' : 'translate-x-0'
                 }`} />
               </button>
