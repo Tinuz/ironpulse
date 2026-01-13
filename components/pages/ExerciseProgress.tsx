@@ -107,7 +107,7 @@ export default function ExerciseProgress() {
       <div className="sticky top-0 z-20 bg-background/90 backdrop-blur-md border-b border-white/5">
         <div className="p-4 flex items-center justify-between">
           <button 
-            onClick={() => router.back()} 
+            onClick={() => router.push('/')} 
             className="p-2 -ml-2 text-muted-foreground hover:text-foreground"
           >
             <ArrowLeft size={24} />

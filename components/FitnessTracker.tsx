@@ -40,8 +40,11 @@ const ProtectedLayout = () => {
   const pathname = usePathname()
   const searchParams = useSearchParams()
   
-  // Show loading screen while checking auth
-  if (loading) {
+  // Development bypass - skip auth in development mode
+  const isDevelopment = process.env.NODE_ENV === 'development'
+  
+  // Show loading screen while checking auth (skip in development)
+  if (loading && !isDevelopment) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-background">
         <div className="text-center">
@@ -54,8 +57,8 @@ const ProtectedLayout = () => {
     )
   }
 
-  // Show login if not authenticated
-  if (!user) {
+  // Show login if not authenticated (skip in development)
+  if (!user && !isDevelopment) {
     return <Login />
   }
 

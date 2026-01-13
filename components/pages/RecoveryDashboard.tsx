@@ -3,7 +3,8 @@
 import React, { useMemo } from 'react'
 import { useData } from '@/components/context/DataContext'
 import { motion } from 'framer-motion'
-import { Activity, TrendingUp, AlertCircle, CheckCircle2, Clock } from 'lucide-react'
+import { Activity, TrendingUp, AlertCircle, CheckCircle2, Clock, ArrowLeft } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import { subDays, differenceInDays } from 'date-fns'
 
 // Muscle groups for tracking
@@ -30,6 +31,7 @@ interface MuscleRecoveryData {
 }
 
 export default function RecoveryDashboard() {
+  const router = useRouter();
   const { history } = useData()
 
   // Calculate recovery data for each muscle group
@@ -186,7 +188,14 @@ export default function RecoveryDashboard() {
     <div className="min-h-screen bg-background pb-20">
       {/* Header */}
       <div className="px-6 pt-6 pb-4">
-        <h1 className="text-3xl font-bold">Herstel</h1>
+        <div className="flex items-center gap-4 mb-4">
+          <button onClick={() => router.push('/')} className="p-2 -ml-2 text-muted-foreground hover:text-foreground">
+            <ArrowLeft size={24} />
+          </button>
+          <div>
+            <h1 className="text-3xl font-bold">Herstel</h1>
+          </div>
+        </div>
         <p className="text-muted-foreground mt-1">
           Spierherstel en trainingsbelasting
         </p>
