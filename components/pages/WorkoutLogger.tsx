@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft, Plus, Check, X, Clock, Play, Trash2, TrendingUp, TrendingDown, Minus, Award, Zap, StickyNote, Flame, RefreshCw, Heart } from 'lucide-react'
+import { ArrowLeft, Plus, Check, X, Clock, Play, Trash2, TrendingUp, TrendingDown, Minus, Award, Zap, StickyNote, Flame, RefreshCw, Heart, Dumbbell } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import clsx from 'clsx'
 import { useData, WorkoutExercise } from '@/components/context/DataContext'
@@ -166,6 +166,19 @@ export default function WorkoutLogger() {
   // Cardio logging modal state
   const [cardioLoggingIndex, setCardioLoggingIndex] = useState<number | null>(null);
 
+  // Add Exercise Modal state
+  const [isAddingExercise, setIsAddingExercise] = useState(false);
+  const [newExerciseType, setNewExerciseType] = useState<'strength' | 'cardio'>('strength');
+  const [newExerciseName, setNewExerciseName] = useState('');
+  const [newExerciseSets, setNewExerciseSets] = useState(3);
+  const [newExerciseReps, setNewExerciseReps] = useState(10);
+  const [newExerciseWeight, setNewExerciseWeight] = useState<number | undefined>(undefined);
+  
+  // Cardio fields for new exercise
+  const [newCardioDuration, setNewCardioDuration] = useState(1800); // 30 min
+  const [newCardioDistance, setNewCardioDistance] = useState<number | undefined>(undefined);
+  const [newCardioIntensity, setNewCardioIntensity] = useState<'low' | 'moderate' | 'high'>('moderate');
+
   // Load workout on mount - check both context and localStorage
   useEffect(() => {
     // First check localStorage (most reliable)
@@ -315,22 +328,60 @@ export default function WorkoutLogger() {
     updateActiveWorkout(updated);
   };
 
-  const addExercise = () => {
-    if (!workoutData) return;
+  const openAddExerciseModal = () => {
+    setIsAddingExercise(true);
+    setNewExerciseName('');
+    setNewExerciseType('strength');
+    setNewExerciseSets(3);
+    setNewExerciseReps(10);
+    setNewExerciseWeight(undefined);
+    setNewCardioDuration(1800);
+    setNewCardioDistance(undefined);
+    setNewCardioIntensity('moderate');
+  };
+
+  const handleAddExercise = () => {
+    if (!workoutData || !newExerciseName.trim()) return;
+    
     const newExercise: WorkoutExercise = {
       id: crypto.randomUUID(),
       exerciseId: crypto.randomUUID(),
-      name: 'New Exercise',
-      sets: [{
+      name: newExerciseName.trim(),
+      type: newExerciseType,
+      sets: newExerciseType === 'strength' ? [{
         id: crypto.randomUUID(),
-        weight: 0,
-        reps: 0,
+        weight: newExerciseWeight || 0,
+        reps: newExerciseReps,
         completed: false
-      }]
+      }] : [],
+      cardioData: newExerciseType === 'cardio' ? {
+        duration: newCardioDuration,
+        distance: newCardioDistance,
+        intensity: newCardioIntensity
+      } : undefined
     };
+
+    // Add remaining sets for strength exercises
+    if (newExerciseType === 'strength') {
+      for (let i = 1; i < newExerciseSets; i++) {
+        newExercise.sets.push({
+          id: crypto.randomUUID(),
+          weight: newExerciseWeight || 0,
+          reps: newExerciseReps,
+          completed: false
+        });
+      }
+    }
+
     const updated = { ...workoutData, exercises: [...workoutData.exercises, newExercise] };
     setWorkoutData(updated);
     updateActiveWorkout(updated);
+    setIsAddingExercise(false);
+  };
+
+  const cancelAddExercise = () => {
+    setIsAddingExercise(false);
+    setNewExerciseName('');
   };
 
   const removeExercise = (exerciseIndex: number) => {
@@ -746,7 +797,7 @@ export default function WorkoutLogger() {
         <div className="space-y-3">
           {/* Add Exercise Button */}
           <button
-            onClick={addExercise}
+            onClick={openAddExerciseModal}
             className="w-full py-4 border-2 border-dashed border-white/10 rounded-2xl text-muted-foreground hover:border-primary/30 hover:text-primary transition-colors font-bold uppercase tracking-wide flex items-center justify-center gap-2"
           >
             <Plus size={20} /> {t.workout.addExercise}
@@ -916,6 +967,208 @@ export default function WorkoutLogger() {
           onCancel={() => setCardioLoggingIndex(null)}
         />
       )}
+
+      {/* Add Exercise Modal */}
+      <AnimatePresence>
+        {isAddingExercise && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-6"
+            onClick={cancelAddExercise}
+          >
+            <motion.div
+              initial={{ y: '100%', opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: '100%', opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-zinc-900 rounded-t-3xl sm:rounded-2xl border border-white/10 w-full sm:max-w-lg max-h-[90vh] overflow-y-auto"
+            >
+              {/* Header */}
+              <div className="sticky top-0 bg-zinc-900 border-b border-white/10 p-4 flex items-center justify-between">
+                <h2 className="text-lg font-bold">{t.workout.addExercise}</h2>
+                <button
+                  onClick={cancelAddExercise}
+                  className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div className="p-6 space-y-6">
+                {/* Exercise Name */}
+                <div>
+                  <label className="text-xs uppercase tracking-wider text-muted-foreground font-bold mb-2 block">
+                    {t.workout.exerciseName}
+                  </label>
+                  <input
+                    type="text"
+                    value={newExerciseName}
+                    onChange={(e) => setNewExerciseName(e.target.value)}
+                    placeholder="Bench Press, Running, etc..."
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:border-primary focus:outline-none transition-colors"
+                    autoFocus
+                  />
+                </div>
+
+                {/* Exercise Type Toggle */}
+                <div>
+                  <label className="text-xs uppercase tracking-wider text-muted-foreground font-bold mb-2 block">
+                    {t.workout.exerciseType || 'Type'}
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => setNewExerciseType('strength')}
+                      className={`py-3 px-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all ${
+                        newExerciseType === 'strength'
+                          ? 'bg-primary text-background'
+                          : 'bg-white/5 text-muted-foreground hover:bg-white/10'
+                      }`}
+                    >
+                      <Dumbbell size={18} />
+                      Strength
+                    </button>
+                    <button
+                      onClick={() => setNewExerciseType('cardio')}
+                      className={`py-3 px-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all ${
+                        newExerciseType === 'cardio'
+                          ? 'bg-green-500 text-white'
+                          : 'bg-white/5 text-muted-foreground hover:bg-white/10'
+                      }`}
+                    >
+                      <Heart size={18} />
+                      Cardio
+                    </button>
+                  </div>
+                </div>
+
+                {/* Strength Fields */}
+                {newExerciseType === 'strength' && (
+                  <>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-xs uppercase tracking-wider text-muted-foreground font-bold mb-2 block">
+                          {t.workout.sets}
+                        </label>
+                        <input
+                          type="number"
+                          min="1"
+                          max="10"
+                          value={newExerciseSets}
+                          onChange={(e) => setNewExerciseSets(parseInt(e.target.value) || 1)}
+                          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:border-primary focus:outline-none transition-colors"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs uppercase tracking-wider text-muted-foreground font-bold mb-2 block">
+                          {t.workout.reps}
+                        </label>
+                        <input
+                          type="number"
+                          min="1"
+                          max="100"
+                          value={newExerciseReps}
+                          onChange={(e) => setNewExerciseReps(parseInt(e.target.value) || 1)}
+                          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:border-primary focus:outline-none transition-colors"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-xs uppercase tracking-wider text-muted-foreground font-bold mb-2 block">
+                        {t.workout.startingWeight} (kg) - {t.common.optional || 'Optional'}
+                      </label>
+                      <input
+                        type="number"
+                        step="0.5"
+                        min="0"
+                        value={newExerciseWeight || ''}
+                        onChange={(e) => setNewExerciseWeight(e.target.value ? parseFloat(e.target.value) : undefined)}
+                        placeholder="20"
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:border-primary focus:outline-none transition-colors"
+                      />
+                    </div>
+                  </>
+                )}
+
+                {/* Cardio Fields */}
+                {newExerciseType === 'cardio' && (
+                  <>
+                    <div>
+                      <label className="text-xs uppercase tracking-wider text-muted-foreground font-bold mb-2 block">
+                        {t.workout.cardioStats?.duration || 'Duration'} ({t.workout.minutes || 'minutes'})
+                      </label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={Math.round(newCardioDuration / 60)}
+                        onChange={(e) => setNewCardioDuration((parseInt(e.target.value) || 1) * 60)}
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:border-primary focus:outline-none transition-colors"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-xs uppercase tracking-wider text-muted-foreground font-bold mb-2 block">
+                        {t.workout.cardioStats?.distance || 'Distance'} (km) - {t.common.optional || 'Optional'}
+                      </label>
+                      <input
+                        type="number"
+                        step="0.1"
+                        min="0"
+                        value={newCardioDistance ? newCardioDistance / 1000 : ''}
+                        onChange={(e) => setNewCardioDistance(e.target.value ? parseFloat(e.target.value) * 1000 : undefined)}
+                        placeholder="5.0"
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:border-primary focus:outline-none transition-colors"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-xs uppercase tracking-wider text-muted-foreground font-bold mb-2 block">
+                        {t.workout.cardioStats?.intensity || 'Intensity'}
+                      </label>
+                      <div className="grid grid-cols-3 gap-2">
+                        {(['low', 'moderate', 'high'] as const).map((level) => (
+                          <button
+                            key={level}
+                            onClick={() => setNewCardioIntensity(level)}
+                            className={`py-2 px-3 rounded-lg font-bold text-xs uppercase transition-all ${
+                              newCardioIntensity === level
+                                ? 'bg-green-500 text-white'
+                                : 'bg-white/5 text-muted-foreground hover:bg-white/10'
+                            }`}
+                          >
+                            {level === 'low' && (t.workout.low || 'Low')}
+                            {level === 'moderate' && (t.workout.moderate || 'Moderate')}
+                            {level === 'high' && (t.workout.high || 'High')}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* Actions */}
+              <div className="p-6 pt-0 flex gap-3">
+                <button
+                  onClick={cancelAddExercise}
+                  className="flex-1 py-3 bg-white/10 text-foreground font-bold rounded-xl hover:bg-white/20 transition-colors"
+                >
+                  {t.common.cancel}
+                </button>
+                <button
+                  onClick={handleAddExercise}
+                  disabled={!newExerciseName.trim()}
+                  className="flex-1 py-3 bg-primary text-background font-bold rounded-xl hover:scale-[1.02] active:scale-[0.98] transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {t.common.add || 'Add'}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
