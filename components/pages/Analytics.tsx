@@ -11,8 +11,10 @@ import {
   Target,
   Award,
   Dumbbell,
-  Heart
+  Heart,
+  ArrowLeft
 } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import { useData } from '@/components/context/DataContext'
 import { useLanguage } from '@/components/context/LanguageContext'
 import {
@@ -41,6 +43,7 @@ import WeeklyCardioGoal from '@/components/WeeklyCardioGoal'
 export default function Analytics() {
   const { history } = useData()
   const { t } = useLanguage()
+  const router = useRouter()
   const [timeRange, setTimeRange] = useState<'week' | 'month' | 'quarter' | 'year'>('month')
   const [selectedMuscleGroup, setSelectedMuscleGroup] = useState<string | null>(null)
   const [analyticsTab, setAnalyticsTab] = useState<'strength' | 'cardio'>('strength')
@@ -97,8 +100,16 @@ export default function Analytics() {
     <div className="min-h-screen bg-background pb-24">
       {/* Header */}
       <div className="bg-gradient-to-r from-primary to-blue-500 text-white p-6">
-        <h1 className="text-2xl font-bold mb-2">{t.analytics.title}</h1>
-        <p className="text-white/80 text-sm">{t.analytics.subtitle}</p>
+        <div className="flex items-center gap-4 mb-2">
+          <button 
+            onClick={() => router.push('/dashboard')}
+            className="p-2 -ml-2 hover:bg-white/10 rounded-full transition-colors"
+          >
+            <ArrowLeft size={24} />
+          </button>
+          <h1 className="text-2xl font-bold">{t.analytics.title}</h1>
+        </div>
+        <p className="text-white/80 text-sm ml-12">{t.analytics.subtitle}</p>
       </div>
 
       <div className="max-w-6xl mx-auto px-4 py-6 space-y-6">

@@ -411,7 +411,7 @@ export default function Nutrition() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <button 
-              onClick={() => router.push('/')}
+              onClick={() => router.push('/dashboard')}
               className="p-2 -ml-2 hover:bg-white/5 rounded-full transition-colors"
             >
               <ArrowLeft size={24} />

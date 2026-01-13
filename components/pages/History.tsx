@@ -34,7 +34,7 @@ export default function History() {
     <div className="min-h-screen bg-background pb-24">
       {/* Header */}
       <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-md border-b border-white/5 p-4 flex items-center justify-between">
-        <button onClick={() => router.push('/')} className="p-2 -ml-2 text-muted-foreground hover:text-foreground">
+        <button onClick={() => router.push('/dashboard')} className="p-2 -ml-2 text-muted-foreground hover:text-foreground">
           <ArrowLeft size={24} />
         </button>
         <h1 className="font-bold text-lg">{t.history.workoutHistory}</h1>
