@@ -975,15 +975,15 @@ export default function WorkoutLogger() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-6"
+            className="fixed inset-0 bg-black/90 backdrop-blur-sm z-[100] flex items-center justify-center p-4"
             onClick={cancelAddExercise}
           >
             <motion.div
-              initial={{ y: '100%', opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: '100%', opacity: 0 }}
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-zinc-900 rounded-t-3xl sm:rounded-2xl border border-white/10 w-full sm:max-w-lg max-h-[90vh] overflow-y-auto"
+              className="bg-zinc-900 rounded-2xl border border-white/10 w-full max-w-lg max-h-[85vh] overflow-y-auto"
             >
               {/* Header */}
               <div className="sticky top-0 bg-zinc-900 border-b border-white/10 p-4 flex items-center justify-between">
