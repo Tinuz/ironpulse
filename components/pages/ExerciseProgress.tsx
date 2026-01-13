@@ -25,9 +25,15 @@ export default function ExerciseProgress() {
   const { history } = useData();
   const [showInfo, setShowInfo] = useState(false);
 
+  // Debug logging
+  console.log('ExerciseProgress - exerciseName:', exerciseName);
+  console.log('ExerciseProgress - history count:', history.length);
+
   // Get all workouts containing this exercise
   const relevantWorkouts = useMemo(() => {
-    return getPreviousWorkoutsForExercise(exerciseName, history);
+    const workouts = getPreviousWorkoutsForExercise(exerciseName, history);
+    console.log('ExerciseProgress - relevantWorkouts:', workouts.length);
+    return workouts;
   }, [exerciseName, history]);
 
   // Build chart data
@@ -87,14 +93,72 @@ export default function ExerciseProgress() {
 
   if (!exerciseName) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-muted-foreground">Geen exercise geselecteerd</p>
+      <div className="min-h-screen bg-background pb-20">
+        <div className="sticky top-0 z-20 bg-background/90 backdrop-blur-md border-b border-white/5">
+          <div className="p-4 flex items-center justify-between">
+            <button 
+              onClick={() => router.back()} 
+              className="p-2 -ml-2 text-muted-foreground hover:text-foreground"
+            >
+              <ArrowLeft size={24} />
+            </button>
+            
+            <div className="flex-1 text-center">
+              <h1 className="font-bold text-sm uppercase tracking-wide">Exercise Progress</h1>
+            </div>
+            
+            <div className="w-10"></div>
+          </div>
+        </div>
+
+        <div className="p-6 max-w-2xl mx-auto text-center pt-20">
+          <BarChart3 size={64} className="mx-auto mb-4 text-muted-foreground opacity-50" />
+          <h2 className="text-2xl font-bold mb-2">Geen exercise geselecteerd</h2>
+          <p className="text-muted-foreground mb-6">
+            Ga naar een workout in je history en klik op een exercise om de progressie te bekijken.
+          </p>
           <button 
             onClick={() => router.push('/history')}
-            className="mt-4 px-6 py-2 bg-primary text-background font-bold rounded-lg"
+            className="px-6 py-3 bg-primary text-background font-bold rounded-lg hover:bg-primary/90 transition-colors"
           >
-            Terug naar History
+            Ga naar History
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (history.length === 0) {
+    return (
+      <div className="min-h-screen bg-background pb-20">
+        <div className="sticky top-0 z-20 bg-background/90 backdrop-blur-md border-b border-white/5">
+          <div className="p-4 flex items-center justify-between">
+            <button 
+              onClick={() => router.back()} 
+              className="p-2 -ml-2 text-muted-foreground hover:text-foreground"
+            >
+              <ArrowLeft size={24} />
+            </button>
+            
+            <div className="flex-1 text-center">
+              <h1 className="font-bold text-sm uppercase tracking-wide">Exercise Progress</h1>
+            </div>
+            
+            <div className="w-10"></div>
+          </div>
+        </div>
+
+        <div className="p-6 max-w-2xl mx-auto text-center pt-20">
+          <BarChart3 size={64} className="mx-auto mb-4 text-muted-foreground opacity-50" />
+          <h2 className="text-2xl font-bold mb-2">Nog geen workout data</h2>
+          <p className="text-muted-foreground mb-6">
+            Start een workout om je exercise progressie te kunnen volgen.
+          </p>
+          <button 
+            onClick={() => router.push('/')}
+            className="px-6 py-3 bg-primary text-background font-bold rounded-lg hover:bg-primary/90 transition-colors"
+          >
+            Start een Workout
           </button>
         </div>
       </div>
@@ -107,7 +171,7 @@ export default function ExerciseProgress() {
       <div className="sticky top-0 z-20 bg-background/90 backdrop-blur-md border-b border-white/5">
         <div className="p-4 flex items-center justify-between">
           <button 
-            onClick={() => router.push('/')} 
+            onClick={() => router.back()} 
             className="p-2 -ml-2 text-muted-foreground hover:text-foreground"
           >
             <ArrowLeft size={24} />

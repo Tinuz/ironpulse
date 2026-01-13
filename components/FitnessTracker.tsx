@@ -40,7 +40,7 @@ const ProtectedLayout = () => {
   const pathname = usePathname()
   const searchParams = useSearchParams()
   
-  // Development bypass - skip auth in development mode
+  // Development bypass - skip auth in development mode (DISABLED FOR TESTING)
   const isDevelopment = process.env.NODE_ENV === 'development'
   
   // Show loading screen while checking auth (skip in development)

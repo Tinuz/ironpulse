@@ -189,7 +189,7 @@ export default function RecoveryDashboard() {
       {/* Header */}
       <div className="px-6 pt-6 pb-4">
         <div className="flex items-center gap-4 mb-4">
-          <button onClick={() => router.push('/')} className="p-2 -ml-2 text-muted-foreground hover:text-foreground">
+          <button onClick={() => router.back()} className="p-2 -ml-2 text-muted-foreground hover:text-foreground">
             <ArrowLeft size={24} />
           </button>
           <div>
