@@ -176,23 +176,6 @@ export default function Progress() {
               <ChevronRight size={20} className="text-muted-foreground group-hover:text-primary transition-colors" />
             </button>
 
-            {/* Exercise Progress */}
-            <button
-              onClick={() => router.push('/exercise-progress')}
-              className="w-full p-4 flex items-center justify-between hover:bg-white/5 transition-colors group"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/20 to-red-500/20 flex items-center justify-center">
-                  <TrendingUp size={20} className="text-primary" />
-                </div>
-                <div className="text-left">
-                  <p className="font-bold">{t.workout.title} {t.progress.title}</p>
-                  <p className="text-xs text-muted-foreground">{t.workout.exercises}</p>
-                </div>
-              </div>
-              <ChevronRight size={20} className="text-muted-foreground group-hover:text-primary transition-colors" />
-            </button>
-
             {/* Shared Templates */}
             <button
               onClick={() => router.push('/shared-templates')}
