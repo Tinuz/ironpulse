@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/context/AuthContext'
 import { useData } from '@/components/context/DataContext'
+import { supabase } from '@/lib/supabase'
 import OnboardingShell from '@/components/onboarding/OnboardingShell'
 import {
   saveOnboardingDraft,
@@ -129,12 +130,15 @@ export default function WorkoutBuilder() {
 
       // Save to database
       const { error: insertError } = await supabase
-        .from('workout_schemas')
+        .from('schemas')
         .insert([schema])
         .select()
         .single()
 
-      if (insertError) throw insertError
+      if (insertError) {
+        console.error('Insert error:', insertError)
+        throw insertError
+      }
 
       // Update onboarding status
       await updateOnboardingStatus(user.id, {
@@ -379,6 +383,3 @@ export default function WorkoutBuilder() {
     </OnboardingShell>
   )
 }
-
-// Import supabase
-import { supabase } from '@/lib/supabase'

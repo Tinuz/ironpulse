@@ -144,7 +144,6 @@ export function createFirstWorkoutSchema(
     user_id: userId,
     name: plan.name,
     exercises: plan.exercises,
-    is_first_plan: true,
-    created_at: new Date().toISOString()
+    color: '#6366f1' // Default primary color
   }
 }
