@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft, Plus, Check, X, Clock, Play, Trash2, TrendingUp, TrendingDown, Minus, Award, Zap, StickyNote, Flame, RefreshCw, Heart, Dumbbell } from 'lucide-react'
+import { ArrowLeft, Plus, Check, X, Clock, Play, Trash2, TrendingUp, TrendingDown, Minus, Award, Zap, StickyNote, Flame, RefreshCw, Heart, Dumbbell, Timer, SkipForward, PlusCircle } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import clsx from 'clsx'
 import { useData, WorkoutExercise } from '@/components/context/DataContext'
@@ -179,6 +179,34 @@ export default function WorkoutLogger() {
   const [newCardioDistance, setNewCardioDistance] = useState<number | undefined>(undefined);
   const [newCardioIntensity, setNewCardioIntensity] = useState<'low' | 'moderate' | 'high'>('moderate');
 
+  // Rest Timer state
+  const [restTimer, setRestTimer] = useState<{
+    active: boolean;
+    startTime: number;
+    duration: number; // in seconds
+    exerciseIndex: number;
+    setIndex: number;
+  } | null>(null);
+  const [restTimeLeft, setRestTimeLeft] = useState(0);
+
+  // Default rest times based on exercise type (in seconds)
+  const getDefaultRestTime = (exerciseName: string) => {
+    const name = exerciseName.toLowerCase();
+    // Compound movements: 180-300 seconds (3-5 min)
+    if (name.includes('squat') || name.includes('deadlift') || 
+        name.includes('bench press') || name.includes('overhead press') ||
+        name.includes('row') || name.includes('pull up')) {
+      return 180; // 3 min
+    }
+    // Accessories: 60-90 seconds
+    if (name.includes('curl') || name.includes('extension') || 
+        name.includes('raise') || name.includes('fly')) {
+      return 60; // 60 sec
+    }
+    // Default: 90 seconds
+    return 90;
+  };
+
   // Load workout on mount - check both context and localStorage
   useEffect(() => {
     // First check localStorage (most reliable)
@@ -215,6 +243,33 @@ export default function WorkoutLogger() {
 
     return () => clearInterval(interval);
   }, [workoutData, showSummary]);
+
+  // Rest timer effect
+  useEffect(() => {
+    if (!restTimer?.active) {
+      setRestTimeLeft(0);
+      return;
+    }
+
+    const updateRestTimer = () => {
+      const elapsed = Math.floor((Date.now() - restTimer.startTime) / 1000);
+      const timeLeft = Math.max(0, restTimer.duration - elapsed);
+      setRestTimeLeft(timeLeft);
+
+      // Auto-stop when timer reaches 0
+      if (timeLeft === 0) {
+        // Play sound/vibration here if desired
+        if ('vibrate' in navigator) {
+          navigator.vibrate([200, 100, 200]);
+        }
+      }
+    };
+
+    updateRestTimer();
+    const interval = setInterval(updateRestTimer, 100);
+
+    return () => clearInterval(interval);
+  }, [restTimer]);
 
   // Show loading while checking
   if (!isReady) {
@@ -267,10 +322,45 @@ export default function WorkoutLogger() {
   const toggleSet = (exerciseIndex: number, setIndex: number) => {
     if (!workoutData) return;
     const newExercises = [...workoutData.exercises];
-    newExercises[exerciseIndex].sets[setIndex].completed = !newExercises[exerciseIndex].sets[setIndex].completed;
+    const wasCompleted = newExercises[exerciseIndex].sets[setIndex].completed;
+    newExercises[exerciseIndex].sets[setIndex].completed = !wasCompleted;
     const updated = { ...workoutData, exercises: newExercises };
     setWorkoutData(updated);
     updateActiveWorkout(updated);
+
+    // Auto-start rest timer when completing a set (not when uncompleting)
+    if (!wasCompleted && newExercises[exerciseIndex].type !== 'cardio') {
+      const exerciseName = newExercises[exerciseIndex].name;
+      const defaultRest = getDefaultRestTime(exerciseName);
+      startRestTimer(exerciseIndex, setIndex, defaultRest);
+    }
+  };
+
+  const startRestTimer = (exerciseIndex: number, setIndex: number, duration: number) => {
+    setRestTimer({
+      active: true,
+      startTime: Date.now(),
+      duration,
+      exerciseIndex,
+      setIndex
+    });
+  };
+
+  const stopRestTimer = () => {
+    setRestTimer(null);
+    setRestTimeLeft(0);
+  };
+
+  const addRestTime = (seconds: number) => {
+    if (!restTimer) return;
+    setRestTimer({
+      ...restTimer,
+      duration: restTimer.duration + seconds
+    });
+  };
+
+  const setCustomRestTime = (exerciseIndex: number, setIndex: number, seconds: number) => {
+    startRestTimer(exerciseIndex, setIndex, seconds);
   };
 
   const addSet = (exerciseIndex: number) => {
@@ -524,8 +614,21 @@ export default function WorkoutLogger() {
           
           <div className="flex flex-col items-center">
             <h1 className="font-bold text-sm uppercase tracking-wide">{workoutData.name}</h1>
-            <div className="font-mono text-xs text-primary font-bold flex items-center gap-1">
-              <Clock size={10} /> {formatTime(elapsed)}
+            <div className="flex items-center gap-3">
+              <div className="font-mono text-xs text-primary font-bold flex items-center gap-1">
+                <Clock size={10} /> {formatTime(elapsed)}
+              </div>
+              {restTimer?.active && (
+                <>
+                  <div className="w-px h-3 bg-white/20" />
+                  <div className={`font-mono text-xs font-bold flex items-center gap-1 ${
+                    restTimeLeft === 0 ? 'text-green-500 animate-pulse' : 
+                    restTimeLeft < 10 ? 'text-amber-500' : 'text-blue-400'
+                  }`}>
+                    <Timer size={10} /> {formatTime(restTimeLeft)}
+                  </div>
+                </>
+              )}
             </div>
           </div>
 
@@ -533,6 +636,39 @@ export default function WorkoutLogger() {
             <X size={24} />
           </button>
         </div>
+
+        {/* Rest Timer Bar */}
+        {restTimer?.active && (
+          <div className="px-4 pb-3 flex items-center gap-2">
+            <div className="flex-1 h-2 bg-white/5 rounded-full overflow-hidden">
+              <motion.div 
+                className={`h-full ${
+                  restTimeLeft === 0 ? 'bg-green-500' : 
+                  restTimeLeft < 10 ? 'bg-amber-500' : 'bg-blue-500'
+                }`}
+                initial={{ width: '100%' }}
+                animate={{ width: `${(restTimeLeft / restTimer.duration) * 100}%` }}
+                transition={{ duration: 0.1 }}
+              />
+            </div>
+            <div className="flex gap-1">
+              <button
+                onClick={() => addRestTime(30)}
+                className="p-1 bg-white/5 hover:bg-white/10 rounded-lg transition-colors"
+                title="Add 30s"
+              >
+                <PlusCircle size={16} className="text-blue-400" />
+              </button>
+              <button
+                onClick={stopRestTimer}
+                className="p-1 bg-white/5 hover:bg-white/10 rounded-lg transition-colors"
+                title="Skip rest"
+              >
+                <SkipForward size={16} className="text-muted-foreground" />
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Progress Bar */}
         <div className="h-1 w-full bg-white/5">
@@ -720,6 +856,40 @@ export default function WorkoutLogger() {
                     )
                   })}
                 </AnimatePresence>
+
+                {/* Quick Rest Timer Buttons */}
+                <div className="mt-3 flex gap-2">
+                  <button
+                    onClick={() => setCustomRestTime(exerciseIndex, 0, 30)}
+                    className="flex-1 py-2 bg-white/5 hover:bg-blue-500/20 border border-white/10 hover:border-blue-500/30 rounded-lg text-xs font-bold text-muted-foreground hover:text-blue-400 transition-colors"
+                  >
+                    30s
+                  </button>
+                  <button
+                    onClick={() => setCustomRestTime(exerciseIndex, 0, 60)}
+                    className="flex-1 py-2 bg-white/5 hover:bg-blue-500/20 border border-white/10 hover:border-blue-500/30 rounded-lg text-xs font-bold text-muted-foreground hover:text-blue-400 transition-colors"
+                  >
+                    1min
+                  </button>
+                  <button
+                    onClick={() => setCustomRestTime(exerciseIndex, 0, 90)}
+                    className="flex-1 py-2 bg-white/5 hover:bg-blue-500/20 border border-white/10 hover:border-blue-500/30 rounded-lg text-xs font-bold text-muted-foreground hover:text-blue-400 transition-colors"
+                  >
+                    1:30
+                  </button>
+                  <button
+                    onClick={() => setCustomRestTime(exerciseIndex, 0, 120)}
+                    className="flex-1 py-2 bg-white/5 hover:bg-blue-500/20 border border-white/10 hover:border-blue-500/30 rounded-lg text-xs font-bold text-muted-foreground hover:text-blue-400 transition-colors"
+                  >
+                    2min
+                  </button>
+                  <button
+                    onClick={() => setCustomRestTime(exerciseIndex, 0, 180)}
+                    className="flex-1 py-2 bg-white/5 hover:bg-blue-500/20 border border-white/10 hover:border-blue-500/30 rounded-lg text-xs font-bold text-muted-foreground hover:text-blue-400 transition-colors"
+                  >
+                    3min
+                  </button>
+                </div>
 
                 <button 
                   onClick={() => addSet(exerciseIndex)}
