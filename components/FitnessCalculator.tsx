@@ -82,8 +82,8 @@ export default function FitnessCalculator() {
     const height = parseFloat(inputs.height)
     
     // Validatie
-    if (!age || !weight || !height || age < 18 || age > 120 || weight < 30 || weight > 300 || height < 100 || height > 250) {
-      alert('Voer geldige waarden in (leeftijd 18-120, gewicht 30-300kg, lengte 100-250cm)')
+    if (!age || !weight || !height || age < 13 || age > 120 || weight < 30 || weight > 300 || height < 100 || height > 250) {
+      alert('Voer geldige waarden in (leeftijd 13-120, gewicht 30-300kg, lengte 100-250cm)')
       return
     }
 

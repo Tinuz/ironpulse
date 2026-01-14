@@ -73,7 +73,7 @@ export default function ProfileWizard() {
 
   const stepIndex = currentStep === 'basics' ? 0 : currentStep === 'preferences' ? 1 : 2
 
-  const isBasicsValid = age > 0 && age < 120 && heightCm > 0 && weightKg > 0
+  const isBasicsValid = age >= 13 && age < 120 && heightCm > 0 && weightKg > 0
   const isPreferencesValid = goal !== '' && experience !== ''
 
   const handleNext = () => {
