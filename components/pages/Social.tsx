@@ -49,9 +49,13 @@ export default function Social() {
   const [following, setFollowing] = useState<SocialProfile[]>([])
   const [suggested, setSuggested] = useState<SocialProfile[]>([])
   const [friendsOfFriends, setFriendsOfFriends] = useState<SocialProfile[]>([])
+  const [allUsers, setAllUsers] = useState<SocialProfile[]>([])
   const [friendActivity, setFriendActivity] = useState<FriendActivity[]>([])
   const [followingIds, setFollowingIds] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [hasMore, setHasMore] = useState(true)
+  const [page, setPage] = useState(0)
   
   // Squads state
   const [squads, setSquads] = useState<Squad[]>([])
@@ -62,6 +66,25 @@ export default function Social() {
       loadSocialData()
     }
   }, [user])
+
+  // Infinite scroll detection
+  useEffect(() => {
+    if (activeTab !== 'discover') return
+
+    const handleScroll = () => {
+      const scrollHeight = document.documentElement.scrollHeight
+      const scrollTop = document.documentElement.scrollTop
+      const clientHeight = document.documentElement.clientHeight
+
+      // Load more when user is 200px from bottom
+      if (scrollHeight - scrollTop - clientHeight < 200 && !loadingMore && hasMore) {
+        loadMoreUsers(page + 1)
+      }
+    }
+
+    window.addEventListener('scroll', handleScroll)
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [activeTab, loadingMore, hasMore, page])
 
   const loadSocialData = async () => {
     if (!user) return
@@ -110,10 +133,56 @@ export default function Social() {
       const fofSuggestions = await getFriendsOfFriends(user.id, 5)
       setFriendsOfFriends(fofSuggestions)
 
+      // If no matches found, load all users
+      if (smartSuggestions.length === 0 && fofSuggestions.length === 0) {
+        await loadMoreUsers(0)
+      }
+
     } catch (error) {
       console.error('Error loading social data:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const loadMoreUsers = async (pageNum: number) => {
+    if (!user) return
+
+    setLoadingMore(true)
+    try {
+      const pageSize = 10
+      const { data: users, error } = await supabase
+        .from('user_profile_stats')
+        .select('*')
+        .eq('is_public', true)
+        .neq('user_id', user.id)
+        .order('total_workouts', { ascending: false })
+        .range(pageNum * pageSize, (pageNum + 1) * pageSize - 1)
+
+      if (error) {
+        console.error('Error loading users:', error)
+        return
+      }
+
+      if (!users || users.length < pageSize) {
+        setHasMore(false)
+      }
+
+      if (users && users.length > 0) {
+        // Filter out already followed users
+        const newUsers = users.filter(u => !followingIds.has(u.user_id))
+        
+        if (pageNum === 0) {
+          setAllUsers(newUsers)
+        } else {
+          setAllUsers(prev => [...prev, ...newUsers])
+        }
+        setPage(pageNum)
+      }
+    } catch (error) {
+      console.error('Error loading more users:', error)
+    } finally {
+      setLoadingMore(false)
     }
   }
 
@@ -427,8 +496,48 @@ export default function Social() {
                 </>
               )}
 
+              {/* All users (when no matches or after suggestions) */}
+              {allUsers.length > 0 && (
+                <>
+                  <h3 className="text-lg font-bold flex items-center gap-2 mt-6">
+                    <UserPlus size={20} className="text-zinc-500" />
+                    {suggested.length > 0 || friendsOfFriends.length > 0 ? 'Meer gebruikers' : 'Alle gebruikers'}
+                  </h3>
+                  <div className="grid gap-3">
+                    {allUsers
+                      .filter(profile => 
+                        profile.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                        profile.display_name?.toLowerCase().includes(searchQuery.toLowerCase())
+                      )
+                      .map(profile => (
+                        <UserCard
+                          key={profile.user_id}
+                          profile={profile}
+                          isFollowing={followingIds.has(profile.user_id)}
+                          onFollow={handleFollow}
+                          onUnfollow={handleUnfollow}
+                          onViewProfile={() => router.push(`/profile/${profile.username}`)}
+                          showMatchScore={false}
+                          t={t}
+                        />
+                      ))}
+                  </div>
+
+                  {/* Load More Button */}
+                  {hasMore && (
+                    <button
+                      onClick={() => loadMoreUsers(page + 1)}
+                      disabled={loadingMore}
+                      className="w-full py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl font-semibold transition-all disabled:opacity-50"
+                    >
+                      {loadingMore ? 'Laden...' : 'Meer laden'}
+                    </button>
+                  )}
+                </>
+              )}
+
               {/* No results */}
-              {filteredSuggested.length === 0 && friendsOfFriends.length === 0 && (
+              {filteredSuggested.length === 0 && friendsOfFriends.length === 0 && allUsers.length === 0 && !loading && (
                 <div className="text-center py-12">
                   <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-4">
                     <Search size={32} className="text-muted-foreground" />
