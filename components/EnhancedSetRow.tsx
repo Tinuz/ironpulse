@@ -87,20 +87,20 @@ const EnhancedSetRow = forwardRef<HTMLDivElement, EnhancedSetRowProps>(({
                 type="number"
                 inputMode="decimal"
                 value={set.weight || ''}
-                placeholder="--"
+                placeholder="0"
                 onChange={(e) => onUpdate('weight', Number(e.target.value))}
                 disabled={set.completed}
                 className={clsx(
-                  "w-full text-center font-black text-xl focus:outline-none p-2 rounded-lg transition-all shadow-sm",
-                  "placeholder:text-white/30 placeholder:font-bold",
+                  "w-full text-center font-black text-2xl focus:outline-none px-3 py-2.5 rounded-xl transition-all",
+                  "placeholder:text-zinc-500/40 placeholder:font-normal",
                   set.completed 
-                    ? "bg-primary/30 text-primary border-[3px] border-primary/50 shadow-lg" 
-                    : "bg-zinc-800/80 border-[3px] border-zinc-600 focus:border-primary focus:bg-zinc-700 focus:shadow-md focus:shadow-primary/20",
-                  set.isWarmup && !set.completed && "bg-blue-900/40 border-[3px] border-blue-500/50 text-blue-300"
+                    ? "bg-primary/15 text-primary border-2 border-primary/40" 
+                    : "bg-zinc-900/60 border border-zinc-700/50 focus:border-primary/60 focus:bg-zinc-900/80 focus:ring-2 focus:ring-primary/20",
+                  set.isWarmup && !set.completed && "bg-blue-500/5 border border-blue-500/30 text-blue-400 focus:ring-blue-500/20"
                 )}
               />
-              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-zinc-400 font-bold pointer-events-none">
-                KG
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] text-zinc-500 font-bold uppercase tracking-wider pointer-events-none">
+                kg
               </span>
             </div>
 
@@ -110,20 +110,20 @@ const EnhancedSetRow = forwardRef<HTMLDivElement, EnhancedSetRowProps>(({
                 type="number"
                 inputMode="numeric"
                 value={set.reps || ''}
-                placeholder="--"
+                placeholder="0"
                 onChange={(e) => onUpdate('reps', Number(e.target.value))}
                 disabled={set.completed}
                 className={clsx(
-                  "w-full text-center font-black text-xl focus:outline-none p-2 rounded-lg transition-all shadow-sm",
-                  "placeholder:text-white/30 placeholder:font-bold",
+                  "w-full text-center font-black text-2xl focus:outline-none px-3 py-2.5 rounded-xl transition-all",
+                  "placeholder:text-zinc-500/40 placeholder:font-normal",
                   set.completed 
-                    ? "bg-primary/30 text-primary border-[3px] border-primary/50 shadow-lg" 
-                    : "bg-zinc-800/80 border-[3px] border-zinc-600 focus:border-primary focus:bg-zinc-700 focus:shadow-md focus:shadow-primary/20",
-                  set.isWarmup && !set.completed && "bg-blue-900/40 border-[3px] border-blue-500/50 text-blue-300"
+                    ? "bg-primary/15 text-primary border-2 border-primary/40" 
+                    : "bg-zinc-900/60 border border-zinc-700/50 focus:border-primary/60 focus:bg-zinc-900/80 focus:ring-2 focus:ring-primary/20",
+                  set.isWarmup && !set.completed && "bg-blue-500/5 border border-blue-500/30 text-blue-400 focus:ring-blue-500/20"
                 )}
               />
-              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-zinc-400 font-bold pointer-events-none">
-                REPS
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] text-zinc-500 font-bold uppercase tracking-wider pointer-events-none">
+                reps
               </span>
             </div>
 
@@ -157,11 +157,11 @@ const EnhancedSetRow = forwardRef<HTMLDivElement, EnhancedSetRowProps>(({
 
           {/* RIR/RPE inputs (if enabled and not warmup) */}
           {!set.isWarmup && (showRIR || showRPE) && (
-            <div className="mt-2 pt-2 border-t border-white/5 grid grid-cols-2 gap-2">
+            <div className="mt-3 pt-3 border-t border-white/5 grid grid-cols-2 gap-3">
               {showRIR && (
                 <div>
-                  <label className="text-[10px] text-zinc-400 font-bold block mb-1">
-                    RIR (Reps in Reserve)
+                  <label className="text-[10px] text-zinc-500 font-semibold block mb-1.5 uppercase tracking-wide">
+                    RIR
                   </label>
                   <input
                     type="number"
@@ -169,23 +169,23 @@ const EnhancedSetRow = forwardRef<HTMLDivElement, EnhancedSetRowProps>(({
                     min="0"
                     max="10"
                     value={set.rir ?? ''}
-                    placeholder="--"
+                    placeholder="0-10"
                     onChange={(e) => onUpdate('rir', e.target.value ? Number(e.target.value) : undefined)}
                     disabled={set.completed}
                     className={clsx(
-                      "w-full text-center font-bold text-sm focus:outline-none p-2 rounded-lg transition-all shadow-sm",
-                      "placeholder:text-white/30",
+                      "w-full text-center font-bold text-base focus:outline-none px-3 py-2 rounded-lg transition-all",
+                      "placeholder:text-zinc-500/30",
                       set.completed
-                        ? "bg-zinc-800/50 border-2 border-zinc-700"
-                        : "bg-zinc-800/80 border-2 border-zinc-600 focus:border-primary focus:bg-zinc-700 focus:shadow-md focus:shadow-primary/20"
+                        ? "bg-zinc-900/40 border border-zinc-700/30 text-zinc-400"
+                        : "bg-zinc-900/60 border border-zinc-700/50 focus:border-primary/60 focus:bg-zinc-900/80 focus:ring-2 focus:ring-primary/20"
                     )}
                   />
                 </div>
               )}
               {showRPE && (
                 <div>
-                  <label className="text-[10px] text-zinc-400 font-bold block mb-1">
-                    RPE (Rate of Exertion)
+                  <label className="text-[10px] text-zinc-500 font-semibold block mb-1.5 uppercase tracking-wide">
+                    RPE
                   </label>
                   <input
                     type="number"
@@ -193,15 +193,15 @@ const EnhancedSetRow = forwardRef<HTMLDivElement, EnhancedSetRowProps>(({
                     min="1"
                     max="10"
                     value={set.rpe ?? ''}
-                    placeholder="--"
+                    placeholder="1-10"
                     onChange={(e) => onUpdate('rpe', e.target.value ? Number(e.target.value) : undefined)}
                     disabled={set.completed}
                     className={clsx(
-                      "w-full text-center font-bold text-sm focus:outline-none p-2 rounded-lg transition-all shadow-sm",
-                      "placeholder:text-white/30",
+                      "w-full text-center font-bold text-base focus:outline-none px-3 py-2 rounded-lg transition-all",
+                      "placeholder:text-zinc-500/30",
                       set.completed
-                        ? "bg-zinc-800/50 border-2 border-zinc-700"
-                        : "bg-zinc-800/80 border-2 border-zinc-600 focus:border-primary focus:bg-zinc-700 focus:shadow-md focus:shadow-primary/20"
+                        ? "bg-zinc-900/40 border border-zinc-700/30 text-zinc-400"
+                        : "bg-zinc-900/60 border border-zinc-700/50 focus:border-primary/60 focus:bg-zinc-900/80 focus:ring-2 focus:ring-primary/20"
                     )}
                   />
                 </div>
