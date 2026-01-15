@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Users, UserPlus, UserCheck, Search, TrendingUp, Dumbbell, X, Plus } from 'lucide-react'
+import { Users, UserPlus, UserCheck, Search, TrendingUp, Dumbbell, X, Plus, Sparkles, Target } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/context/AuthContext'
 import { useLanguage } from '@/components/context/LanguageContext'
@@ -12,6 +12,7 @@ import { nl } from 'date-fns/locale'
 import { getUserSquads, Squad } from '@/lib/squads'
 import SquadCard from '@/components/SquadCard'
 import CreateSquadModal from '@/components/CreateSquadModal'
+import { getSmartUserSuggestions, getFriendsOfFriends } from '@/lib/userMatching'
 
 interface SocialProfile {
   user_id: string
@@ -23,6 +24,8 @@ interface SocialProfile {
   total_workouts?: number
   achievement_count?: number
   workouts_last_30_days?: number
+  matchScore?: number
+  matchReasons?: string[]
 }
 
 interface FriendActivity {
@@ -45,6 +48,7 @@ export default function Social() {
   const [searchQuery, setSearchQuery] = useState('')
   const [following, setFollowing] = useState<SocialProfile[]>([])
   const [suggested, setSuggested] = useState<SocialProfile[]>([])
+  const [friendsOfFriends, setFriendsOfFriends] = useState<SocialProfile[]>([])
   const [friendActivity, setFriendActivity] = useState<FriendActivity[]>([])
   const [followingIds, setFollowingIds] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(true)
@@ -98,23 +102,13 @@ export default function Social() {
         setFriendActivity(activityData || [])
       }
 
-      // Load suggested users (public profiles not yet followed)
-      let suggestedQuery = supabase
-        .from('user_profile_stats')
-        .select('*')
-        .eq('is_public', true)
-        .neq('user_id', user.id)
-        .order('total_workouts', { ascending: false })
-        .limit(10)
+      // Load smart suggestions based on profile similarity
+      const smartSuggestions = await getSmartUserSuggestions(user.id, 10)
+      setSuggested(smartSuggestions)
 
-      // Exclude users already followed
-      if (followingUserIds.length > 0) {
-        suggestedQuery = suggestedQuery.not('user_id', 'in', `(${followingUserIds.join(',')})`)
-      }
-
-      const { data: suggestedData } = await suggestedQuery
-
-      setSuggested(suggestedData || [])
+      // Load friends of friends
+      const fofSuggestions = await getFriendsOfFriends(user.id, 5)
+      setFriendsOfFriends(fofSuggestions)
 
     } catch (error) {
       console.error('Error loading social data:', error)
@@ -361,28 +355,87 @@ export default function Social() {
 
             {/* Suggested Users */}
             <div className="space-y-4">
-              <h3 className="text-lg font-bold flex items-center gap-2">
-                <UserPlus size={20} className="text-primary" />
-                {t.social.discover}
-              </h3>
-              
-              {filteredSuggested.length > 0 ? (
-                <div className="grid gap-3">
-                  {filteredSuggested.map(profile => (
-                    <UserCard
-                      key={profile.user_id}
-                      profile={profile}
-                      isFollowing={followingIds.has(profile.user_id)}
-                      onFollow={handleFollow}
-                      onUnfollow={handleUnfollow}
-                      onViewProfile={() => router.push(`/profile/${profile.username}`)}
-                      t={t}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  {searchQuery ? t.social.noUsersFound : t.social.noSuggestionsAvailable}
+              {/* Smart Suggestions Section */}
+              {suggested.length > 0 && (
+                <>
+                  <h3 className="text-lg font-bold flex items-center gap-2">
+                    <Sparkles size={20} className="text-primary" />
+                    Aanbevolen voor jou
+                  </h3>
+                  <div className="grid gap-3">
+                    {filteredSuggested.slice(0, 5).map(profile => (
+                      <UserCard
+                        key={profile.user_id}
+                        profile={profile}
+                        isFollowing={followingIds.has(profile.user_id)}
+                        onFollow={handleFollow}
+                        onUnfollow={handleUnfollow}
+                        onViewProfile={() => router.push(`/profile/${profile.username}`)}
+                        showMatchScore={true}
+                        t={t}
+                      />
+                    ))}
+                  </div>
+                </>
+              )}
+
+              {/* Friends of Friends Section */}
+              {friendsOfFriends.length > 0 && (
+                <>
+                  <h3 className="text-lg font-bold flex items-center gap-2 mt-6">
+                    <Users size={20} className="text-blue-500" />
+                    Mensen die je vrienden volgen
+                  </h3>
+                  <div className="grid gap-3">
+                    {friendsOfFriends.map(profile => (
+                      <UserCard
+                        key={profile.user_id}
+                        profile={profile}
+                        isFollowing={followingIds.has(profile.user_id)}
+                        onFollow={handleFollow}
+                        onUnfollow={handleUnfollow}
+                        onViewProfile={() => router.push(`/profile/${profile.username}`)}
+                        showMatchScore={false}
+                        t={t}
+                      />
+                    ))}
+                  </div>
+                </>
+              )}
+
+              {/* More users to discover */}
+              {filteredSuggested.length > 5 && (
+                <>
+                  <h3 className="text-lg font-bold flex items-center gap-2 mt-6">
+                    <UserPlus size={20} className="text-primary" />
+                    Meer ontdekken
+                  </h3>
+                  <div className="grid gap-3">
+                    {filteredSuggested.slice(5).map(profile => (
+                      <UserCard
+                        key={profile.user_id}
+                        profile={profile}
+                        isFollowing={followingIds.has(profile.user_id)}
+                        onFollow={handleFollow}
+                        onUnfollow={handleUnfollow}
+                        onViewProfile={() => router.push(`/profile/${profile.username}`)}
+                        showMatchScore={false}
+                        t={t}
+                      />
+                    ))}
+                  </div>
+                </>
+              )}
+
+              {/* No results */}
+              {filteredSuggested.length === 0 && friendsOfFriends.length === 0 && (
+                <div className="text-center py-12">
+                  <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-4">
+                    <Search size={32} className="text-muted-foreground" />
+                  </div>
+                  <p className="text-muted-foreground">
+                    {searchQuery ? t.social.noUsersFound : 'Geen gebruikers gevonden'}
+                  </p>
                 </div>
               )}
             </div>
@@ -410,6 +463,7 @@ function UserCard({
   onFollow,
   onUnfollow,
   onViewProfile,
+  showMatchScore = false,
   t
 }: {
   profile: SocialProfile
@@ -417,6 +471,7 @@ function UserCard({
   onFollow: (userId: string) => void
   onUnfollow: (userId: string) => void
   onViewProfile: () => void
+  showMatchScore?: boolean
   t: any
 }) {
   return (
@@ -425,11 +480,11 @@ function UserCard({
       animate={{ opacity: 1, y: 0 }}
       className="bg-card border border-white/5 rounded-xl p-4 hover:border-primary/30 transition-all"
     >
-      <div className="flex items-center gap-4">
+      <div className="flex items-start gap-4">
         {/* Avatar */}
         <div
           onClick={onViewProfile}
-          className="w-14 h-14 rounded-full bg-gradient-to-tr from-primary to-accent flex items-center justify-center text-white font-bold text-xl cursor-pointer hover:scale-105 transition-transform"
+          className="w-14 h-14 rounded-full bg-gradient-to-tr from-primary to-accent flex items-center justify-center text-white font-bold text-xl cursor-pointer hover:scale-105 transition-transform flex-shrink-0"
         >
           {profile.avatar_url ? (
             <img src={profile.avatar_url} alt={profile.username} className="w-full h-full rounded-full object-cover" />
@@ -439,20 +494,59 @@ function UserCard({
         </div>
 
         {/* Info */}
-        <div className="flex-1 min-w-0" onClick={onViewProfile}>
-          <h4 className="font-bold truncate cursor-pointer hover:text-primary transition-colors">
-            {profile.display_name || profile.username}
-          </h4>
-          <p className="text-sm text-muted-foreground">@{profile.username}</p>
-          {profile.bio && (
-            <p className="text-xs text-muted-foreground mt-1 truncate">{profile.bio}</p>
+        <div className="flex-1 min-w-0">
+          <div onClick={onViewProfile} className="cursor-pointer">
+            <h4 className="font-bold truncate hover:text-primary transition-colors">
+              {profile.display_name || profile.username}
+            </h4>
+            <p className="text-sm text-muted-foreground">@{profile.username}</p>
+            {profile.bio && (
+              <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{profile.bio}</p>
+            )}
+          </div>
+
+          {/* Match Score & Reasons */}
+          {showMatchScore && profile.matchScore !== undefined && profile.matchScore > 0 && (
+            <div className="mt-2 space-y-1">
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1 text-xs font-bold text-primary">
+                  <Target size={12} />
+                  {profile.matchScore}% match
+                </div>
+              </div>
+              {profile.matchReasons && profile.matchReasons.length > 0 && (
+                <div className="flex flex-wrap gap-1">
+                  {profile.matchReasons.slice(0, 2).map((reason, idx) => (
+                    <span key={idx} className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                      {reason}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
           )}
+
+          {/* Stats */}
+          <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
+            {profile.total_workouts !== undefined && (
+              <div className="flex items-center gap-1">
+                <Dumbbell size={12} />
+                {profile.total_workouts} workouts
+              </div>
+            )}
+            {profile.workouts_last_30_days !== undefined && profile.workouts_last_30_days > 0 && (
+              <div className="flex items-center gap-1">
+                <TrendingUp size={12} />
+                {profile.workouts_last_30_days}/maand
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Follow Button */}
         <button
           onClick={() => isFollowing ? onUnfollow(profile.user_id) : onFollow(profile.user_id)}
-          className={`px-4 py-2 rounded-lg font-bold transition-colors ${
+          className={`px-4 py-2 rounded-lg font-bold transition-colors flex-shrink-0 ${
             isFollowing
               ? 'bg-white/10 text-foreground hover:bg-white/20'
               : 'bg-primary text-white hover:bg-primary/90'
