@@ -245,10 +245,10 @@ export async function getFriendsOfFriends(
 
     const followingIds = following.map(f => f.following_id)
 
-    // Get who THEY follow (friends of friends)
+    // Get who THEY follow (friends of friends) - just the IDs
     const { data: friendsOfFriends, error } = await supabase
       .from('user_follows')
-      .select('following_id, user_profile_stats(*)')
+      .select('following_id')
       .in('follower_id', followingIds)
 
     if (error) {
@@ -256,7 +256,7 @@ export async function getFriendsOfFriends(
       return []
     }
 
-    if (!friendsOfFriends) {
+    if (!friendsOfFriends || friendsOfFriends.length === 0) {
       return []
     }
 
@@ -264,28 +264,32 @@ export async function getFriendsOfFriends(
     const followingSet = new Set([currentUserId, ...followingIds])
     const filteredFoF = friendsOfFriends.filter(fof => !followingSet.has(fof.following_id))
 
+    if (filteredFoF.length === 0) {
+      return []
+    }
+
     // Count how many mutual friends each suggestion has
-    const suggestionCounts = new Map<string, { count: number; profile: any }>()
+    const suggestionCounts = new Map<string, number>()
 
     filteredFoF.forEach(fof => {
       const userId = fof.following_id
-      const existing = suggestionCounts.get(userId)
-      if (existing) {
-        existing.count++
-      } else {
-        suggestionCounts.set(userId, {
-          count: 1,
-          profile: fof.user_profile_stats
-        })
-      }
+      suggestionCounts.set(userId, (suggestionCounts.get(userId) || 0) + 1)
     })
 
-    // Sort by number of mutual friends
-    return Array.from(suggestionCounts.entries())
-      .sort((a, b) => b[1].count - a[1].count)
+    // Get unique user IDs sorted by mutual friend count
+    const topUserIds = Array.from(suggestionCounts.entries())
+      .sort((a, b) => b[1] - a[1])
       .slice(0, limit)
-      .map(([_, data]) => data.profile)
-      .filter(Boolean)
+      .map(([userId]) => userId)
+
+    // Fetch their profiles
+    const { data: profiles } = await supabase
+      .from('user_profile_stats')
+      .select('*')
+      .in('user_id', topUserIds)
+      .eq('is_public', true)
+
+    return profiles || []
 
   } catch (error) {
     console.error('Error getting friends of friends:', error)
