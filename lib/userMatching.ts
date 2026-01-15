@@ -250,13 +250,12 @@ export async function getFriendsOfFriends(
       .from('user_follows')
       .select('following_id, user_profile_stats(*)')
       .in('follower_id', followingIds)
-      .neq('following_id', currentUserId)
 
     if (!friendsOfFriends) {
       return []
     }
 
-    // Filter out already followed users client-side
+    // Filter out current user and already followed users client-side
     const followingSet = new Set([currentUserId, ...followingIds])
     const filteredFoF = friendsOfFriends.filter(fof => !followingSet.has(fof.following_id))
 
