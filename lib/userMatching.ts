@@ -171,24 +171,22 @@ export async function getSmartUserSuggestions(
     const followingUserIds = followsData?.map(f => f.following_id) || []
 
     // Get all public user profiles with additional data
-    let query = supabase
+    const { data: users } = await supabase
       .from('user_profile_stats')
       .select('*')
       .eq('is_public', true)
       .neq('user_id', currentUserId)
 
-    if (followingUserIds.length > 0) {
-      query = query.not('user_id', 'in', `(${followingUserIds.join(',')})`)
-    }
-
-    const { data: users } = await query
-
     if (!users || users.length === 0) {
       return []
     }
 
+    // Filter out already followed users client-side
+    const followingSet = new Set(followingUserIds)
+    const unfollowedUsers = users.filter(u => !followingSet.has(u.user_id))
+
     // Get additional profile data for each user
-    const userIds = users.map(u => u.user_id)
+    const userIds = unfollowedUsers.map(u => u.user_id)
     const { data: profiles } = await supabase
       .from('user_profile')
       .select('user_id, age')
@@ -199,7 +197,7 @@ export async function getSmartUserSuggestions(
     const profileMap = new Map(profiles?.map(p => [p.user_id, p]) || [])
 
     // Score each user
-    const scoredUsers: ScoredUser[] = users.map(user => {
+    const scoredUsers: ScoredUser[] = unfollowedUsers.map(user => {
       const profile = profileMap.get(user.user_id)
       const userWithProfile = {
         ...user,
@@ -252,17 +250,20 @@ export async function getFriendsOfFriends(
       .from('user_follows')
       .select('following_id, user_profile_stats(*)')
       .in('follower_id', followingIds)
-      .neq('following_id', currentUserId) // Don't suggest current user
-      .not('following_id', 'in', `(${followingIds.join(',')})`) // Don't suggest already followed
+      .neq('following_id', currentUserId)
 
     if (!friendsOfFriends) {
       return []
     }
 
+    // Filter out already followed users client-side
+    const followingSet = new Set([currentUserId, ...followingIds])
+    const filteredFoF = friendsOfFriends.filter(fof => !followingSet.has(fof.following_id))
+
     // Count how many mutual friends each suggestion has
     const suggestionCounts = new Map<string, { count: number; profile: any }>()
 
-    friendsOfFriends.forEach(fof => {
+    filteredFoF.forEach(fof => {
       const userId = fof.following_id
       const existing = suggestionCounts.get(userId)
       if (existing) {
