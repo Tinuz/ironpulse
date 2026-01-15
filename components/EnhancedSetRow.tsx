@@ -87,18 +87,19 @@ const EnhancedSetRow = forwardRef<HTMLDivElement, EnhancedSetRowProps>(({
                 type="number"
                 inputMode="decimal"
                 value={set.weight || ''}
-                placeholder="0"
+                placeholder="--"
                 onChange={(e) => onUpdate('weight', Number(e.target.value))}
                 disabled={set.completed}
                 className={clsx(
-                  "w-full text-center font-black text-xl focus:outline-none p-2 rounded-lg transition-all",
+                  "w-full text-center font-black text-xl focus:outline-none p-2 rounded-lg transition-all shadow-sm",
+                  "placeholder:text-white/30 placeholder:font-bold",
                   set.completed 
-                    ? "bg-primary/20 text-primary border-2 border-primary/40" 
-                    : "bg-white/10 border-2 border-white/20 focus:border-primary focus:bg-white/15",
-                  set.isWarmup && !set.completed && "bg-blue-500/10 border-blue-500/30 text-blue-400"
+                    ? "bg-primary/30 text-primary border-[3px] border-primary/50 shadow-lg" 
+                    : "bg-zinc-800/80 border-[3px] border-zinc-600 focus:border-primary focus:bg-zinc-700 focus:shadow-md focus:shadow-primary/20",
+                  set.isWarmup && !set.completed && "bg-blue-900/40 border-[3px] border-blue-500/50 text-blue-300"
                 )}
               />
-              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground font-bold pointer-events-none">
+              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-zinc-400 font-bold pointer-events-none">
                 KG
               </span>
             </div>
@@ -109,18 +110,19 @@ const EnhancedSetRow = forwardRef<HTMLDivElement, EnhancedSetRowProps>(({
                 type="number"
                 inputMode="numeric"
                 value={set.reps || ''}
-                placeholder="0"
+                placeholder="--"
                 onChange={(e) => onUpdate('reps', Number(e.target.value))}
                 disabled={set.completed}
                 className={clsx(
-                  "w-full text-center font-black text-xl focus:outline-none p-2 rounded-lg transition-all",
+                  "w-full text-center font-black text-xl focus:outline-none p-2 rounded-lg transition-all shadow-sm",
+                  "placeholder:text-white/30 placeholder:font-bold",
                   set.completed 
-                    ? "bg-primary/20 text-primary border-2 border-primary/40" 
-                    : "bg-white/10 border-2 border-white/20 focus:border-primary focus:bg-white/15",
-                  set.isWarmup && !set.completed && "bg-blue-500/10 border-blue-500/30 text-blue-400"
+                    ? "bg-primary/30 text-primary border-[3px] border-primary/50 shadow-lg" 
+                    : "bg-zinc-800/80 border-[3px] border-zinc-600 focus:border-primary focus:bg-zinc-700 focus:shadow-md focus:shadow-primary/20",
+                  set.isWarmup && !set.completed && "bg-blue-900/40 border-[3px] border-blue-500/50 text-blue-300"
                 )}
               />
-              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground font-bold pointer-events-none">
+              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-zinc-400 font-bold pointer-events-none">
                 REPS
               </span>
             </div>
@@ -158,7 +160,7 @@ const EnhancedSetRow = forwardRef<HTMLDivElement, EnhancedSetRowProps>(({
             <div className="mt-2 pt-2 border-t border-white/5 grid grid-cols-2 gap-2">
               {showRIR && (
                 <div>
-                  <label className="text-[10px] text-muted-foreground font-bold block mb-1">
+                  <label className="text-[10px] text-zinc-400 font-bold block mb-1">
                     RIR (Reps in Reserve)
                   </label>
                   <input
@@ -167,21 +169,22 @@ const EnhancedSetRow = forwardRef<HTMLDivElement, EnhancedSetRowProps>(({
                     min="0"
                     max="10"
                     value={set.rir ?? ''}
-                    placeholder="0-10"
+                    placeholder="--"
                     onChange={(e) => onUpdate('rir', e.target.value ? Number(e.target.value) : undefined)}
                     disabled={set.completed}
                     className={clsx(
-                      "w-full text-center font-bold text-sm focus:outline-none p-2 rounded-lg transition-all",
+                      "w-full text-center font-bold text-sm focus:outline-none p-2 rounded-lg transition-all shadow-sm",
+                      "placeholder:text-white/30",
                       set.completed
-                        ? "bg-white/5 border-2 border-white/10"
-                        : "bg-white/10 border-2 border-white/20 focus:border-primary focus:bg-white/15"
+                        ? "bg-zinc-800/50 border-2 border-zinc-700"
+                        : "bg-zinc-800/80 border-2 border-zinc-600 focus:border-primary focus:bg-zinc-700 focus:shadow-md focus:shadow-primary/20"
                     )}
                   />
                 </div>
               )}
               {showRPE && (
                 <div>
-                  <label className="text-[10px] text-muted-foreground font-bold block mb-1">
+                  <label className="text-[10px] text-zinc-400 font-bold block mb-1">
                     RPE (Rate of Exertion)
                   </label>
                   <input
@@ -190,14 +193,15 @@ const EnhancedSetRow = forwardRef<HTMLDivElement, EnhancedSetRowProps>(({
                     min="1"
                     max="10"
                     value={set.rpe ?? ''}
-                    placeholder="1-10"
+                    placeholder="--"
                     onChange={(e) => onUpdate('rpe', e.target.value ? Number(e.target.value) : undefined)}
                     disabled={set.completed}
                     className={clsx(
-                      "w-full text-center font-bold text-sm focus:outline-none p-2 rounded-lg transition-all",
+                      "w-full text-center font-bold text-sm focus:outline-none p-2 rounded-lg transition-all shadow-sm",
+                      "placeholder:text-white/30",
                       set.completed
-                        ? "bg-white/5 border-2 border-white/10"
-                        : "bg-white/10 border-2 border-white/20 focus:border-primary focus:bg-white/15"
+                        ? "bg-zinc-800/50 border-2 border-zinc-700"
+                        : "bg-zinc-800/80 border-2 border-zinc-600 focus:border-primary focus:bg-zinc-700 focus:shadow-md focus:shadow-primary/20"
                     )}
                   />
                 </div>
