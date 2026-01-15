@@ -246,10 +246,15 @@ export async function getFriendsOfFriends(
     const followingIds = following.map(f => f.following_id)
 
     // Get who THEY follow (friends of friends)
-    const { data: friendsOfFriends } = await supabase
+    const { data: friendsOfFriends, error } = await supabase
       .from('user_follows')
       .select('following_id, user_profile_stats(*)')
       .in('follower_id', followingIds)
+
+    if (error) {
+      console.error('Error fetching friends of friends:', error)
+      return []
+    }
 
     if (!friendsOfFriends) {
       return []
