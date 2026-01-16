@@ -8,6 +8,7 @@ import {
   CheckCircle2, AlertCircle, Loader2, Plus, RefreshCw
 } from 'lucide-react'
 import { useData } from '@/components/context/DataContext'
+import { useAuth } from '@/components/context/AuthContext'
 import { useRouter } from 'next/navigation'
 import { 
   generateWorkoutProgram, 
@@ -25,6 +26,7 @@ type Step = 1 | 2 | 3 | 4
 
 export default function WorkoutGeneratorModal({ isOpen, onClose }: WorkoutGeneratorModalProps) {
   const { userProfile, history, addSchema } = useData()
+  const { session } = useAuth()
   const router = useRouter()
   
   // Wizard state
@@ -59,6 +61,10 @@ export default function WorkoutGeneratorModal({ isOpen, onClose }: WorkoutGenera
     setError(null)
 
     try {
+      if (!session?.access_token) {
+        throw new Error('Je moet ingelogd zijn om een programma te genereren')
+      }
+
       const options: WorkoutGenerationOptions = {
         fitnessGoal,
         availableEquipment,
@@ -70,7 +76,7 @@ export default function WorkoutGeneratorModal({ isOpen, onClose }: WorkoutGenera
         experienceLevelOverride: experienceLevel
       }
 
-      const program = await generateWorkoutProgram(userProfile ?? undefined, history, options)
+      const program = await generateWorkoutProgram(userProfile ?? undefined, history, options, session.access_token)
       setGeneratedProgram(program)
       setStep(4)
     } catch (err: any) {

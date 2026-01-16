@@ -3,14 +3,14 @@
  * 
  * Generates personalized workout programs using Claude 3.5 Sonnet via OpenRouter.
  * Leverages exercisesv3.json database and user analytics for intelligent recommendations.
+ * 
+ * Note: Direct OpenRouter API calls have been moved to /api/generate-workout for security.
+ * This file provides client-side logic and prompt building.
  */
 
 import { EXERCISE_BY_NAME, EXERCISES_LIBRARY } from '@/lib/exerciseData'
 import { WorkoutLog, UserProfile } from '@/components/context/DataContext'
 import { calculateStrengthScore, getMostFrequentExercises } from '@/components/utils/strengthAnalytics'
-
-const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions'
-const MODEL = 'anthropic/claude-3.5-sonnet'
 
 export interface WorkoutGenerationOptions {
   fitnessGoal: 'strength' | 'hypertrophy' | 'endurance' | 'weight_loss' | 'general_fitness'
@@ -56,12 +56,11 @@ export interface GeneratedWorkoutProgram {
 export async function generateWorkoutProgram(
   userProfile: UserProfile | undefined,
   workoutHistory: WorkoutLog[],
-  options: WorkoutGenerationOptions
+  options: WorkoutGenerationOptions,
+  accessToken?: string
 ): Promise<GeneratedWorkoutProgram> {
-  const apiKey = process.env.NEXT_PUBLIC_OPENROUTER_API_KEY
-  
-  if (!apiKey) {
-    throw new Error('OpenRouter API key not configured')
+  if (!accessToken) {
+    throw new Error('Authentication required')
   }
 
   // 1. Build comprehensive user context
@@ -70,8 +69,8 @@ export async function generateWorkoutProgram(
   // 2. Build AI prompt
   const prompt = buildWorkoutGenerationPrompt(userContext, options)
   
-  // 3. Call OpenRouter API with retry logic
-  const response = await callOpenRouterAPI(prompt, apiKey)
+  // 3. Call API route with authentication
+  const response = await callWorkoutGeneratorAPI(prompt, accessToken)
   
   // 4. Parse and validate response
   const program = parseAndValidateProgram(response, options.availableEquipment)
@@ -238,79 +237,55 @@ Generate nu het complete JSON programma:`
 }
 
 /**
- * Call OpenRouter API with retry logic
+ * Call workout generator API route
  */
-async function callOpenRouterAPI(
+async function callWorkoutGeneratorAPI(
   prompt: string,
-  apiKey: string,
+  accessToken: string,
   maxRetries = 2
 ): Promise<string> {
-  const timeout = 45000 // 45 seconds
-
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
-      const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), timeout)
-
-      const response = await fetch(OPENROUTER_API_URL, {
+      const response = await fetch('/api/generate-workout', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'HTTP-Referer': typeof window !== 'undefined' ? window.location.origin : 'https://ironpulse.app',
-          'X-Title': 'IronPulse Fitness Tracker',
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`
         },
         body: JSON.stringify({
-          model: MODEL,
-          messages: [
-            {
-              role: 'user',
-              content: prompt
-            }
-          ],
+          prompt,
           temperature: 0.7,
-          max_tokens: 4000
-        }),
-        signal: controller.signal
+          maxTokens: 4000
+        })
       })
 
-      clearTimeout(timeoutId)
-
       if (!response.ok) {
-        throw new Error(`OpenRouter API error: ${response.status} ${response.statusText}`)
+        if (response.status === 429) {
+          throw new Error('Rate limit exceeded. Please try again later.')
+        }
+        throw new Error(`API error: ${response.status}`)
       }
 
       const data = await response.json()
+      return data.content
+
+    } catch (error) {
+      const isLastAttempt = attempt === maxRetries
       
-      if (!data.choices || !data.choices[0] || !data.choices[0].message) {
-        throw new Error('Invalid API response structure')
-      }
-
-      // Log token usage for cost tracking
-      if (data.usage) {
-        console.log('🤖 AI Workout Generator - Token Usage:', {
-          prompt: data.usage.prompt_tokens,
-          completion: data.usage.completion_tokens,
-          total: data.usage.total_tokens,
-          estimatedCost: ((data.usage.prompt_tokens * 3 + data.usage.completion_tokens * 15) / 1000000).toFixed(4)
-        })
-      }
-
-      return data.choices[0].message.content
-
-    } catch (error: any) {
-      console.error(`Attempt ${attempt + 1} failed:`, error)
-      
-      if (attempt === maxRetries) {
-        throw new Error(`Failed to generate workout program after ${maxRetries + 1} attempts: ${error.message}`)
+      if (error instanceof Error && error.message.includes('Rate limit')) {
+        throw error // Don't retry rate limit errors
       }
       
-      // Exponential backoff
-      await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000))
+      if (isLastAttempt) {
+        throw new Error(`Failed to generate workout after ${maxRetries + 1} attempts: ${error}`)
+      }
+      
+      // Wait before retry (exponential backoff)
+      await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, attempt)))
     }
   }
-
-  throw new Error('Failed to generate workout program')
+  
+  throw new Error('Failed to generate workout')
 }
 
 /**

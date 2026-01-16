@@ -11,10 +11,10 @@
  * 
  * Cost: ~$0.006 per request (Claude 3.5 Sonnet)
  * Rate limits: Handled automatically by OpenRouter
+ * 
+ * Note: Direct API calls have been moved to server-side API routes for security.
+ * This file now provides client-side wrappers and utility functions.
  */
-
-const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
-const MODEL = 'anthropic/claude-3.5-sonnet'; // Latest, most capable model
 
 export interface OpenRouterMessage {
   role: 'system' | 'user' | 'assistant';
@@ -52,103 +52,50 @@ export interface AccessorySuggestion {
  */
 export async function getAccessorySuggestions(
   prompt: string,
+  accessToken?: string,
   options?: {
     maxRetries?: number;
     timeout?: number;
   }
 ): Promise<AccessorySuggestion[]> {
-  const apiKey = process.env.NEXT_PUBLIC_OPENROUTER_API_KEY;
-  
-  if (!apiKey) {
-    console.warn('OpenRouter API key not configured. AI suggestions disabled.');
-    return [];
+  if (!accessToken) {
+    console.warn('No access token provided for accessory suggestions')
+    return []
   }
 
-  const maxRetries = options?.maxRetries ?? 2;
-  const timeout = options?.timeout ?? 30000; // 30s default
+  const maxRetries = options?.maxRetries ?? 2
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), timeout);
-
-      const response = await fetch(OPENROUTER_API_URL, {
+      const response = await fetch('/api/accessory-suggestions', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'HTTP-Referer': typeof window !== 'undefined' ? window.location.origin : 'https://ironpulse.app',
-          'X-Title': 'IronPulse Fitness Tracker',
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`
         },
-        body: JSON.stringify({
-          model: MODEL,
-          messages: [
-            {
-              role: 'system',
-              content: `You are an expert strength coach and exercise physiologist. Analyze workout data and suggest accessory exercises to address weaknesses, prevent injuries, and optimize performance.
-
-CRITICAL RESPONSE FORMAT:
-- Respond ONLY with valid JSON array
-- Each suggestion must have: exercise (string), reason (string), category (strength|hypertrophy|mobility|injury-prevention), priority (high|medium|low), targetMuscles (string[]), sets (number, optional), reps (number, optional)
-- Suggest 3-5 exercises maximum
-- Use real exercise names from strength training databases
-- Be specific and actionable in reasons
-
-Example format:
-[
-  {
-    "exercise": "Face Pulls",
-    "reason": "Strengthen rear delts to balance heavy bench pressing and prevent shoulder impingement",
-    "category": "injury-prevention",
-    "priority": "high",
-    "targetMuscles": ["Rear Deltoids", "Rotator Cuff"],
-    "sets": 3,
-    "reps": 15
-  }
-]`
-            },
-            {
-              role: 'user',
-              content: prompt
-            }
-          ],
-          temperature: 0.7,
-          max_tokens: 1500,
-          top_p: 0.9,
-        }),
-        signal: controller.signal,
-      });
-
-      clearTimeout(timeoutId);
+        body: JSON.stringify({ prompt })
+      })
 
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`OpenRouter API error (${response.status}): ${errorText}`);
+        if (response.status === 429) {
+          console.error('Rate limit exceeded for accessory suggestions')
+          return []
+        }
+        
+        const errorText = await response.text()
+        throw new Error(`API error (${response.status}): ${errorText}`)
       }
 
-      const data: OpenRouterResponse = await response.json();
-      
-      if (!data.choices || data.choices.length === 0) {
-        throw new Error('No response from OpenRouter');
-      }
-
-      const content = data.choices[0].message.content;
+      const data = await response.json()
+      const content = data.content
       
       // Parse and validate JSON response
-      const suggestions = parseAndValidateSuggestions(content);
+      const suggestions = parseAndValidateSuggestions(content)
       
-      // Log usage for monitoring
-      if (data.usage) {
-        console.log('OpenRouter usage:', {
-          tokens: data.usage.total_tokens,
-          cost: estimateCost(data.usage.total_tokens)
-        });
-      }
-
-      return suggestions;
+      return suggestions
 
     } catch (error) {
-      const isLastAttempt = attempt === maxRetries;
+      const isLastAttempt = attempt === maxRetries
       
       if (error instanceof Error && error.name === 'AbortError') {
         console.error('OpenRouter request timeout');
@@ -260,17 +207,6 @@ function parseAndValidateSuggestions(content: string): AccessorySuggestion[] {
     
     return [];
   }
-}
-
-/**
- * Estimate cost in USD based on token usage
- * Claude 3.5 Sonnet: $3/1M input tokens, $15/1M output tokens
- * Average: ~$6/1M tokens combined
- */
-function estimateCost(tokens: number): string {
-  const costPer1M = 6;
-  const cost = (tokens / 1_000_000) * costPer1M;
-  return `$${cost.toFixed(4)}`;
 }
 
 /**

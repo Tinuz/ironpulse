@@ -4,11 +4,13 @@ import React, { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Sparkles, Loader2, AlertCircle, ChevronRight, Plus } from 'lucide-react'
 import { useData } from '@/components/context/DataContext'
+import { useAuth } from '@/components/context/AuthContext'
 import { analyzeForAccessories, getAnalysisSummary } from '@/components/utils/accessoryAnalysis'
 import { getAccessorySuggestions, buildAccessoryPrompt, AccessorySuggestion } from '@/lib/openrouter'
 
 export default function AccessorySuggestionsWidget() {
   const { history } = useData();
+  const { session } = useAuth();
   const [suggestions, setSuggestions] = useState<AccessorySuggestion[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -19,6 +21,11 @@ export default function AccessorySuggestionsWidget() {
     setError(null);
 
     try {
+      if (!session?.access_token) {
+        setError('Je moet ingelogd zijn om suggesties te genereren');
+        return;
+      }
+
       // Analyze workout history
       const analysis = analyzeForAccessories(history);
 
@@ -26,7 +33,7 @@ export default function AccessorySuggestionsWidget() {
       const prompt = buildAccessoryPrompt(analysis);
 
       // Get AI suggestions
-      const aiSuggestions = await getAccessorySuggestions(prompt);
+      const aiSuggestions = await getAccessorySuggestions(prompt, session.access_token);
 
       if (aiSuggestions.length === 0) {
         setError('No suggestions available. AI service may be unavailable.');
