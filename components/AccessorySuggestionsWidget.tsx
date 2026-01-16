@@ -53,6 +53,13 @@ export default function AccessorySuggestionsWidget() {
       }
 
       const data = await response.json();
+      
+      // Validate response structure
+      if (!data || !Array.isArray(data.suggestions)) {
+        console.error('Invalid response format:', data);
+        throw new Error('Invalid response format from server');
+      }
+
       const aiSuggestions = data.suggestions;
 
       if (aiSuggestions.length === 0) {

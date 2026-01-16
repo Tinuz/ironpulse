@@ -158,6 +158,33 @@ Provide 3-5 suggestions based on the analysis.`
       )
     }
 
+    // Parse and validate JSON response
+    let suggestions
+    try {
+      // Remove markdown code blocks if present
+      const cleanContent = content
+        .replace(/```json\n?/g, '')
+        .replace(/```\n?/g, '')
+        .trim()
+      
+      // Remove trailing commas before closing brackets
+      const fixedJson = cleanContent.replace(/,(\s*[}\]])/g, '$1')
+      
+      suggestions = JSON.parse(fixedJson)
+      
+      // Validate it's an array
+      if (!Array.isArray(suggestions)) {
+        suggestions = suggestions.suggestions || []
+      }
+    } catch (parseError) {
+      console.error('Failed to parse AI response:', parseError)
+      console.error('Raw content:', content)
+      return NextResponse.json(
+        { error: 'Failed to parse AI response' },
+        { status: 500 }
+      )
+    }
+
     logger.apiLog({
       requestId,
       userId,
@@ -168,7 +195,7 @@ Provide 3-5 suggestions based on the analysis.`
     })
 
     return NextResponse.json(
-      { content },
+      { suggestions },
       {
         headers: {
           'X-RateLimit-Limit': rateLimit.limit.toString(),
