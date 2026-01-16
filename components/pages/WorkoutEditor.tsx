@@ -29,17 +29,17 @@ export default function WorkoutEditor() {
 
   if (!originalWorkout || !workoutData) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen p-6 text-center space-y-6">
-        <div className="h-20 w-20 rounded-full bg-primary/20 flex items-center justify-center">
-          <ArrowLeft size={40} className="text-primary" />
+      <div className="flex flex-col items-center justify-center min-h-screen p-6 text-center space-y-6 bg-bg-primary">
+        <div className="h-20 w-20 rounded-professional bg-accent-primary/20 flex items-center justify-center border border-accent-primary/30">
+          <ArrowLeft size={40} className="text-accent-primary" />
         </div>
         <div>
-          <h1 className="text-2xl font-black italic">WORKOUT NOT FOUND</h1>
-          <p className="text-muted-foreground mt-2">This workout doesn't exist or was deleted.</p>
+          <h1 className="text-h1 font-bold text-txt-primary">WORKOUT NOT FOUND</h1>
+          <p className="text-txt-secondary mt-2">This workout doesn't exist or was deleted.</p>
         </div>
         <button 
           onClick={() => router.push('/history')}
-          className="px-8 py-3 bg-white text-black font-bold rounded-full hover:scale-105 transition-transform"
+          className="px-8 py-4 bg-accent-primary text-txt-primary font-bold rounded-professional hover:bg-accent-secondary transition-all shadow-elevated"
         >
           Back to History
         </button>
@@ -184,17 +184,17 @@ export default function WorkoutEditor() {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="min-h-screen bg-bg-primary pb-24">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-md border-b border-white/5 p-4 flex items-center justify-between">
-        <button onClick={() => router.back()} className="p-2 -ml-2 text-muted-foreground hover:text-foreground">
+      <div className="sticky top-0 z-10 bg-bg-primary/95 backdrop-blur-xl border-b border-border-default p-4 flex items-center justify-between shadow-card">
+        <button onClick={() => router.back()} className="p-2 -ml-2 text-txt-secondary hover:text-txt-primary transition-colors">
           <ArrowLeft size={24} />
         </button>
-        <h1 className="font-bold text-lg">Edit Workout</h1>
+        <h1 className="font-bold text-xl text-txt-primary">Edit Workout</h1>
         <button 
           onClick={handleSave}
           disabled={isSaving}
-          className="p-2 -mr-2 text-primary hover:text-primary/80 disabled:opacity-50"
+          className="p-2 -mr-2 text-accent-primary hover:text-accent-secondary disabled:opacity-50 transition-colors"
         >
           <Save size={24} />
         </button>
@@ -205,29 +205,29 @@ export default function WorkoutEditor() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="space-y-2"
+          className="space-y-3"
         >
-          <label className="text-xs uppercase font-bold text-muted-foreground">Workout Name</label>
+          <label className="text-xs uppercase font-semibold text-txt-tertiary tracking-wider">Workout Name</label>
           <input
             type="text"
             value={workoutData.name}
             onChange={(e) => updateWorkoutName(e.target.value)}
-            className="w-full bg-card border border-white/10 rounded-xl px-4 py-3 text-lg font-bold focus:outline-none focus:border-primary/50 transition-colors"
+            className="w-full bg-bg-secondary border border-border-default rounded-professional px-5 py-4 text-xl font-bold text-txt-primary focus:outline-none focus:border-accent-primary transition-colors shadow-card"
           />
-          <p className="text-muted-foreground font-mono text-sm">
+          <p className="text-txt-tertiary text-sm">
             {format(new Date(workoutData.date), 'EEEE, MMMM d, yyyy • h:mm a')}
           </p>
         </motion.div>
 
         {/* Exercises */}
-        <div className="space-y-4">
+        <div className="space-y-5">
           <div className="flex justify-between items-center">
-            <h3 className="text-lg font-bold uppercase tracking-wide text-muted-foreground">Exercises</h3>
+            <h3 className="text-base font-bold uppercase tracking-wider text-txt-tertiary">Exercises</h3>
             <button
               onClick={addExercise}
-              className="flex items-center gap-2 px-4 py-2 bg-primary/20 text-primary rounded-full hover:bg-primary/30 transition-colors text-sm font-bold"
+              className="flex items-center gap-2 px-5 py-2.5 bg-accent-primary/90 text-txt-primary rounded-professional hover:bg-accent-primary transition-all shadow-card text-sm font-bold"
             >
-              <Plus size={16} /> Add Exercise
+              <Plus size={18} /> Add Exercise
             </button>
           </div>
 
@@ -237,7 +237,7 @@ export default function WorkoutEditor() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.05 }}
-              className="bg-card border border-white/5 rounded-2xl p-5 space-y-4"
+              className="bg-bg-secondary border border-border-default rounded-professional p-6 space-y-5 shadow-card"
             >
               {/* Exercise Header */}
               <div className="flex items-center gap-3">
@@ -245,19 +245,19 @@ export default function WorkoutEditor() {
                   type="text"
                   value={exercise.name}
                   onChange={(e) => updateExerciseName(exercise.id, e.target.value)}
-                  className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 font-bold focus:outline-none focus:border-primary/50 transition-colors"
+                  className="flex-1 bg-bg-tertiary border border-border-default rounded-professional px-4 py-3 font-bold text-txt-primary focus:outline-none focus:border-accent-primary transition-colors"
                 />
                 <button
                   onClick={() => removeExercise(exercise.id)}
-                  className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
+                  className="p-2.5 text-accent-primary hover:bg-accent-primary/10 rounded-professional transition-colors border border-border-default"
                 >
                   <Trash2 size={20} />
                 </button>
               </div>
 
               {/* Sets */}
-              <div className="space-y-2">
-                <div className="grid grid-cols-[auto_1fr_1fr_auto_auto] gap-3 text-[10px] uppercase font-bold text-muted-foreground pb-2 border-b border-white/5">
+              <div className="space-y-3">
+                <div className="grid grid-cols-[auto_1fr_1fr_auto_auto] gap-3 text-[10px] uppercase font-semibold text-txt-tertiary pb-3 border-b border-border-default tracking-wider">
                   <div className="w-6 text-center">Set</div>
                   <div className="text-center">Weight (kg)</div>
                   <div className="text-center">Reps</div>
@@ -268,18 +268,18 @@ export default function WorkoutEditor() {
                 {exercise.sets.map((set, idx) => (
                   <div
                     key={set.id}
-                    className={`grid grid-cols-[auto_1fr_1fr_auto_auto] gap-3 items-center py-2 px-1 rounded-lg ${
-                      set.completed ? 'bg-primary/10' : 'bg-white/5'
+                    className={`grid grid-cols-[auto_1fr_1fr_auto_auto] gap-3 items-center py-2.5 px-2 rounded-professional ${
+                      set.completed ? 'bg-accent-primary/10 border border-accent-primary/20' : 'bg-bg-tertiary border border-border-default'
                     }`}
                   >
-                    <div className="w-6 text-center text-xs font-mono font-bold text-muted-foreground">
+                    <div className="w-6 text-center text-sm font-semibold text-txt-secondary">
                       {idx + 1}
                     </div>
                     <input
                       type="number"
                       value={set.weight}
                       onChange={(e) => updateSet(exercise.id, set.id, { weight: Number(e.target.value) })}
-                      className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-center font-bold focus:outline-none focus:border-primary/50 transition-colors"
+                      className="bg-bg-primary border border-border-default rounded-professional px-3 py-2.5 text-center font-bold text-txt-primary focus:outline-none focus:border-accent-primary transition-colors"
                       min="0"
                       step="0.5"
                     />
@@ -287,22 +287,22 @@ export default function WorkoutEditor() {
                       type="number"
                       value={set.reps}
                       onChange={(e) => updateSet(exercise.id, set.id, { reps: Number(e.target.value) })}
-                      className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-center font-bold focus:outline-none focus:border-primary/50 transition-colors"
+                      className="bg-bg-primary border border-border-default rounded-professional px-3 py-2.5 text-center font-bold text-txt-primary focus:outline-none focus:border-accent-primary transition-colors"
                       min="0"
                     />
                     <button
                       onClick={() => toggleSetCompleted(exercise.id, set.id)}
                       className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${
                         set.completed 
-                          ? 'bg-primary/20 border-primary' 
-                          : 'border-white/20 hover:border-white/40'
+                          ? 'bg-accent-primary/20 border-accent-primary' 
+                          : 'border-border-light hover:border-accent-primary/50'
                       }`}
                     >
-                      {set.completed && <Check size={14} className="text-primary" />}
+                      {set.completed && <Check size={14} className="text-accent-primary" />}
                     </button>
                     <button
                       onClick={() => removeSet(exercise.id, set.id)}
-                      className="w-6 h-6 flex items-center justify-center text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
+                      className="w-6 h-6 flex items-center justify-center text-accent-primary hover:bg-accent-primary/10 rounded-professional transition-colors"
                     >
                       <Trash2 size={16} />
                     </button>
@@ -311,7 +311,7 @@ export default function WorkoutEditor() {
 
                 <button
                   onClick={() => addSet(exercise.id)}
-                  className="w-full py-2 border-2 border-dashed border-white/10 rounded-lg text-muted-foreground hover:border-primary/30 hover:text-primary transition-colors text-sm font-bold"
+                  className="w-full py-3 border-2 border-dashed border-border-default rounded-professional text-txt-secondary hover:border-accent-primary/50 hover:text-accent-primary transition-colors text-sm font-semibold"
                 >
                   + Add Set
                 </button>
@@ -324,7 +324,7 @@ export default function WorkoutEditor() {
         <button
           onClick={handleSave}
           disabled={isSaving}
-          className="w-full py-4 bg-primary text-black font-bold rounded-full hover:scale-105 transition-transform disabled:opacity-50 disabled:hover:scale-100"
+          className="w-full py-4 bg-accent-primary text-txt-primary font-bold rounded-professional hover:bg-accent-secondary transition-all shadow-elevated disabled:opacity-50 disabled:hover:bg-accent-primary text-lg"
         >
           {isSaving ? 'Saving...' : 'Save Changes'}
         </button>
