@@ -1,9 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { getCoachProfile } from '@/components/utils/coachProfiles'
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS } from '@/lib/rateLimit'
 import { supabase } from '@/lib/supabase'
 
 export const runtime = 'edge'
+
+// Request validation schema
+const ChatRequestSchema = z.object({
+  messages: z.array(z.object({
+    role: z.enum(['user', 'assistant', 'system']),
+    content: z.string().min(1).max(10000)
+  })).min(1).max(50),
+  userData: z.object({
+    name: z.string().optional(),
+    goal: z.string().optional(),
+    experienceLevel: z.string().optional(),
+    preferences: z.record(z.string(), z.any()).optional()
+  }).optional(),
+  coachProfile: z.enum(['motiverend', 'streng', 'wetenschappelijk', 'vriendelijk', 'powerlifting', 'bodybuilding']).optional()
+})
 
 export async function POST(request: NextRequest) {
   try {
@@ -50,15 +66,21 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { messages, userData, coachProfile } = await request.json()
-
-    // Validate request body
-    if (!messages || !Array.isArray(messages)) {
+    // Parse and validate request body
+    const body = await request.json()
+    const validation = ChatRequestSchema.safeParse(body)
+    
+    if (!validation.success) {
       return NextResponse.json(
-        { error: 'Invalid request - messages must be an array' },
+        { 
+          error: 'Invalid request data',
+          details: validation.error.format()
+        },
         { status: 400 }
       )
     }
+
+    const { messages, userData, coachProfile } = validation.data
 
     // Get the coach profile configuration
     const profile = getCoachProfile(coachProfile || 'motiverend')

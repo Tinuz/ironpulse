@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { supabase } from '@/lib/supabase'
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS } from '@/lib/rateLimit'
 
@@ -6,6 +7,11 @@ const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions'
 const MODEL = 'anthropic/claude-3.5-sonnet'
 
 export const runtime = 'edge'
+
+// Request validation schema
+const AccessorySuggestionsSchema = z.object({
+  prompt: z.string().min(20, 'Prompt too short - need workout analysis').max(5000, 'Prompt too long')
+})
 
 export async function POST(request: NextRequest) {
   try {
@@ -50,14 +56,21 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { prompt } = await request.json()
-
-    if (!prompt) {
+    // Parse and validate request body
+    const body = await request.json()
+    const validation = AccessorySuggestionsSchema.safeParse(body)
+    
+    if (!validation.success) {
       return NextResponse.json(
-        { error: 'Invalid request - prompt is required' },
+        { 
+          error: 'Invalid request data',
+          details: validation.error.format()
+        },
         { status: 400 }
       )
     }
+
+    const { prompt } = validation.data
 
     // Call OpenRouter API
     const controller = new AbortController()

@@ -5,6 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { 
   NutritionSearchResponse, 
   OpenFoodFactsResponse, 
@@ -19,11 +20,17 @@ import {
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS } from '@/lib/rateLimit';
 import { supabase } from '@/lib/supabase';
 
-const USDA_API_KEY = process.env.USDA_API_KEY || 'DEMO_KEY'; // Get from env
+const USDA_API_KEY = process.env.USDA_API_KEY || 'DEMO_KEY';
 const MIN_QUERY_LENGTH = 3;
 const MAX_RESULTS = 10;
 
 export const runtime = 'edge';
+
+// Query validation schema
+const NutritionSearchSchema = z.object({
+  query: z.string().min(MIN_QUERY_LENGTH, 'Query must be at least 3 characters').max(100),
+  limit: z.number().min(1).max(50).optional().default(MAX_RESULTS)
+})
 
 export async function GET(request: NextRequest) {
   try {
@@ -70,17 +77,24 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Parse and validate query parameters
     const { searchParams } = new URL(request.url);
-    const query = searchParams.get('query');
-    const limit = parseInt(searchParams.get('limit') || String(MAX_RESULTS));
+    const validation = NutritionSearchSchema.safeParse({
+      query: searchParams.get('query'),
+      limit: searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : undefined
+    })
 
-    // Validation
-    if (!query || query.trim().length < MIN_QUERY_LENGTH) {
+    if (!validation.success) {
       return NextResponse.json(
-        { error: 'Query must be at least 3 characters' },
+        { 
+          error: 'Invalid query parameters',
+          details: validation.error.format()
+        },
         { status: 400 }
       );
     }
+
+    const { query, limit } = validation.data
 
     const trimmedQuery = query.trim();
     let allResults: any[] = [];
