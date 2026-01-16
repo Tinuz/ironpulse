@@ -257,29 +257,29 @@ export default function WorkoutEditor() {
 
               {/* Sets */}
               <div className="space-y-3">
-                <div className="grid grid-cols-[auto_1fr_1fr_auto_auto] gap-3 text-[10px] uppercase font-semibold text-txt-tertiary pb-3 border-b border-border-default tracking-wider">
-                  <div className="w-6 text-center">Set</div>
+                <div className="grid grid-cols-[32px_1fr_1fr_28px_28px] gap-2 text-[10px] uppercase font-semibold text-txt-tertiary pb-3 border-b border-border-default tracking-wider">
+                  <div className="text-center">Set</div>
                   <div className="text-center">Weight (kg)</div>
                   <div className="text-center">Reps</div>
-                  <div className="w-6"></div>
-                  <div className="w-6"></div>
+                  <div></div>
+                  <div></div>
                 </div>
 
                 {exercise.sets.map((set, idx) => (
                   <div
                     key={set.id}
-                    className={`grid grid-cols-[auto_1fr_1fr_auto_auto] gap-3 items-center py-2.5 px-2 rounded-professional ${
+                    className={`grid grid-cols-[32px_1fr_1fr_28px_28px] gap-2 items-center py-2.5 px-2 rounded-professional ${
                       set.completed ? 'bg-accent-primary/10 border border-accent-primary/20' : 'bg-bg-tertiary border border-border-default'
                     }`}
                   >
-                    <div className="w-6 text-center text-sm font-semibold text-txt-secondary">
+                    <div className="text-center text-sm font-semibold text-txt-secondary">
                       {idx + 1}
                     </div>
                     <input
                       type="number"
                       value={set.weight}
                       onChange={(e) => updateSet(exercise.id, set.id, { weight: Number(e.target.value) })}
-                      className="bg-bg-primary border border-border-default rounded-professional px-3 py-2.5 text-center font-bold text-txt-primary focus:outline-none focus:border-accent-primary transition-colors"
+                      className="bg-bg-primary border border-border-default rounded-professional px-2 py-2.5 text-center font-bold text-txt-primary focus:outline-none focus:border-accent-primary transition-colors min-w-0"
                       min="0"
                       step="0.5"
                     />
@@ -287,12 +287,12 @@ export default function WorkoutEditor() {
                       type="number"
                       value={set.reps}
                       onChange={(e) => updateSet(exercise.id, set.id, { reps: Number(e.target.value) })}
-                      className="bg-bg-primary border border-border-default rounded-professional px-3 py-2.5 text-center font-bold text-txt-primary focus:outline-none focus:border-accent-primary transition-colors"
+                      className="bg-bg-primary border border-border-default rounded-professional px-2 py-2.5 text-center font-bold text-txt-primary focus:outline-none focus:border-accent-primary transition-colors min-w-0"
                       min="0"
                     />
                     <button
                       onClick={() => toggleSetCompleted(exercise.id, set.id)}
-                      className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${
+                      className={`w-7 h-7 rounded-full border-2 flex items-center justify-center transition-colors ${
                         set.completed 
                           ? 'bg-accent-primary/20 border-accent-primary' 
                           : 'border-border-light hover:border-accent-primary/50'
@@ -302,9 +302,9 @@ export default function WorkoutEditor() {
                     </button>
                     <button
                       onClick={() => removeSet(exercise.id, set.id)}
-                      className="w-6 h-6 flex items-center justify-center text-accent-primary hover:bg-accent-primary/10 rounded-professional transition-colors"
+                      className="w-7 h-7 flex items-center justify-center text-accent-primary hover:bg-accent-primary/10 rounded-professional transition-colors"
                     >
-                      <Trash2 size={16} />
+                      <Trash2 size={14} />
                     </button>
                   </div>
                 ))}
