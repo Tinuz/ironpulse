@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { supabase } from '@/lib/supabase'
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS } from '@/lib/rateLimit'
+import { requireCsrfToken, shouldEnforceCsrf } from '@/lib/csrf'
+import { logger, generateRequestId } from '@/lib/logger'
 
 const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions'
 const MODEL = 'anthropic/claude-3.5-sonnet'
@@ -14,10 +16,24 @@ const AccessorySuggestionsSchema = z.object({
 })
 
 export async function POST(request: NextRequest) {
+  const startTime = Date.now()
+  const requestId = generateRequestId()
+  let userId: string | undefined
+
   try {
+    // CSRF Protection
+    if (shouldEnforceCsrf()) {
+      const csrfError = requireCsrfToken(request)
+      if (csrfError) {
+        logger.warn('CSRF token validation failed', { requestId, endpoint: '/api/accessory-suggestions' })
+        return csrfError
+      }
+    }
+
     // Authentication
     const authHeader = request.headers.get('authorization')
     if (!authHeader?.startsWith('Bearer ')) {
+      logger.authLog('auth_failure', undefined, { requestId, endpoint: '/api/accessory-suggestions' })
       return NextResponse.json(
         { error: 'Unauthorized - No valid session' },
         { status: 401 }
@@ -28,17 +44,21 @@ export async function POST(request: NextRequest) {
     const { data: { user }, error: authError } = await supabase.auth.getUser(token)
     
     if (authError || !user) {
+      logger.authLog('auth_failure', undefined, { requestId, endpoint: '/api/accessory-suggestions', error: authError?.message })
       return NextResponse.json(
         { error: 'Unauthorized - Invalid session' },
         { status: 401 }
       )
     }
 
+    userId = user.id
+
     // Rate limiting
     const identifier = getClientIdentifier(request, user.id)
     const rateLimit = checkRateLimit(identifier, RATE_LIMITS.AI_CHAT)
     
     if (!rateLimit.success) {
+      logger.rateLimitLog(user.id, '/api/accessory-suggestions', RATE_LIMITS.AI_CHAT.limit)
       return NextResponse.json(
         { 
           error: 'Rate limit exceeded. Please try again later.',
@@ -138,6 +158,15 @@ Provide 3-5 suggestions based on the analysis.`
       )
     }
 
+    logger.apiLog({
+      requestId,
+      userId,
+      endpoint: '/api/accessory-suggestions',
+      method: 'POST',
+      statusCode: 200,
+      duration: Date.now() - startTime
+    })
+
     return NextResponse.json(
       { content },
       {
@@ -149,7 +178,11 @@ Provide 3-5 suggestions based on the analysis.`
       }
     )
   } catch (error) {
-    console.error('Error in accessory suggestions:', error)
+    logger.error('Error in accessory suggestions', error, {
+      requestId,
+      userId,
+      endpoint: '/api/accessory-suggestions'
+    })
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

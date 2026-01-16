@@ -4,6 +4,7 @@ import { getCoachProfile } from '@/components/utils/coachProfiles'
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS } from '@/lib/rateLimit'
 import { supabase } from '@/lib/supabase'
 import { logger, generateRequestId } from '@/lib/logger'
+import { requireCsrfToken, shouldEnforceCsrf } from '@/lib/csrf'
 
 export const runtime = 'edge'
 
@@ -28,6 +29,15 @@ export async function POST(request: NextRequest) {
   let userId: string | undefined
   
   try {
+    // CSRF Protection (only in production by default)
+    if (shouldEnforceCsrf()) {
+      const csrfError = requireCsrfToken(request)
+      if (csrfError) {
+        logger.warn('CSRF token validation failed', { requestId, endpoint: '/api/chat' })
+        return csrfError
+      }
+    }
+
     // Get authorization header
     const authHeader = request.headers.get('authorization')
     if (!authHeader?.startsWith('Bearer ')) {
