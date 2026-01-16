@@ -6,7 +6,8 @@ import { Sparkles, Loader2, AlertCircle, ChevronRight, Plus } from 'lucide-react
 import { useData } from '@/components/context/DataContext'
 import { useAuth } from '@/components/context/AuthContext'
 import { analyzeForAccessories, getAnalysisSummary } from '@/components/utils/accessoryAnalysis'
-import { getAccessorySuggestions, buildAccessoryPrompt, AccessorySuggestion } from '@/lib/openrouter'
+import { buildAccessoryPrompt, AccessorySuggestion } from '@/lib/openrouter'
+import { getCsrfToken } from '@/lib/csrfClient'
 
 export default function AccessorySuggestionsWidget() {
   const { history } = useData();
@@ -32,8 +33,27 @@ export default function AccessorySuggestionsWidget() {
       // Build prompt
       const prompt = buildAccessoryPrompt(analysis);
 
-      // Get AI suggestions
-      const aiSuggestions = await getAccessorySuggestions(prompt, session.access_token);
+      // Get CSRF token
+      const csrfToken = await getCsrfToken();
+
+      // Call API with CSRF token
+      const response = await fetch('/api/accessory-suggestions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+          'X-CSRF-Token': csrfToken,
+        },
+        body: JSON.stringify({ prompt }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to generate suggestions');
+      }
+
+      const data = await response.json();
+      const aiSuggestions = data.suggestions;
 
       if (aiSuggestions.length === 0) {
         setError('No suggestions available. AI service may be unavailable.');
@@ -43,7 +63,7 @@ export default function AccessorySuggestionsWidget() {
       }
     } catch (err) {
       console.error('Failed to generate suggestions:', err);
-      setError('Failed to generate suggestions. Please try again.');
+      setError(err instanceof Error ? err.message : 'Failed to generate suggestions. Please try again.');
     } finally {
       setIsLoading(false);
     }
