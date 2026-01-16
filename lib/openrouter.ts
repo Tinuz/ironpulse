@@ -141,15 +141,12 @@ function parseAndValidateSuggestions(content: string): AccessorySuggestion[] {
 
     let jsonString = jsonMatch[1];
 
-    // Clean up common JSON formatting issues
+    // Clean up common JSON formatting issues (but preserve string content)
     jsonString = jsonString
-      .replace(/,\s*}/g, '}')      // Remove trailing commas before }
-      .replace(/,\s*\]/g, ']')     // Remove trailing commas before ]
-      .replace(/\n/g, ' ')          // Replace newlines with spaces
-      .replace(/\s+/g, ' ')         // Normalize whitespace
+      .replace(/,(\s*[}\]])/g, '$1')  // Remove trailing commas before } or ]
       .trim();
 
-    console.log('Extracted JSON string:', jsonString.substring(0, 200))
+    console.log('Attempting to parse JSON, first 300 chars:', jsonString.substring(0, 300))
 
     const parsed = JSON.parse(jsonString);
     
