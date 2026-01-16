@@ -6,6 +6,10 @@ import { CoachProfileType } from '@/components/utils/coachProfiles';
 import { useAuth } from '@/components/context/AuthContext';
 import { checkAchievements, getNewlyUnlocked } from '@/components/utils/achievementEngine';
 
+// ============================================================================
+// TYPE DEFINITIONS
+// ============================================================================
+
 export type ExerciseType = 'strength' | 'cardio';
 
 export interface CardioData {
@@ -117,6 +121,10 @@ export interface UserProfile {
   activityLevel: number;
 }
 
+// ============================================================================
+// CONTEXT INTERFACE
+// ============================================================================
+
 interface DataContextType {
   schemas: Schema[];
   history: WorkoutLog[];
@@ -145,6 +153,10 @@ interface DataContextType {
   saveUserProfile: (profile: Omit<UserProfile, 'id'>) => Promise<void>;
 }
 
+// ============================================================================
+// CONTEXT CREATION
+// ============================================================================
+
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
 export const useData = () => {
@@ -152,6 +164,10 @@ export const useData = () => {
   if (!context) throw new Error('useData must be used within a DataProvider');
   return context;
 };
+
+// ============================================================================
+// MOCK DATA (for initial setup)
+// ============================================================================
 
 // Initial mock data
 const MOCK_SCHEMAS: Schema[] = [
@@ -177,7 +193,15 @@ const MOCK_SCHEMAS: Schema[] = [
   }
 ];
 
+// ============================================================================
+// DATA PROVIDER COMPONENT
+// ============================================================================
+
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  // ---------------------------------------------------------------------------
+  // STATE MANAGEMENT
+  // ---------------------------------------------------------------------------
+  
   const [schemas, setSchemas] = useState<Schema[]>([]);
   const [history, setHistory] = useState<WorkoutLog[]>([]);
   const [activeWorkout, setActiveWorkout] = useState<WorkoutLog | null>(null);
@@ -197,6 +221,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const { user } = useAuth();
   const USER_ID = user?.id;
 
+  // ---------------------------------------------------------------------------
+  // DATA LOADING
+  // ---------------------------------------------------------------------------
+  
   // Load all data from Supabase when user changes
   useEffect(() => {
     if (USER_ID) {

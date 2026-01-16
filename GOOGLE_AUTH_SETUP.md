@@ -75,8 +75,11 @@ Zorg ervoor dat je `.env.local` het volgende bevat:
 ```env
 NEXT_PUBLIC_SUPABASE_URL=<your-supabase-url>
 NEXT_PUBLIC_SUPABASE_ANON_KEY=<your-supabase-anon-key>
-NEXT_PUBLIC_OPENROUTER_API_KEY=<your-openrouter-key>
+OPENROUTER_API_KEY=<your-openrouter-key>
 NEXT_PUBLIC_APP_URL=http://localhost:3000
+USDA_API_KEY=<your-usda-key-optional>
 ```
 
-Voor productie, pas `NEXT_PUBLIC_APP_URL` aan naar je deployed URL.
+**BELANGRIJK**: 
+- `OPENROUTER_API_KEY` heeft GEEN `NEXT_PUBLIC_` prefix meer (server-side only voor betere beveiliging)
+- Voor productie, pas `NEXT_PUBLIC_APP_URL` aan naar je deployed URL.

@@ -5,6 +5,7 @@ import { motion } from 'framer-motion'
 import { ArrowLeft, Bot, Send, Sparkles, Zap, BrainCircuit, AlertTriangle, CheckCircle, Info, Lightbulb } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useData } from '@/components/context/DataContext'
+import { useAuth } from '@/components/context/AuthContext'
 import { useLanguage } from '@/components/context/LanguageContext'
 import { generateUserContext, getRandomTip, Message, generateProactiveInsights, ProactiveInsight } from '@/components/utils/aiTrainer'
 import WorkoutGeneratorModal from '@/components/WorkoutGeneratorModal'
@@ -13,6 +14,7 @@ export default function AITrainer() {
   const router = useRouter()
   const { t } = useLanguage();
   const { history, bodyStats, nutritionLogs, coachProfile, userProfile } = useData();
+  const { session } = useAuth(); // Add session from auth context
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -65,7 +67,7 @@ export default function AITrainer() {
   };
 
   const handleSendMessage = async () => {
-    if (!inputText.trim()) return;
+    if (!inputText.trim() || !session?.access_token) return;
 
     const userMsg: Message = {
       id: crypto.randomUUID(),
@@ -97,7 +99,10 @@ export default function AITrainer() {
 
       const response = await fetch('/api/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
         body: JSON.stringify({
           messages: apiMessages,
           userData: userContext,
@@ -106,6 +111,9 @@ export default function AITrainer() {
       });
 
       if (!response.ok) {
+        if (response.status === 429) {
+          throw new Error('Te veel verzoeken. Probeer het later opnieuw.');
+        }
         throw new Error('Failed to get AI response');
       }
 

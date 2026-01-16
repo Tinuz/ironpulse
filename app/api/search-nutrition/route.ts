@@ -16,6 +16,8 @@ import {
   deduplicateResults, 
   sortByRelevance 
 } from '@/lib/nutritionSearch';
+import { checkRateLimit, getClientIdentifier, RATE_LIMITS } from '@/lib/rateLimit';
+import { supabase } from '@/lib/supabase';
 
 const USDA_API_KEY = process.env.USDA_API_KEY || 'DEMO_KEY'; // Get from env
 const MIN_QUERY_LENGTH = 3;
@@ -25,6 +27,49 @@ export const runtime = 'edge';
 
 export async function GET(request: NextRequest) {
   try {
+    // Get authorization header
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return NextResponse.json(
+        { error: 'Unauthorized - No valid session' },
+        { status: 401 }
+      );
+    }
+
+    const token = authHeader.substring(7);
+    
+    // Verify session with Supabase
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    
+    if (authError || !user) {
+      return NextResponse.json(
+        { error: 'Unauthorized - Invalid session' },
+        { status: 401 }
+      );
+    }
+
+    // Rate limiting
+    const identifier = getClientIdentifier(request, user.id);
+    const rateLimit = checkRateLimit(identifier, RATE_LIMITS.NUTRITION_SEARCH);
+    
+    if (!rateLimit.success) {
+      return NextResponse.json(
+        { 
+          error: 'Rate limit exceeded. Please try again later.',
+          retryAfter: Math.ceil((rateLimit.reset - Date.now()) / 1000)
+        },
+        { 
+          status: 429,
+          headers: {
+            'X-RateLimit-Limit': rateLimit.limit.toString(),
+            'X-RateLimit-Remaining': rateLimit.remaining.toString(),
+            'X-RateLimit-Reset': rateLimit.reset.toString(),
+            'Retry-After': Math.ceil((rateLimit.reset - Date.now()) / 1000).toString()
+          }
+        }
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const query = searchParams.get('query');
     const limit = parseInt(searchParams.get('limit') || String(MAX_RESULTS));
@@ -151,7 +196,13 @@ export async function GET(request: NextRequest) {
       }
     };
 
-    return NextResponse.json(response);
+    return NextResponse.json(response, {
+      headers: {
+        'X-RateLimit-Limit': rateLimit.limit.toString(),
+        'X-RateLimit-Remaining': rateLimit.remaining.toString(),
+        'X-RateLimit-Reset': rateLimit.reset.toString()
+      }
+    });
 
   } catch (error) {
     console.error('Search nutrition error:', error);

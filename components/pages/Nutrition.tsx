@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { ArrowLeft, Plus, Trash2, Utensils, Flame, Droplet, Check, Scan, AlertTriangle, TrendingUp, TrendingDown, Target, ChevronLeft, ChevronRight, Calendar, BarChart3, Clock, Search, Loader2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useData, NutritionItem } from '@/components/context/DataContext'
+import { useAuth } from '@/components/context/AuthContext'
 import { useLanguage } from '@/components/context/LanguageContext'
 import { format, addDays, subDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth, eachDayOfInterval } from 'date-fns'
 import { nl } from 'date-fns/locale'
@@ -19,6 +20,7 @@ type ViewMode = 'day' | 'week' | 'month';
 export default function Nutrition() {
   const router = useRouter()
   const { t, language } = useLanguage()
+  const { session } = useAuth()
   const { nutritionLogs, addMeal, deleteMeal, addWater, userProfile } = useData()
   const [isAdding, setIsAdding] = useState(false);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
@@ -222,7 +224,7 @@ export default function Nutrition() {
 
   // Debounced nutrition search
   const searchNutrition = useCallback(async (query: string) => {
-    if (query.trim().length < 3) {
+    if (query.trim().length < 3 || !session?.access_token) {
       setSearchResults([]);
       setShowDropdown(false);
       return;
@@ -240,7 +242,14 @@ export default function Nutrition() {
     setIsSearching(true);
 
     try {
-      const response = await fetch(`/api/search-nutrition?query=${encodeURIComponent(query)}&limit=8`);
+      const response = await fetch(
+        `/api/search-nutrition?query=${encodeURIComponent(query)}&limit=8`,
+        {
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`
+          }
+        }
+      );
       
       if (response.ok) {
         const data = await response.json();
@@ -249,6 +258,10 @@ export default function Nutrition() {
         
         // Cache results
         setCachedResults(query, data.results);
+      } else if (response.status === 429) {
+        console.error('Rate limit exceeded');
+        setSearchResults([]);
+        setShowDropdown(false);
       } else {
         setSearchResults([]);
         setShowDropdown(false);
@@ -260,7 +273,7 @@ export default function Nutrition() {
     } finally {
       setIsSearching(false);
     }
-  }, []);
+  }, [session?.access_token]);
 
   // Handle search input with debouncing
   const handleSearchInput = (value: string) => {
