@@ -75,6 +75,25 @@ export async function POST(request: NextRequest) {
         model: MODEL,
         messages: [
           {
+            role: 'system',
+            content: `You are a fitness expert. Analyze the user's training data and provide accessory exercise suggestions as a JSON array. 
+
+CRITICAL: Your response must be ONLY a valid JSON array with no additional text, explanations, or markdown formatting.
+
+Each suggestion must have this exact structure:
+{
+  "exercise": "Exercise Name",
+  "reason": "Why this helps",
+  "category": "strength" | "hypertrophy" | "mobility" | "injury-prevention",
+  "priority": "high" | "medium" | "low",
+  "targetMuscles": ["Muscle1", "Muscle2"],
+  "sets": 3,
+  "reps": 12
+}
+
+Provide 3-5 suggestions based on the analysis.`
+          },
+          {
             role: 'user',
             content: prompt
           }

@@ -89,6 +89,13 @@ export async function getAccessorySuggestions(
       const data = await response.json()
       const content = data.content
       
+      if (!content) {
+        console.error('No content in API response:', data)
+        return []
+      }
+
+      console.log('AI Response content:', content)
+      
       // Parse and validate JSON response
       const suggestions = parseAndValidateSuggestions(content)
       
@@ -120,12 +127,15 @@ export async function getAccessorySuggestions(
  */
 function parseAndValidateSuggestions(content: string): AccessorySuggestion[] {
   try {
+    console.log('Parsing AI response, length:', content.length)
+    
     // Extract JSON from markdown code blocks if present
     let jsonMatch = content.match(/```(?:json)?\s*(\[[\s\S]*?\])\s*```/) || 
                     content.match(/(\[[\s\S]*?\])/);
     
     if (!jsonMatch) {
       console.error('No JSON array found in response');
+      console.error('Response content:', content.substring(0, 500))
       return [];
     }
 
@@ -138,6 +148,8 @@ function parseAndValidateSuggestions(content: string): AccessorySuggestion[] {
       .replace(/\n/g, ' ')          // Replace newlines with spaces
       .replace(/\s+/g, ' ')         // Normalize whitespace
       .trim();
+
+    console.log('Extracted JSON string:', jsonString.substring(0, 200))
 
     const parsed = JSON.parse(jsonString);
     
