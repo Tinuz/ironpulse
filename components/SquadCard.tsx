@@ -60,26 +60,26 @@ export default function SquadCard({ squad, onSelect }: SquadCardProps) {
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-card border border-white/5 rounded-xl p-4 hover:bg-white/5 transition-colors cursor-pointer group"
+      className="bg-bg-secondary border border-border-default rounded-professional p-5 hover:bg-bg-tertiary hover:border-border-light transition-all cursor-pointer group shadow-card hover:shadow-elevated"
       onClick={handleClick}
     >
-      <div className="flex items-start justify-between mb-3">
+      <div className="flex items-start justify-between mb-4">
         <div className="flex items-start gap-3 flex-1">
           {/* Squad Avatar */}
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/20 to-purple-500/20 flex items-center justify-center flex-shrink-0">
-            <Users size={24} className="text-primary" />
+          <div className="w-14 h-14 rounded-professional bg-gradient-to-br from-accent-primary/20 to-accent-secondary/20 flex items-center justify-center flex-shrink-0 border border-border-light">
+            <Users size={26} className="text-accent-primary" />
           </div>
 
           {/* Squad Info */}
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <h3 className="font-bold text-base truncate">{squad.name}</h3>
+            <div className="flex items-center gap-2 mb-1.5">
+              <h3 className="font-bold text-base truncate text-txt-primary">{squad.name}</h3>
               {squad.privacy === 'private' && (
-                <Lock size={14} className="text-muted-foreground flex-shrink-0" />
+                <Lock size={14} className="text-txt-tertiary flex-shrink-0" />
               )}
             </div>
             {squad.description && (
-              <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
+              <p className="text-xs text-txt-secondary line-clamp-2 leading-relaxed">
                 {squad.description}
               </p>
             )}
@@ -88,35 +88,35 @@ export default function SquadCard({ squad, onSelect }: SquadCardProps) {
 
         <ChevronRight
           size={20}
-          className="text-muted-foreground group-hover:text-primary transition-colors flex-shrink-0 ml-2"
+          className="text-txt-tertiary group-hover:text-accent-primary transition-colors flex-shrink-0 ml-2"
         />
       </div>
 
       {/* Stats */}
       <div className="flex items-center gap-4 text-xs">
         <div className="flex items-center gap-1.5">
-          <Users size={14} className="text-muted-foreground" />
-          <span className="font-mono font-bold">
+          <Users size={14} className="text-txt-tertiary" />
+          <span className="font-semibold text-txt-primary">
             {squad.member_count}
           </span>
-          <span className="text-muted-foreground">
+          <span className="text-txt-secondary">
             {squad.member_count === 1 ? 'lid' : 'leden'}
           </span>
         </div>
 
         {!loading && recentActivityCount > 0 && (
           <div className="flex items-center gap-1.5">
-            <div className="w-1.5 h-1.5 rounded-full bg-green-500"></div>
-            <span className="font-mono font-bold text-green-500">
+            <div className="w-1.5 h-1.5 rounded-full bg-accent-success shadow-[0_0_4px_rgba(76,175,80,0.6)]"></div>
+            <span className="font-semibold text-accent-success">
               {recentActivityCount}
             </span>
-            <span className="text-muted-foreground">
+            <span className="text-txt-secondary">
               deze week
             </span>
           </div>
         )}
 
-        <div className="flex items-center gap-1.5 ml-auto text-muted-foreground/60">
+        <div className="flex items-center gap-1.5 ml-auto text-txt-tertiary">
           <Calendar size={12} />
           <span>{formatDate(squad.created_at)}</span>
         </div>

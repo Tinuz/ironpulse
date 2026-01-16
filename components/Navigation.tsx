@@ -78,7 +78,7 @@ export default function Navigation() {
   ]
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-xl border-t border-border pb-safe-area shadow-[0_-2px_10px_rgba(0,0,0,0.05)]">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-bg-primary/98 backdrop-blur-xl border-t border-border-default pb-safe-area shadow-[0_-4px_20px_rgba(0,0,0,0.6)]">
       <div className="flex items-center h-16 md:h-20 max-w-2xl mx-auto px-2 relative">
         {/* Left side - 2 items */}
         <div className="flex flex-1 justify-around">
@@ -91,22 +91,22 @@ export default function Navigation() {
                 href={item.path}
                 className={clsx(
                   "relative flex flex-col items-center justify-center w-full h-full transition-colors duration-200 group",
-                  isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
+                  isActive ? "text-accent-primary" : "text-txt-tertiary hover:text-txt-primary"
                 )}
               >
                 <div className={clsx(
-                  "p-1 rounded-xl transition-all duration-300"
+                  "p-1 rounded-professional transition-all duration-300"
                 )}>
-                  <item.icon size={20} strokeWidth={isActive ? 2.5 : 2} />
+                  <item.icon size={22} strokeWidth={isActive ? 2.5 : 2} />
                 </div>
-                <span className="text-[9px] uppercase tracking-wider mt-1 font-medium opacity-80">
+                <span className="text-[10px] uppercase tracking-wider mt-1.5 font-semibold">
                   {item.label}
                 </span>
                 
                 {isActive && (
                   <motion.div 
                     layoutId="nav-indicator"
-                    className="absolute top-0 left-1/2 -translate-x-1/2 w-12 h-[3px] bg-primary rounded-full"
+                    className="absolute top-0 left-1/2 -translate-x-1/2 w-12 h-1 bg-accent-primary rounded-full shadow-[0_0_8px_rgba(211,47,47,0.6)]"
                     transition={{ type: "spring", stiffness: 400, damping: 30 }}
                   />
                 )}
@@ -125,8 +125,8 @@ export default function Navigation() {
                 href={item.path}
                 className="relative flex flex-col items-center justify-center h-full"
               >
-                <div className="flex items-center justify-center w-12 h-12 rounded-full bg-primary text-white transition-all duration-300 hover:scale-105">
-                  <item.icon size={22} fill="currentColor" strokeWidth={2} />
+                <div className="flex items-center justify-center w-14 h-14 rounded-full bg-accent-primary text-txt-primary transition-all duration-300 hover:scale-105 hover:bg-accent-secondary shadow-elevated">
+                  <item.icon size={24} fill="currentColor" strokeWidth={2} />
                 </div>
               </Link>
             )
@@ -146,35 +146,35 @@ export default function Navigation() {
                 onClick={isSocial ? handleSocialClick : undefined}
                 className={clsx(
                   "relative flex flex-col items-center justify-center w-full h-full transition-colors duration-200 group",
-                  isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
+                  isActive ? "text-accent-primary" : "text-txt-tertiary hover:text-txt-primary"
                 )}
               >
                 <div className={clsx(
-                  "relative p-1 rounded-xl transition-all duration-300"
+                  "relative p-1 rounded-professional transition-all duration-300"
                 )}>
-                  <item.icon size={20} strokeWidth={isActive ? 2.5 : 2} />
+                  <item.icon size={22} strokeWidth={isActive ? 2.5 : 2} />
                   
                   {/* Notification Badge */}
                   {isSocial && unreadCount > 0 && (
                     <motion.div
                       initial={{ scale: 0 }}
                       animate={{ scale: 1 }}
-                      className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 bg-red-500 rounded-full flex items-center justify-center"
+                      className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 bg-accent-primary rounded-full flex items-center justify-center shadow-card"
                     >
-                      <span className="text-[9px] font-bold text-white leading-none">
+                      <span className="text-[9px] font-bold text-txt-primary leading-none">
                         {unreadCount > 9 ? '9+' : unreadCount}
                       </span>
                     </motion.div>
                   )}
                 </div>
-                <span className="text-[9px] uppercase tracking-wider mt-1 font-medium opacity-80">
+                <span className="text-[10px] uppercase tracking-wider mt-1.5 font-semibold">
                   {item.label}
                 </span>
                 
                 {isActive && (
                   <motion.div 
                     layoutId="nav-indicator"
-                    className="absolute top-0 left-1/2 -translate-x-1/2 w-12 h-[3px] bg-primary rounded-full"
+                    className="absolute top-0 left-1/2 -translate-x-1/2 w-12 h-1 bg-accent-primary rounded-full shadow-[0_0_8px_rgba(211,47,47,0.6)]"
                     transition={{ type: "spring", stiffness: 400, damping: 30 }}
                   />
                 )}

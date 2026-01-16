@@ -20,21 +20,21 @@ export default function StreakWidget({ history }: StreakWidgetProps) {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-gradient-to-br from-primary/10 to-accent/10 border border-primary/20 rounded-2xl p-5 shadow-lg"
+      className="bg-gradient-to-br from-accent-primary/15 to-accent-secondary/15 border border-accent-primary/30 rounded-professional p-6 shadow-elevated"
     >
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-2">
-          <div className="bg-primary/20 p-2 rounded-lg">
-            <Flame className="text-primary" size={20} />
+          <div className="bg-accent-primary/20 p-2.5 rounded-professional border border-accent-primary/30">
+            <Flame className="text-accent-primary" size={22} />
           </div>
           <div>
-            <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider">
+            <h3 className="text-sm font-bold text-txt-secondary uppercase tracking-wider">
               Workout Streak
             </h3>
           </div>
         </div>
         {atRisk && (
-          <div className="bg-yellow-500/10 border border-yellow-500/30 text-yellow-500 text-[10px] font-bold uppercase px-2 py-1 rounded animate-pulse">
+          <div className="bg-accent-secondary/15 border border-accent-secondary/40 text-accent-secondary text-[10px] font-bold uppercase px-2.5 py-1.5 rounded-professional animate-pulse">
             At Risk!
           </div>
         )}
@@ -44,14 +44,14 @@ export default function StreakWidget({ history }: StreakWidgetProps) {
         {/* Current Streak */}
         <div className="text-center">
           <div className="flex items-baseline justify-center gap-1 mb-1">
-            <span className="text-4xl font-black text-primary">
+            <span className="text-metric font-bold text-accent-primary">
               {streakData.currentStreak}
             </span>
-            <span className="text-sm text-muted-foreground font-bold">
+            <span className="text-sm text-txt-secondary font-semibold">
               {streakData.currentStreak === 1 ? 'day' : 'days'}
             </span>
           </div>
-          <div className="text-xs text-muted-foreground uppercase tracking-wide font-semibold">
+          <div className="text-xs text-txt-tertiary uppercase tracking-wide font-semibold">
             Current
           </div>
         </div>
@@ -59,12 +59,12 @@ export default function StreakWidget({ history }: StreakWidgetProps) {
         {/* Longest Streak */}
         <div className="text-center">
           <div className="flex items-baseline justify-center gap-1 mb-1">
-            <Trophy className="text-accent mb-1" size={16} />
-            <span className="text-3xl font-black text-accent">
+            <Trophy className="text-accent-secondary mb-1" size={18} />
+            <span className="text-h1 font-bold text-accent-secondary">
               {streakData.longestStreak}
             </span>
           </div>
-          <div className="text-xs text-muted-foreground uppercase tracking-wide font-semibold">
+          <div className="text-xs text-txt-tertiary uppercase tracking-wide font-semibold">
             Best
           </div>
         </div>
@@ -72,12 +72,12 @@ export default function StreakWidget({ history }: StreakWidgetProps) {
         {/* Total Workouts */}
         <div className="text-center">
           <div className="flex items-baseline justify-center gap-1 mb-1">
-            <TrendingUp className="text-green-500 mb-1" size={16} />
-            <span className="text-3xl font-black text-green-500">
+            <TrendingUp className="text-accent-success mb-1" size={18} />
+            <span className="text-h1 font-bold text-accent-success">
               {streakData.totalWorkouts}
             </span>
           </div>
-          <div className="text-xs text-muted-foreground uppercase tracking-wide font-semibold">
+          <div className="text-xs text-txt-tertiary uppercase tracking-wide font-semibold">
             Total
           </div>
         </div>
@@ -85,15 +85,15 @@ export default function StreakWidget({ history }: StreakWidgetProps) {
 
       {/* Motivational message */}
       {streakData.currentStreak > 0 && (
-        <div className="mt-4 pt-4 border-t border-primary/20">
-          <p className="text-xs text-center text-muted-foreground leading-relaxed">
+        <div className="mt-4 pt-4 border-t border-accent-primary/30">
+          <p className="text-xs text-center text-txt-secondary leading-relaxed">
             {atRisk && (
-              <span className="text-yellow-500 font-semibold">
+              <span className="text-accent-secondary font-semibold">
                 🔥 Don't break your streak! Train today to keep it alive.
               </span>
             )}
             {!atRisk && streakData.currentStreak >= 7 && (
-              <span className="text-primary font-semibold">
+              <span className="text-accent-primary font-semibold">
                 💪 Amazing! {streakData.currentStreak} days strong. Keep crushing it!
               </span>
             )}

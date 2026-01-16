@@ -72,7 +72,7 @@ export default function AccessorySuggestionsWidget() {
   }
 
   return (
-    <div className="bg-card border border-white/5 rounded-2xl p-6 shadow-xl">
+    <div className="bg-bg-secondary border border-border-default rounded-professional p-6 shadow-card">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">

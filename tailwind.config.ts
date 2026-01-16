@@ -9,6 +9,20 @@ export default {
   theme: {
     extend: {
       colors: {
+        // Dark Professional Theme - Primary Colors
+        'bg-primary': '#0F0F0F',
+        'bg-secondary': '#1A1A1A',
+        'bg-tertiary': '#242424',
+        'txt-primary': '#FFFFFF',
+        'txt-secondary': '#B3B3B3',
+        'txt-tertiary': '#808080',
+        'accent-primary': '#D32F2F',
+        'accent-secondary': '#FF5722',
+        'accent-success': '#4CAF50',
+        'border-default': '#333333',
+        'border-light': '#404040',
+        
+        // Legacy support (keep for gradual migration)
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
         card: {
@@ -64,10 +78,24 @@ export default {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+        'professional': '8px',
+        'sharp': '0px',
       },
       fontFamily: {
-        sans: ["var(--font-oswald)", "system-ui", "sans-serif"],
+        montserrat: ['Montserrat', 'Roboto', 'sans-serif'],
+        sans: ['Montserrat', "var(--font-oswald)", "system-ui", "sans-serif"],
         mono: ["var(--font-jetbrains-mono)", "monospace"],
+      },
+      fontSize: {
+        'h1': ['32px', { lineHeight: '1.2', fontWeight: '700', letterSpacing: '0.5px' }],
+        'h2': ['24px', { lineHeight: '1.2', fontWeight: '600' }],
+        'body': ['16px', { lineHeight: '1.5', fontWeight: '400' }],
+        'small': ['14px', { lineHeight: '1.4', fontWeight: '400' }],
+        'metric': ['36px', { lineHeight: '1.2', fontWeight: '700' }],
+      },
+      boxShadow: {
+        'card': '0 2px 8px rgba(0, 0, 0, 0.4)',
+        'elevated': '0 4px 16px rgba(0, 0, 0, 0.6)',
       },
     },
   },

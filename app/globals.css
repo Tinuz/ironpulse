@@ -1,29 +1,32 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --background: 0 0% 98%;
-    --foreground: 0 0% 10%;
-    --card: 0 0% 100%;
-    --card-foreground: 0 0% 10%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 10%;
-    --primary: 24 100% 50%;
+    /* Dark Professional Theme - Updated */
+    --background: 0 0% 6%; /* #0F0F0F */
+    --foreground: 0 0% 100%; /* #FFFFFF */
+    --card: 0 0% 10%; /* #1A1A1A */
+    --card-foreground: 0 0% 100%;
+    --popover: 0 0% 10%;
+    --popover-foreground: 0 0% 100%;
+    --primary: 4 75% 51%; /* #D32F2F */
     --primary-foreground: 0 0% 100%;
-    --secondary: 330 100% 50%;
+    --secondary: 14 100% 57%; /* #FF5722 */
     --secondary-foreground: 0 0% 100%;
-    --muted: 0 0% 45%;
-    --muted-foreground: 0 0% 55%;
-    --accent: 24 100% 50%;
+    --muted: 0 0% 50%; /* #808080 */
+    --muted-foreground: 0 0% 70%; /* #B3B3B3 */
+    --accent: 4 75% 51%; /* #D32F2F */
     --accent-foreground: 0 0% 100%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
-    --border: 0 0% 90%;
-    --input: 0 0% 90%;
-    --ring: 24 100% 50%;
-    --radius: 0.5rem;
+    --border: 0 0% 20%; /* #333333 */
+    --input: 0 0% 20%;
+    --ring: 4 75% 51%; /* #D32F2F */
+    --radius: 8px; /* Professional border radius */
   }
 }
 
@@ -32,7 +35,22 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-bg-primary text-txt-primary;
+    font-family: 'Montserrat', 'Roboto', system-ui, sans-serif;
     font-feature-settings: "rlig" 1, "calt" 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  
+  h1 {
+    @apply text-h1;
+  }
+  
+  h2 {
+    @apply text-h2;
+  }
+  
+  p {
+    @apply text-body;
   }
 }

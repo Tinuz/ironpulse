@@ -23,11 +23,11 @@ export default function MuscleGroupVolumeWidget() {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-card border border-border rounded-2xl p-6 shadow-sm"
+      className="bg-bg-secondary border border-border-default rounded-professional p-6 shadow-card"
     >
       <div className="flex items-center justify-between mb-4">
-        <h3 className="font-bold text-lg">Volume per Spiergroep</h3>
-        <span className="text-xs text-muted-foreground">Afgelopen 7 dagen</span>
+        <h3 className="font-bold text-lg text-txt-primary">Volume per Spiergroep</h3>
+        <span className="text-xs text-txt-tertiary">Afgelopen 7 dagen</span>
       </div>
       
       {/* Imbalance Warning */}

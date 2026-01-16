@@ -112,13 +112,13 @@ export default function WorkoutCalendar({ onDateClick }: WorkoutCalendarProps) {
         <div className="flex gap-2">
           <button
             onClick={handlePreviousMonth}
-            className="p-2 bg-white/5 hover:bg-white/10 rounded-lg transition-colors"
+            className="p-2 bg-bg-secondary hover:bg-bg-tertiary border border-border-default rounded-professional transition-all"
           >
             <ChevronLeft size={20} />
           </button>
           <button
             onClick={handleNextMonth}
-            className="p-2 bg-white/5 hover:bg-white/10 rounded-lg transition-colors"
+            className="p-2 bg-bg-secondary hover:bg-bg-tertiary border border-border-default rounded-professional transition-all"
           >
             <ChevronRight size={20} />
           </button>
@@ -126,7 +126,7 @@ export default function WorkoutCalendar({ onDateClick }: WorkoutCalendarProps) {
       </div>
 
       {/* Calendar Grid */}
-      <div className="bg-card border border-white/5 rounded-2xl p-4">
+      <div className="bg-bg-secondary border border-border-default rounded-professional p-5 shadow-card">
         {/* Day labels */}
         <div className="grid grid-cols-7 gap-2 mb-2">
           {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
@@ -180,7 +180,7 @@ export default function WorkoutCalendar({ onDateClick }: WorkoutCalendarProps) {
                       {dayWorkouts.map((_, i) => (
                         <div 
                           key={i} 
-                          className="w-1 h-1 bg-primary rounded-full"
+                          className="w-1 h-1 bg-accent-primary rounded-full"
                         />
                       ))}
                     </div>
@@ -202,12 +202,12 @@ export default function WorkoutCalendar({ onDateClick }: WorkoutCalendarProps) {
 
       {/* Monthly Stats */}
       <div className="grid grid-cols-3 gap-3">
-        <div className="bg-card border border-white/5 rounded-xl p-4">
-          <div className="flex items-center gap-2 text-muted-foreground mb-2">
+        <div className="bg-bg-secondary border border-border-default rounded-professional p-5 shadow-card">
+          <div className="flex items-center gap-2 text-txt-tertiary mb-2">
             <CalendarIcon size={14} />
-            <span className="text-xs font-bold uppercase">Workouts</span>
+            <span className="text-xs font-semibold uppercase tracking-wider">Workouts</span>
           </div>
-          <div className="text-2xl font-black">
+          <div className="text-h2 font-bold text-txt-primary">
             {Array.from(workoutsByDate.entries()).filter(([dateKey]) => {
               const date = new Date(dateKey)
               return isSameMonth(date, currentMonth)
@@ -215,12 +215,12 @@ export default function WorkoutCalendar({ onDateClick }: WorkoutCalendarProps) {
           </div>
         </div>
 
-        <div className="bg-card border border-white/5 rounded-xl p-4">
-          <div className="flex items-center gap-2 text-muted-foreground mb-2">
+        <div className="bg-bg-secondary border border-border-default rounded-professional p-5 shadow-card">
+          <div className="flex items-center gap-2 text-txt-tertiary mb-2">
             <Trophy size={14} />
-            <span className="text-xs font-bold uppercase">Volume</span>
+            <span className="text-xs font-semibold uppercase tracking-wider">Volume</span>
           </div>
-          <div className="text-2xl font-black">
+          <div className="text-h2 font-bold text-txt-primary">
             {(() => {
               const monthVolume = Array.from(workoutsByDate.entries())
                 .filter(([dateKey]) => isSameMonth(new Date(dateKey), currentMonth))
@@ -236,16 +236,16 @@ export default function WorkoutCalendar({ onDateClick }: WorkoutCalendarProps) {
                 ? `${(monthVolume / 1000).toFixed(1)}k` 
                 : monthVolume.toFixed(0)
             })()}
-            <span className="text-xs font-normal text-muted-foreground ml-1">kg</span>
+            <span className="text-xs font-normal text-txt-secondary ml-1">kg</span>
           </div>
         </div>
 
-        <div className="bg-card border border-white/5 rounded-xl p-4">
-          <div className="flex items-center gap-2 text-muted-foreground mb-2">
+        <div className="bg-bg-secondary border border-border-default rounded-professional p-5 shadow-card">
+          <div className="flex items-center gap-2 text-txt-tertiary mb-2">
             <Dumbbell size={14} />
-            <span className="text-xs font-bold uppercase">Sets</span>
+            <span className="text-xs font-semibold uppercase tracking-wider">Sets</span>
           </div>
-          <div className="text-2xl font-black">
+          <div className="text-h2 font-bold text-txt-primary">
             {Array.from(workoutsByDate.entries())
               .filter(([dateKey]) => isSameMonth(new Date(dateKey), currentMonth))
               .reduce((acc, [, workouts]) => 

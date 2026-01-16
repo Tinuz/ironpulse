@@ -181,18 +181,18 @@ export default function SquadFeedPost({ post, userProfile }: SquadFeedPostProps)
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-card border border-white/5 rounded-xl p-4 space-y-3"
+      className="bg-bg-secondary border border-border-default rounded-professional p-5 space-y-4 shadow-card hover:shadow-elevated transition-shadow"
     >
       {/* Post Header */}
       <div className="flex items-start gap-3">
-        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/20 to-purple-500/20 flex items-center justify-center flex-shrink-0 font-bold text-sm">
+        <div className="w-11 h-11 rounded-professional bg-gradient-to-br from-accent-primary/20 to-accent-secondary/20 border border-border-light flex items-center justify-center flex-shrink-0 font-bold text-sm text-txt-primary">
           {userProfile?.display_name?.[0]?.toUpperCase() || post.user_id.substring(0, 2).toUpperCase()}
         </div>
         <div className="flex-1 min-w-0">
-          <h4 className="font-bold text-sm">
+          <h4 className="font-bold text-sm text-txt-primary">
             {userProfile?.display_name || 'Squad Member'}
           </h4>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-txt-tertiary">
             {formatPostTime(post.created_at)}
           </p>
         </div>
@@ -200,14 +200,14 @@ export default function SquadFeedPost({ post, userProfile }: SquadFeedPostProps)
 
       {/* Post Caption */}
       {post.text && (
-        <p className="text-sm leading-relaxed">{post.text}</p>
+        <p className="text-sm leading-relaxed text-txt-secondary">{post.text}</p>
       )}
 
       {/* Post Content */}
       {renderPostContent()}
 
       {/* Reactions Bar */}
-      <div className="flex items-center gap-2 pt-2 border-t border-white/5">
+      <div className="flex items-center gap-2 pt-3 border-t border-border-default">
         {Object.entries(REACTION_ICONS).map(([type, { icon: Icon, color }]) => {
           const count = reactionCounts[type] || 0
           const isActive = userReactions.includes(type as any)
@@ -216,7 +216,7 @@ export default function SquadFeedPost({ post, userProfile }: SquadFeedPostProps)
             <button
               key={type}
               onClick={() => handleReaction(type as any)}
-              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-colors ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-professional transition-all ${
                 isActive
                   ? 'bg-white/10 ' + color
                   : 'bg-white/5 text-muted-foreground hover:bg-white/10'

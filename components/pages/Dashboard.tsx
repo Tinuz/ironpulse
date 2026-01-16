@@ -31,10 +31,12 @@ export default function Dashboard() {
   return (
     <div className="p-6 pb-24 max-w-2xl mx-auto space-y-8" data-tour="dashboard">
       {/* Header */}
-      <div className="flex justify-between items-start">
+      <div className="flex justify-between items-start mb-2">
         <div>
-          <h2 className="text-muted-foreground text-sm uppercase tracking-widest mb-1">{t.dashboard.fitnessTracker}</h2>
-          <h1 className="text-4xl font-black italic tracking-tighter">{t.dashboard.brandName.split(' • ')[0]} <span className="text-primary">•</span> {t.dashboard.brandName.split(' • ')[1]}</h1>
+          <h2 className="text-txt-tertiary text-xs uppercase tracking-widest mb-2 font-medium">{t.dashboard.fitnessTracker}</h2>
+          <h1 className="text-h1 font-bold text-txt-primary">
+            {t.dashboard.brandName.split(' • ')[0]} <span className="text-accent-primary">•</span> {t.dashboard.brandName.split(' • ')[1]}
+          </h1>
         </div>
         <div className="flex flex-col items-end gap-2">
           <button 
@@ -45,41 +47,41 @@ export default function Dashboard() {
               <img 
                 src={user.user_metadata.avatar_url} 
                 alt="Profile" 
-                className="h-12 w-12 rounded-full border-2 border-primary/50 shadow-lg hover:scale-105 transition-transform object-cover"
+                className="h-12 w-12 rounded-professional border-2 border-accent-primary/50 shadow-card hover:scale-105 transition-transform object-cover"
               />
             ) : (
-              <div className="h-12 w-12 rounded-full bg-gradient-to-tr from-primary to-accent flex items-center justify-center shadow-lg shadow-primary/20 hover:scale-105 transition-transform border-2 border-white/20">
-                <User size={24} className="text-background" />
+              <div className="h-12 w-12 rounded-professional bg-gradient-to-tr from-accent-primary to-accent-secondary flex items-center justify-center shadow-card hover:scale-105 transition-transform border-2 border-border-light">
+                <User size={24} className="text-txt-primary" />
               </div>
             )}
-            <div className="absolute -bottom-1 -right-1 bg-green-500 h-3 w-3 rounded-full border-2 border-background"></div>
+            <div className="absolute -bottom-1 -right-1 bg-accent-success h-3 w-3 rounded-full border-2 border-bg-primary"></div>
           </button>
-          <p className="text-xs text-muted-foreground max-w-[120px] truncate">{user?.email}</p>
+          <p className="text-xs text-txt-tertiary max-w-[120px] truncate">{user?.email}</p>
         </div>
       </div>
 
       {/* Stats Overview */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-4">
         <div 
           onClick={() => router.push('/history')}
-          className="bg-card border border-border p-4 rounded-2xl shadow-sm hover:shadow-md transition-all cursor-pointer group"
+          className="bg-bg-secondary border border-border-default p-5 rounded-professional shadow-card hover:shadow-elevated hover:border-border-light transition-all cursor-pointer group"
         >
-          <div className="flex items-center gap-2 text-muted-foreground text-xs uppercase font-bold mb-2">
-            <Calendar size={14} /> {t.dashboard.history}
+          <div className="flex items-center gap-2 text-txt-tertiary text-xs uppercase font-semibold mb-3 tracking-wider">
+            <Calendar size={16} /> {t.dashboard.history}
           </div>
-          <div className="text-3xl font-black tabular-nums group-hover:text-primary transition-colors">{totalWorkouts}</div>
+          <div className="text-metric font-bold text-txt-primary tabular-nums group-hover:text-accent-primary transition-colors">{totalWorkouts}</div>
         </div>
         
         <div 
           onClick={() => router.push('/analytics')}
-          className="bg-card border border-border p-4 rounded-2xl shadow-sm hover:shadow-md transition-all cursor-pointer group"
+          className="bg-bg-secondary border border-border-default p-5 rounded-professional shadow-card hover:shadow-elevated hover:border-border-light transition-all cursor-pointer group"
           data-tour="progress"
         >
-          <div className="flex items-center gap-2 text-muted-foreground text-xs uppercase font-bold mb-2">
-            <BarChart3 size={14} /> {t.dashboard.analytics}
+          <div className="flex items-center gap-2 text-txt-tertiary text-xs uppercase font-semibold mb-3 tracking-wider">
+            <BarChart3 size={16} /> {t.dashboard.analytics}
           </div>
-          <div className="text-3xl font-black tabular-nums group-hover:text-primary transition-colors">
-            <BarChart3 size={32} />
+          <div className="text-metric font-bold text-txt-primary tabular-nums group-hover:text-accent-primary transition-colors flex items-center">
+            <BarChart3 size={36} />
           </div>
         </div>
         
@@ -87,16 +89,16 @@ export default function Dashboard() {
         <div 
           onClick={() => router.push('/nutrition')}
           data-tour="nutrition"
-          className="bg-card border border-border p-4 rounded-2xl cursor-pointer hover:shadow-md transition-all group relative overflow-hidden shadow-sm col-span-2"
+          className="bg-bg-secondary border border-border-default p-5 rounded-professional cursor-pointer hover:shadow-elevated hover:border-border-light transition-all group relative overflow-hidden shadow-card col-span-2"
         >
-          <div className="absolute right-0 top-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-             <Utensils size={40} />
+          <div className="absolute right-0 top-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity">
+             <Utensils size={48} />
           </div>
-          <div className="flex items-center gap-2 text-muted-foreground text-xs uppercase font-bold mb-2 relative z-10">
-            <Utensils size={14} /> {t.nutrition.title}
+          <div className="flex items-center gap-2 text-txt-tertiary text-xs uppercase font-semibold mb-3 relative z-10 tracking-wider">
+            <Utensils size={16} /> {t.nutrition.title}
           </div>
-          <div className="text-2xl font-black tabular-nums text-pink-500 relative z-10">
-            {totalCalories} <span className="text-xs font-medium text-muted-foreground">{t.nutrition.kcal}</span>
+          <div className="text-h2 font-bold tabular-nums text-accent-secondary relative z-10">
+            {totalCalories} <span className="text-sm font-medium text-txt-secondary">{t.nutrition.kcal}</span>
           </div>
         </div>
       </div>
@@ -114,14 +116,14 @@ export default function Dashboard() {
         href="https://buymeacoffee.com/nxtrep"
         target="_blank"
         rel="noopener noreferrer"
-        className="block w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-[#FF813F]/5 to-[#FFDD00]/5 hover:from-[#FF813F]/15 hover:to-[#FFDD00]/15 border border-[#FF813F]/20 hover:border-[#FF813F]/40 transition-all text-center group shadow-sm hover:shadow-md"
+        className="block w-full py-4 px-5 rounded-professional bg-gradient-to-r from-accent-secondary/10 to-accent-success/10 hover:from-accent-secondary/20 hover:to-accent-success/20 border border-accent-secondary/30 hover:border-accent-secondary/50 transition-all text-center group shadow-card hover:shadow-elevated"
       >
-        <div className="flex flex-col items-center gap-1">
-          <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground group-hover:text-[#FF813F] transition-colors">
-            <span className="text-lg">☕</span>
+        <div className="flex flex-col items-center gap-1.5">
+          <div className="flex items-center gap-2.5 text-sm font-semibold text-txt-secondary group-hover:text-accent-secondary transition-colors">
+            <span className="text-xl">☕</span>
             <span>{t.dashboard.buyMeACoffee}</span>
           </div>
-          <p className="text-xs text-muted-foreground/70">{t.dashboard.supportDevelopment}</p>
+          <p className="text-xs text-txt-tertiary">{t.dashboard.supportDevelopment}</p>
         </div>
       </a>
 
