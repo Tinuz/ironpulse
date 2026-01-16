@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { getCoachProfile } from '@/components/utils/coachProfiles'
 import { checkRateLimit, getClientIdentifier, RATE_LIMITS } from '@/lib/rateLimit'
 import { supabase } from '@/lib/supabase'
+import { logger, generateRequestId } from '@/lib/logger'
 
 export const runtime = 'edge'
 
@@ -22,10 +23,15 @@ const ChatRequestSchema = z.object({
 })
 
 export async function POST(request: NextRequest) {
+  const startTime = Date.now()
+  const requestId = generateRequestId()
+  let userId: string | undefined
+  
   try {
     // Get authorization header
     const authHeader = request.headers.get('authorization')
     if (!authHeader?.startsWith('Bearer ')) {
+      logger.authLog('auth_failure', undefined, { requestId, endpoint: '/api/chat' })
       return NextResponse.json(
         { error: 'Unauthorized - No valid session' },
         { status: 401 }
@@ -38,17 +44,21 @@ export async function POST(request: NextRequest) {
     const { data: { user }, error: authError } = await supabase.auth.getUser(token)
     
     if (authError || !user) {
+      logger.authLog('auth_failure', undefined, { requestId, endpoint: '/api/chat', error: authError?.message })
       return NextResponse.json(
         { error: 'Unauthorized - Invalid session' },
         { status: 401 }
       )
     }
 
+    userId = user.id
+
     // Rate limiting
     const identifier = getClientIdentifier(request, user.id)
     const rateLimit = checkRateLimit(identifier, RATE_LIMITS.AI_CHAT)
     
     if (!rateLimit.success) {
+      logger.rateLimitLog(user.id, '/api/chat', RATE_LIMITS.AI_CHAT.limit)
       return NextResponse.json(
         { 
           error: 'Rate limit exceeded. Please try again later.',
@@ -142,6 +152,16 @@ ${userData}`
     const data = await response.json()
     const aiMessage = data.choices[0]?.message?.content || 'Sorry, ik kon geen antwoord genereren.'
 
+    // Log successful API request
+    logger.apiLog({
+      requestId,
+      userId,
+      endpoint: '/api/chat',
+      method: 'POST',
+      statusCode: 200,
+      duration: Date.now() - startTime
+    })
+
     return NextResponse.json(
       { message: aiMessage },
       {
@@ -152,8 +172,13 @@ ${userData}`
         }
       }
     )
+
   } catch (error) {
-    console.error('Error in AI chat:', error)
+    logger.error('Error in AI chat', error, {
+      requestId,
+      userId,
+      endpoint: '/api/chat'
+    })
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
