@@ -32,8 +32,13 @@ export default function Nutrition() {
   const [searchResults, setSearchResults] = useState<NutritionSearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [searchPage, setSearchPage] = useState(1);
+  const [hasMoreResults, setHasMoreResults] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const scrollObserverRef = useRef<IntersectionObserver | null>(null);
+  const loadMoreTriggerRef = useRef<HTMLDivElement>(null);
 
   const today = format(new Date(), 'yyyy-MM-dd');
   const currentDateStr = format(selectedDate, 'yyyy-MM-dd');
@@ -223,27 +228,35 @@ export default function Nutrition() {
   };
 
   // Debounced nutrition search
-  const searchNutrition = useCallback(async (query: string) => {
+  const searchNutrition = useCallback(async (query: string, page = 1, append = false) => {
     if (query.trim().length < 3 || !session?.access_token) {
       setSearchResults([]);
       setShowDropdown(false);
+      setHasMoreResults(false);
       return;
     }
 
-    // Check cache first
-    const cached = getCachedResults(query);
-    if (cached) {
-      setSearchResults(cached);
-      setShowDropdown(true);
-      setIsSearching(false);
-      return;
+    // Check cache first (only for page 1)
+    if (page === 1 && !append) {
+      const cached = getCachedResults(query);
+      if (cached) {
+        setSearchResults(cached);
+        setShowDropdown(true);
+        setIsSearching(false);
+        setHasMoreResults(cached.length >= 20); // If we got 20, there might be more
+        return;
+      }
     }
 
-    setIsSearching(true);
+    if (append) {
+      setIsLoadingMore(true);
+    } else {
+      setIsSearching(true);
+    }
 
     try {
       const response = await fetch(
-        `/api/search-nutrition?query=${encodeURIComponent(query)}&limit=8`,
+        `/api/search-nutrition?query=${encodeURIComponent(query)}&limit=20&page=${page}`,
         {
           headers: {
             'Authorization': `Bearer ${session.access_token}`
@@ -253,42 +266,99 @@ export default function Nutrition() {
       
       if (response.ok) {
         const data = await response.json();
-        setSearchResults(data.results);
-        setShowDropdown(true);
         
-        // Cache results
-        setCachedResults(query, data.results);
+        if (append) {
+          setSearchResults(prev => [...prev, ...data.results]);
+        } else {
+          setSearchResults(data.results);
+          // Cache results (only page 1)
+          if (page === 1) {
+            setCachedResults(query, data.results);
+          }
+        }
+        
+        setShowDropdown(true);
+        setHasMoreResults(data.results.length >= 20);
+        
       } else if (response.status === 429) {
         console.error('Rate limit exceeded');
-        setSearchResults([]);
-        setShowDropdown(false);
+        if (!append) {
+          setSearchResults([]);
+          setShowDropdown(false);
+        }
       } else {
-        setSearchResults([]);
-        setShowDropdown(false);
+        if (!append) {
+          setSearchResults([]);
+          setShowDropdown(false);
+        }
       }
     } catch (error) {
       console.error('Search error:', error);
-      setSearchResults([]);
-      setShowDropdown(false);
+      if (!append) {
+        setSearchResults([]);
+        setShowDropdown(false);
+      }
     } finally {
       setIsSearching(false);
+      setIsLoadingMore(false);
     }
   }, [session?.access_token]);
 
   // Handle search input with debouncing
   const handleSearchInput = (value: string) => {
     setNewItem({...newItem, name: value});
+    setSearchPage(1);
 
     // Clear previous timeout
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
     }
 
-    // Debounce search (300ms)
-    searchTimeoutRef.current = setTimeout(() => {
-      searchNutrition(value);
-    }, 300);
+    if (value.trim().length >= 3) {
+      // Debounce search (300ms)
+      searchTimeoutRef.current = setTimeout(() => {
+        searchNutrition(value, 1, false);
+      }, 300);
+    } else {
+      setSearchResults([]);
+      setShowDropdown(false);
+      setHasMoreResults(false);
+    }
   };
+
+  // Load more results
+  const loadMoreResults = useCallback(() => {
+    if (!isLoadingMore && hasMoreResults && newItem.name.trim().length >= 3) {
+      const nextPage = searchPage + 1;
+      setSearchPage(nextPage);
+      searchNutrition(newItem.name, nextPage, true);
+    }
+  }, [isLoadingMore, hasMoreResults, searchPage, newItem.name, searchNutrition]);
+
+  // Setup Intersection Observer for infinite scroll
+  useEffect(() => {
+    if (!loadMoreTriggerRef.current) return;
+
+    scrollObserverRef.current = new IntersectionObserver(
+      (entries) => {
+        const first = entries[0];
+        if (first.isIntersecting && hasMoreResults && !isLoadingMore) {
+          loadMoreResults();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (showDropdown && searchResults.length > 0) {
+      scrollObserverRef.current.observe(loadMoreTriggerRef.current);
+    }
+
+    return () => {
+      if (scrollObserverRef.current) {
+        scrollObserverRef.current.disconnect();
+      }
+    };
+  }, [hasMoreResults, isLoadingMore, loadMoreResults, showDropdown, searchResults.length]);
 
   // Handle result selection
   const handleSelectResult = (result: NutritionSearchResult) => {
@@ -1030,55 +1100,91 @@ export default function Nutrition() {
                         initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -10 }}
-                        className="absolute z-50 w-full mt-2 bg-card border border-white/10 rounded-xl shadow-2xl overflow-hidden max-h-80 overflow-y-auto"
+                        className="absolute z-50 w-full mt-2 bg-bg-secondary border border-border-default rounded-professional shadow-elevated overflow-hidden max-h-96 overflow-y-auto"
                       >
                         {searchResults.map((result) => (
                           <button
                             key={result.id}
                             onClick={() => handleSelectResult(result)}
-                            className="w-full p-4 text-left hover:bg-white/5 transition-colors border-b border-white/5 last:border-0"
+                            className="w-full p-4 text-left hover:bg-bg-tertiary transition-colors border-b border-border-default last:border-0 flex gap-3"
                           >
-                            <div className="flex items-start justify-between gap-3">
-                              <div className="flex-1 min-w-0">
-                                <div className="font-bold text-sm truncate">
-                                  {result.name}
-                                </div>
-                                {result.brand && (
-                                  <div className="text-xs text-muted-foreground truncate mt-0.5">
-                                    {result.brand}
-                                  </div>
-                                )}
-                                <div className="flex items-center gap-2 mt-2 text-xs">
-                                  <span className="font-mono font-bold text-primary">
-                                    {result.nutrients.calories} kcal
-                                  </span>
-                                  {result.nutrients.protein > 0 && (
-                                    <span className="text-pink-400">
-                                      {result.nutrients.protein}g P
-                                    </span>
-                                  )}
-                                  {result.nutrients.carbs > 0 && (
-                                    <span className="text-blue-400">
-                                      {result.nutrients.carbs}g C
-                                    </span>
-                                  )}
-                                  {result.nutrients.fats > 0 && (
-                                    <span className="text-amber-400">
-                                      {result.nutrients.fats}g F
-                                    </span>
-                                  )}
-                                </div>
+                            {/* Product Image */}
+                            {result.imageUrl && (
+                              <div className="flex-shrink-0 w-16 h-16 bg-bg-primary rounded-professional overflow-hidden border border-border-light">
+                                <img 
+                                  src={result.imageUrl} 
+                                  alt={result.name}
+                                  className="w-full h-full object-cover"
+                                  onError={(e) => {
+                                    e.currentTarget.style.display = 'none';
+                                  }}
+                                />
                               </div>
-                              <div className="flex-shrink-0 text-[10px] text-muted-foreground uppercase tracking-wider">
-                                {result.source === 'openfoodfacts' ? 'OFF' : 'USDA'}
+                            )}
+                            
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="flex-1 min-w-0">
+                                  <div className="font-bold text-sm truncate text-txt-primary">
+                                    {result.name}
+                                  </div>
+                                  {result.brand && (
+                                    <div className="text-xs text-txt-tertiary truncate mt-0.5">
+                                      {result.brand}
+                                    </div>
+                                  )}
+                                  <div className="flex items-center gap-2 mt-2 text-xs flex-wrap">
+                                    <span className="font-semibold text-accent-primary">
+                                      {result.nutrients.calories} kcal
+                                    </span>
+                                    {result.nutrients.protein > 0 && (
+                                      <span className="text-pink-400">
+                                        {result.nutrients.protein}g P
+                                      </span>
+                                    )}
+                                    {result.nutrients.carbs > 0 && (
+                                      <span className="text-blue-400">
+                                        {result.nutrients.carbs}g C
+                                      </span>
+                                    )}
+                                    {result.nutrients.fats > 0 && (
+                                      <span className="text-amber-400">
+                                        {result.nutrients.fats}g F
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="flex-shrink-0 text-[10px] text-txt-tertiary uppercase tracking-wider font-semibold">
+                                  {result.source === 'openfoodfacts' ? 'OFF' : 'USDA'}
+                                </div>
                               </div>
                             </div>
                           </button>
                         ))}
-                        <div className="p-2 text-[10px] text-center text-muted-foreground border-t border-white/5">
+                        
+                        {/* Infinite Scroll Trigger */}
+                        {hasMoreResults && (
+                          <div ref={loadMoreTriggerRef} className="p-4 text-center">
+                            {isLoadingMore ? (
+                              <div className="flex items-center justify-center gap-2 text-txt-tertiary">
+                                <Loader2 size={16} className="animate-spin" />
+                                <span className="text-sm">Laden...</span>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={loadMoreResults}
+                                className="text-sm text-accent-primary hover:text-accent-secondary transition-colors font-semibold"
+                              >
+                                Meer resultaten laden
+                              </button>
+                            )}
+                          </div>
+                        )}
+                        
+                        <div className="p-2 text-[10px] text-center text-txt-tertiary border-t border-border-default">
                           {language === 'nl' 
-                            ? 'Data van Open Food Facts & USDA • per 100g/ml' 
-                            : 'Data from Open Food Facts & USDA • per 100g/ml'}
+                            ? `${searchResults.length} resultaten • Data van Open Food Facts & USDA • per 100g/ml` 
+                            : `${searchResults.length} results • Data from Open Food Facts & USDA • per 100g/ml`}
                         </div>
                       </motion.div>
                     )}

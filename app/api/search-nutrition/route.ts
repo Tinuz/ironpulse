@@ -22,14 +22,15 @@ import { supabase } from '@/lib/supabase';
 
 const USDA_API_KEY = process.env.USDA_API_KEY || 'DEMO_KEY';
 const MIN_QUERY_LENGTH = 3;
-const MAX_RESULTS = 10;
+const DEFAULT_PAGE_SIZE = 20;
 
 export const runtime = 'edge';
 
 // Query validation schema
 const NutritionSearchSchema = z.object({
   query: z.string().min(MIN_QUERY_LENGTH, 'Query must be at least 3 characters').max(100),
-  limit: z.number().min(1).max(50).optional().default(MAX_RESULTS)
+  limit: z.number().min(1).max(50).optional().default(DEFAULT_PAGE_SIZE),
+  page: z.number().min(1).max(10).optional().default(1)
 })
 
 export async function GET(request: NextRequest) {
@@ -81,7 +82,8 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const validation = NutritionSearchSchema.safeParse({
       query: searchParams.get('query'),
-      limit: searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : undefined
+      limit: searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : undefined,
+      page: searchParams.get('page') ? parseInt(searchParams.get('page')!) : undefined
     })
 
     if (!validation.success) {
@@ -94,7 +96,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const { query, limit } = validation.data
+    const { query, limit, page } = validation.data
 
     const trimmedQuery = query.trim();
     let allResults: any[] = [];
@@ -109,8 +111,9 @@ export async function GET(request: NextRequest) {
         `&search_simple=1` +
         `&json=true` +
         `&lang=nl` +
+        `&page=${page}` +
         `&page_size=${limit}` +
-        `&fields=code,product_name,product_name_nl,brands,nutriments,serving_size,quantity,image_url`,
+        `&fields=code,product_name,product_name_nl,brands,nutriments,serving_size,quantity,image_url,image_front_url,image_small_url`,
         {
           headers: {
             'User-Agent': 'IronPulse-FitnessTracker/1.0'
