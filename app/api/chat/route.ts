@@ -14,12 +14,15 @@ const ChatRequestSchema = z.object({
     role: z.enum(['user', 'assistant', 'system']),
     content: z.string().min(1).max(10000)
   })).min(1).max(50),
-  userData: z.object({
-    name: z.string().optional(),
-    goal: z.string().optional(),
-    experienceLevel: z.string().optional(),
-    preferences: z.record(z.string(), z.any()).optional()
-  }).optional(),
+  userData: z.union([
+    z.string(),
+    z.object({
+      name: z.string().optional(),
+      goal: z.string().optional(),
+      experienceLevel: z.string().optional(),
+      preferences: z.record(z.string(), z.any()).optional()
+    })
+  ]).optional(),
   coachProfile: z.enum(['motiverend', 'streng', 'wetenschappelijk', 'vriendelijk', 'powerlifting', 'bodybuilding']).optional()
 })
 
