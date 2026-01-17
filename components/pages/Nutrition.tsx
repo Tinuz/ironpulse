@@ -278,7 +278,8 @@ export default function Nutrition() {
         }
         
         setShowDropdown(true);
-        setHasMoreResults(data.results.length >= 20);
+        // Use API metadata to determine if more results are available
+        setHasMoreResults(data.pagination?.hasMore ?? false);
         
       } else if (response.status === 429) {
         console.error('Rate limit exceeded');
@@ -1162,8 +1163,8 @@ export default function Nutrition() {
                           </button>
                         ))}
                         
-                        {/* Infinite Scroll Trigger */}
-                        {hasMoreResults && (
+                        {/* Infinite Scroll Trigger & Status */}
+                        {hasMoreResults ? (
                           <div ref={loadMoreTriggerRef} className="p-4 text-center">
                             {isLoadingMore ? (
                               <div className="flex items-center justify-center gap-2 text-txt-tertiary">
@@ -1175,11 +1176,16 @@ export default function Nutrition() {
                                 onClick={loadMoreResults}
                                 className="text-sm text-accent-primary hover:text-accent-secondary transition-colors font-semibold"
                               >
-                                Meer resultaten laden
+                                Meer resultaten laden (pagina {searchPage} van 25)
                               </button>
                             )}
                           </div>
-                        )}
+                        ) : searchResults.length >= 20 ? (
+                          <div className="p-4 text-center text-sm text-txt-tertiary">
+                            <Check size={16} className="inline mr-2 text-accent-success" />
+                            Alle {searchResults.length} resultaten geladen
+                          </div>
+                        ) : null}
                         
                         <div className="p-2 text-[10px] text-center text-txt-tertiary border-t border-border-default">
                           {language === 'nl' 

@@ -30,7 +30,7 @@ export const runtime = 'edge';
 const NutritionSearchSchema = z.object({
   query: z.string().min(MIN_QUERY_LENGTH, 'Query must be at least 3 characters').max(100),
   limit: z.number().min(1).max(50).optional().default(DEFAULT_PAGE_SIZE),
-  page: z.number().min(1).max(10).optional().default(1)
+  page: z.number().min(1).max(25).optional().default(1)
 })
 
 export async function GET(request: NextRequest) {
@@ -210,6 +210,11 @@ export async function GET(request: NextRequest) {
       sources: {
         openfoodfacts: offCount,
         usda: usdaCount
+      },
+      pagination: {
+        currentPage: page,
+        pageSize: limit,
+        hasMore: limited.length >= limit && page < 25
       }
     };
 

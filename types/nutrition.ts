@@ -96,6 +96,11 @@ export interface NutritionSearchResponse {
     openfoodfacts: number; // Number of results from OFF
     usda: number; // Number of results from USDA
   };
+  pagination?: {
+    currentPage: number;
+    pageSize: number;
+    hasMore: boolean;
+  };
 }
 
 // ===== Cache Entry =====
