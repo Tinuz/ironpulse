@@ -78,25 +78,51 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- Drop old functions if they exist (to allow return type change)
+DROP FUNCTION IF EXISTS increment_template_view(TEXT);
+DROP FUNCTION IF EXISTS increment_template_import(TEXT);
+
 -- Function to increment view count
 CREATE OR REPLACE FUNCTION increment_template_view(share_code_param TEXT)
-RETURNS VOID AS $$
+RETURNS json AS $$
+DECLARE
+    result_count INTEGER;
 BEGIN
     UPDATE shared_templates
-    SET view_count = view_count + 1
-    WHERE share_code = share_code_param;
+    SET view_count = view_count + 1,
+        updated_at = NOW()
+    WHERE share_code = share_code_param
+      AND is_active = true;
+    
+    GET DIAGNOSTICS result_count = ROW_COUNT;
+    
+    RETURN json_build_object('success', result_count > 0, 'updated', result_count);
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+-- Grant execute permission to anon and authenticated users
+GRANT EXECUTE ON FUNCTION increment_template_view(TEXT) TO anon, authenticated;
+
 -- Function to increment import count
 CREATE OR REPLACE FUNCTION increment_template_import(share_code_param TEXT)
-RETURNS VOID AS $$
+RETURNS json AS $$
+DECLARE
+    result_count INTEGER;
 BEGIN
     UPDATE shared_templates
-    SET import_count = import_count + 1
-    WHERE share_code = share_code_param;
+    SET import_count = import_count + 1,
+        updated_at = NOW()
+    WHERE share_code = share_code_param
+      AND is_active = true;
+    
+    GET DIAGNOSTICS result_count = ROW_COUNT;
+    
+    RETURN json_build_object('success', result_count > 0, 'updated', result_count);
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Grant execute permission to authenticated users
+GRANT EXECUTE ON FUNCTION increment_template_import(TEXT) TO authenticated;
 
 -- Add comment for documentation
 COMMENT ON TABLE public.shared_templates IS 'Shareable workout template links with view/import tracking';

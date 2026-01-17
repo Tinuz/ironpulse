@@ -28,6 +28,7 @@ export default function TemplateShareModal({ schema, onClose }: TemplateShareMod
   const [showQR, setShowQR] = useState(false)
   const [stats, setStats] = useState<SharedTemplate | null>(null)
   const [description, setDescription] = useState('')
+  const [shareError, setShareError] = useState<string | null>(null)
 
   useEffect(() => {
     loadExistingShare()
@@ -144,6 +145,9 @@ export default function TemplateShareModal({ schema, onClose }: TemplateShareMod
   const shareNative = async () => {
     if (!shareCode) return
 
+    setShareError(null)
+
+    // Check if Web Share API is supported
     if (navigator.share) {
       try {
         await navigator.share({
@@ -151,10 +155,18 @@ export default function TemplateShareModal({ schema, onClose }: TemplateShareMod
           text: `Check out this workout template: ${schema.name}`,
           url: getShareUrl()
         })
-      } catch (error) {
-        console.error('Error sharing:', error)
+      } catch (error: any) {
+        // User cancelled the share or other error occurred
+        // Only log if it's not an AbortError (user cancellation)
+        if (error.name !== 'AbortError') {
+          console.error('Error sharing:', error)
+          setShareError('Failed to share. Link copied to clipboard instead.')
+          // Fallback to copy
+          copyToClipboard()
+        }
       }
     } else {
+      // Fallback to copy if Web Share API not supported
       copyToClipboard()
     }
   }
@@ -294,6 +306,12 @@ export default function TemplateShareModal({ schema, onClose }: TemplateShareMod
             </div>
 
             {/* Action Buttons */}
+            {shareError && (
+              <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-3 text-sm text-yellow-500">
+                {shareError}
+              </div>
+            )}
+
             <div className="grid grid-cols-2 gap-3">
               <button
                 onClick={shareNative}
