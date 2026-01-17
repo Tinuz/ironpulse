@@ -10,6 +10,7 @@ import { useLanguage } from '@/components/context/LanguageContext'
 import { generateUserContext, getRandomTip, Message, generateProactiveInsights, ProactiveInsight } from '@/components/utils/aiTrainer'
 import WorkoutGeneratorModal from '@/components/WorkoutGeneratorModal'
 import { getCsrfToken } from '@/lib/csrfClient'
+import type { ChatRequest, ChatResponse, ChatErrorResponse, ChatMessage } from '@/types/api'
 
 export default function AITrainer() {
   const router = useRouter()
@@ -86,20 +87,26 @@ export default function AITrainer() {
       const userContext = generateUserContext(history, bodyStats, nutritionLogs, userProfile || undefined);
 
       // Prepare messages for API
-      const apiMessages = messages
+      const apiMessages: ChatMessage[] = messages
         .map(m => ({
-          role: m.role === 'ai' ? 'assistant' : 'user',
+          role: (m.role === 'ai' ? 'assistant' : 'user') as 'assistant' | 'user',
           content: m.text
         }));
 
       // Add current user message
       apiMessages.push({
-        role: 'user',
+        role: 'user' as const,
         content: userMsg.text
       });
 
       // Get CSRF token
       const csrfToken = await getCsrfToken();
+
+      const requestBody: ChatRequest = {
+        messages: apiMessages,
+        userData: userContext,
+        coachProfile
+      };
 
       const response = await fetch('/api/chat', {
         method: 'POST',
@@ -108,21 +115,18 @@ export default function AITrainer() {
           'Authorization': `Bearer ${session.access_token}`,
           'X-CSRF-Token': csrfToken
         },
-        body: JSON.stringify({
-          messages: apiMessages,
-          userData: userContext,
-          coachProfile
-        })
+        body: JSON.stringify(requestBody)
       });
 
       if (!response.ok) {
         if (response.status === 429) {
           throw new Error('Te veel verzoeken. Probeer het later opnieuw.');
         }
-        throw new Error('Failed to get AI response');
+        const errorData: ChatErrorResponse = await response.json();
+        throw new Error(errorData.error || 'Failed to get AI response');
       }
 
-      const data = await response.json();
+      const data: ChatResponse = await response.json();
       
       const aiMsg: Message = {
         id: crypto.randomUUID(),
