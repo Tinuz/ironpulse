@@ -9,6 +9,7 @@ import { useAuth } from '@/components/context/AuthContext'
 import { useLanguage } from '@/components/context/LanguageContext'
 import { generateUserContext, getRandomTip, Message, generateProactiveInsights, ProactiveInsight } from '@/components/utils/aiTrainer'
 import WorkoutGeneratorModal from '@/components/WorkoutGeneratorModal'
+import { getCsrfToken } from '@/lib/csrfClient'
 
 export default function AITrainer() {
   const router = useRouter()
@@ -97,11 +98,15 @@ export default function AITrainer() {
         content: userMsg.text
       });
 
+      // Get CSRF token
+      const csrfToken = await getCsrfToken();
+
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
+          'Authorization': `Bearer ${session.access_token}`,
+          'X-CSRF-Token': csrfToken
         },
         body: JSON.stringify({
           messages: apiMessages,
