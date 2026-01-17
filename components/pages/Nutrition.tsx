@@ -13,7 +13,6 @@ import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis
 import BarcodeScanner from '@/components/BarcodeScanner'
 import WaterTracker from '@/components/WaterTracker'
 import { NutritionSearchResult } from '@/types/nutrition'
-import { getCachedResults, setCachedResults } from '@/lib/nutritionSearch'
 
 type ViewMode = 'day' | 'week' | 'month';
 
@@ -236,17 +235,8 @@ export default function Nutrition() {
       return;
     }
 
-    // Check cache first (only for page 1)
-    if (page === 1 && !append) {
-      const cached = getCachedResults(query);
-      if (cached) {
-        setSearchResults(cached);
-        setShowDropdown(true);
-        setIsSearching(false);
-        setHasMoreResults(cached.length >= 20); // If we got 20, there might be more
-        return;
-      }
-    }
+    // Cache DISABLED for debugging - bypassing to always fetch fresh results
+    // This ensures we see the latest data without localStorage interference
 
     if (append) {
       setIsLoadingMore(true);
@@ -267,14 +257,24 @@ export default function Nutrition() {
       if (response.ok) {
         const data = await response.json();
         
+        console.log('[Nutrition] API Response:', {
+          query,
+          page,
+          append,
+          resultsCount: data.results?.length || 0,
+          totalResults: data.totalResults,
+          hasMore: data.pagination?.hasMore,
+          sources: data.sources
+        });
+        
         if (append) {
           setSearchResults(prev => [...prev, ...data.results]);
         } else {
           setSearchResults(data.results);
-          // Cache results (only page 1)
-          if (page === 1) {
-            setCachedResults(query, data.results);
-          }
+          // Cache results (only page 1) - DISABLED FOR DEBUG
+          // if (page === 1) {
+          //   setCachedResults(query, data.results);
+          // }
         }
         
         setShowDropdown(true);
