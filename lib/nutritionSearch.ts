@@ -73,12 +73,12 @@ export function setCachedResults(query: string, results: NutritionSearchResult[]
 // ===== Open Food Facts Mapping =====
 export function mapOpenFoodFactsProduct(product: OpenFoodFactsProduct): NutritionSearchResult | null {
   const name = product.product_name_nl || product.product_name;
-  if (!name || !product.nutriments) return null;
+  if (!name) return null;
   
-  const nutrients = product.nutriments;
+  const nutrients = product.nutriments || {};
   
-  // Require at least calories to be valid
-  if (!nutrients['energy-kcal_100g']) return null;
+  // Accept products with incomplete data, but at least show them
+  // This allows users to see all available products from Open Food Facts
   
   return {
     id: `off_${product.code || Math.random().toString(36).substr(2, 9)}`,

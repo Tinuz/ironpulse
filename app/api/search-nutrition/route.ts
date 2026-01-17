@@ -127,6 +127,8 @@ export async function GET(request: NextRequest) {
           .map(mapOpenFoodFactsProduct)
           .filter(Boolean);
         
+        console.log(`[Nutrition Search] Open Food Facts: ${data.products.length} raw products, ${mapped.length} mapped, query: "${trimmedQuery}", page: ${page}`);
+        
         allResults.push(...mapped);
         offCount = mapped.length;
       }
