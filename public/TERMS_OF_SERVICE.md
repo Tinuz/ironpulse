@@ -1,18 +1,18 @@
-# Algemene Voorwaarden IronPulse
+# Algemene Voorwaarden NextRep
 
 **Laatst bijgewerkt: 17 januari 2026**
 
 ## 1. Definities
 
-- **IronPulse**: De fitness tracking webapplicatie
-- **Dienst**: Alle functionaliteiten aangeboden via IronPulse
+- **NextRep**: De fitness tracking webapplicatie
+- **Dienst**: Alle functionaliteiten aangeboden via NextRep
 - **Gebruiker/U**: Eenieder die een account aanmaakt en de Dienst gebruikt
-- **Wij/Ons**: De aanbieders van IronPulse
+- **Wij/Ons**: De aanbieders van NextRep
 - **AI-aanbevelingen**: Automatisch gegenereerde trainings- en voedingsadviezen
 
 ## 2. Toepasselijkheid
 
-2.1 Deze algemene voorwaarden zijn van toepassing op alle gebruikers van IronPulse.
+2.1 Deze algemene voorwaarden zijn van toepassing op alle gebruikers van NextRep.
 
 2.2 Door een account aan te maken en de Dienst te gebruiken, gaat u akkoord met deze voorwaarden.
 
@@ -35,7 +35,7 @@
 ## 4. BELANGRIJKE DISCLAIMERS EN AANSPRAKELIJKHEID
 
 ### 4.1 Geen medisch advies
-**IronPulse is GEEN vervanging voor professioneel medisch advies, diagnose of behandeling.**
+**NextRep is GEEN vervanging voor professioneel medisch advies, diagnose of behandeling.**
 
 - De Dienst biedt algemene fitness- en voedingsinformatie
 - AI-aanbevelingen zijn automatisch gegenereerd en niet gecontroleerd door professionals
@@ -43,7 +43,7 @@
 - Bij twijfel, pijn, blessures of medische aandoeningen: stop direct en raadpleeg een arts
 
 ### 4.2 Eigen risico en verantwoordelijkheid
-**U gebruikt IronPulse volledig op eigen risico.**
+**U gebruikt NextRep volledig op eigen risico.**
 
 - Wij zijn NIET aansprakelijk voor:
   - Blessures, letsel of gezondheidsproblemen
@@ -70,7 +70,7 @@ Wij zijn in geen geval aansprakelijk voor:
 
 ## 5. Intellectueel eigendom
 
-5.1 Alle rechten op IronPulse (software, design, logo's) berusten bij ons.
+5.1 Alle rechten op NextRep (software, design, logo's) berusten bij ons.
 
 5.2 Uw gegevens blijven uw eigendom. U verleent ons een licentie om deze te gebruiken voor de werking van de Dienst.
 
@@ -81,7 +81,7 @@ Wij zijn in geen geval aansprakelijk voor:
 
 ## 6. Gebruik van AI-diensten
 
-6.1 IronPulse gebruikt AI (OpenRouter) voor:
+6.1 NextRep gebruikt AI (OpenRouter) voor:
 - Trainingsschema's genereren
 - Voedingsadviezen
 - Geautomatiseerde coaching
@@ -144,7 +144,7 @@ Wij zijn in geen geval aansprakelijk voor:
 
 ## 12. Klachten en geschillen
 
-12.1 Klachten kunnen worden ingediend via: support@ironpulse.app
+12.1 Klachten kunnen worden ingediend via: support@nextrep.app
 
 12.2 Wij streven ernaar klachten binnen 14 dagen af te handelen.
 
@@ -166,15 +166,15 @@ Wij zijn in geen geval aansprakelijk voor:
 
 14.2 Deze voorwaarden vormen de volledige overeenkomst tussen u en ons.
 
-14.3 **Contact**: support@ironpulse.app
+14.3 **Contact**: support@nextrep.app
 
 ---
 
 ## ⚠️ SAMENVATTEND: GEBRUIK OP EIGEN RISICO
 
-**Door IronPulse te gebruiken erkent u dat:**
+**Door NextRep te gebruiken erkent u dat:**
 
-✓ IronPulse GEEN medisch hulpmiddel is  
+✓ NextRep GEEN medisch hulpmiddel is  
 ✓ AI-aanbevelingen automatisch gegenereerd zijn (niet door professionals)  
 ✓ U ALTIJD een arts raadpleegt bij twijfel of klachten  
 ✓ Wij NIET aansprakelijk zijn voor blessures, letsel of schade  
@@ -185,4 +185,4 @@ Wij zijn in geen geval aansprakelijk voor:
 
 ---
 
-**Akkoord gaan met deze voorwaarden is verplicht voor gebruik van IronPulse.**
+**Akkoord gaan met deze voorwaarden is verplicht voor gebruik van NextRep.**

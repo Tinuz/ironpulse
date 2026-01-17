@@ -1,15 +1,15 @@
-# Privacyverklaring IronPulse
+# Privacyverklaring NextRep
 
 **Laatst bijgewerkt: 17 januari 2026**
 
 ## 1. Inleiding
 
-IronPulse ("wij", "ons", "onze") respecteert uw privacy en zet zich in voor de bescherming van uw persoonsgegevens. Deze privacyverklaring beschrijft hoe wij omgaan met uw gegevens wanneer u onze fitness tracking applicatie gebruikt.
+NextRep ("wij", "ons", "onze") respecteert uw privacy en zet zich in voor de bescherming van uw persoonsgegevens. Deze privacyverklaring beschrijft hoe wij omgaan met uw gegevens wanneer u onze fitness tracking applicatie gebruikt.
 
 ## 2. Verwerkingsverantwoordelijke
 
-IronPulse  
-E-mail: privacy@ironpulse.app
+NextRep
+E-mail: privacy@NextRep.app
 
 ## 3. Welke gegevens verzamelen wij?
 
@@ -136,7 +136,7 @@ Bezwaar te maken tegen bepaalde verwerkingen
 ### 9.6 Beperking
 Beperking van verwerking te verzoeken
 
-**Contact voor uitoefening rechten**: privacy@ironpulse.app
+**Contact voor uitoefening rechten**: privacy@Nextrep.app
 
 ## 10. Cookies en tracking
 
@@ -147,7 +147,7 @@ Wij gebruiken:
 
 ## 11. Leeftijdsbeperking
 
-IronPulse is bedoeld voor gebruikers van 16 jaar en ouder. Wij verzamelen niet bewust gegevens van minderjarigen onder de 16 jaar.
+Nextrep is bedoeld voor gebruikers van 16 jaar en ouder. Wij verzamelen niet bewust gegevens van minderjarigen onder de 16 jaar.
 
 ## 12. Internationale overdracht
 
@@ -160,7 +160,7 @@ Wij kunnen deze privacyverklaring aanpassen. Significante wijzigingen worden per
 ## 14. Contact en klachten
 
 Voor vragen over deze privacyverklaring:
-- E-mail: privacy@ironpulse.app
+- E-mail: privacy@nextrep.app
 
 Voor klachten over gegevensverwerking kunt u contact opnemen met de Autoriteit Persoonsgegevens:
 - Website: https://autoriteitpersoonsgegevens.nl
@@ -168,4 +168,4 @@ Voor klachten over gegevensverwerking kunt u contact opnemen met de Autoriteit P
 
 ---
 
-Door IronPulse te gebruiken, gaat u akkoord met deze privacyverklaring.
+Door NextRep te gebruiken, gaat u akkoord met deze privacyverklaring.

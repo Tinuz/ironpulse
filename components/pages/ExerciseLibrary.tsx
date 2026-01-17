@@ -243,6 +243,24 @@ export default function ExerciseLibrary() {
             <div className="pb-8" />
           </>
         )}
+
+        {/* Attribution Footer */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-8 pb-12">
+          <div className="border-t border-border pt-6">
+            <p className="text-center text-sm text-muted-foreground">
+              Exercise data provided by{' '}
+              <a
+                href="https://www.muscleandstrength.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary hover:underline font-medium"
+              >
+                Muscle & Strength
+              </a>
+              . Thank you for making this comprehensive exercise library possible.
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* Exercise Detail Modal */}
@@ -534,6 +552,21 @@ function ExerciseDetailModal({
               </ul>
             </div>
           )}
+
+          {/* Attribution */}
+          <div className="pt-4 border-t border-border">
+            <p className="text-xs text-muted-foreground text-center">
+              Exercise data from{' '}
+              <a
+                href="https://www.muscleandstrength.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary hover:underline"
+              >
+                Muscle & Strength
+              </a>
+            </p>
+          </div>
         </div>
 
         {/* Add to Workout Button (Select Mode Only) */}
