@@ -31,6 +31,7 @@ import Navigation from '@/components/Navigation'
 import FloatingCoachButton from '@/components/FloatingCoachButton'
 import AppTour from '@/components/AppTour'
 import OnboardingGuard from '@/components/OnboardingGuard'
+import LegalGuard from '@/components/LegalGuard'
 import { Loader2 } from 'lucide-react'
 
 // Protected Layout component with auth check
@@ -113,9 +114,11 @@ export function FitnessTracker() {
     <AuthProvider>
       <LanguageProvider>
         <DataProvider>
-          <OnboardingGuard>
-            <ProtectedLayout />
-          </OnboardingGuard>
+          <LegalGuard>
+            <OnboardingGuard>
+              <ProtectedLayout />
+            </OnboardingGuard>
+          </LegalGuard>
         </DataProvider>
       </LanguageProvider>
     </AuthProvider>

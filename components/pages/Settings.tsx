@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Bot, Check, LogOut, User, Languages, Coffee, UserCircle, Lock, Eye, EyeOff, Dumbbell } from 'lucide-react'
+import { ArrowLeft, Bot, Check, LogOut, User, Languages, Coffee, UserCircle, Lock, Eye, EyeOff, Dumbbell, Shield, FileText, ExternalLink } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useData } from '@/components/context/DataContext'
 import { useAuth } from '@/components/context/AuthContext'
@@ -600,6 +600,62 @@ export default function Settings() {
             </p>
           </motion.div>
         )}
+
+        {/* Legal & Privacy Section */}
+        <div>
+          <div className="flex items-center gap-2 mb-4">
+            <Shield className="text-accent-primary" size={20} />
+            <h2 className="text-lg font-bold">Juridisch & Privacy</h2>
+          </div>
+          
+          <div className="space-y-3">
+            <a
+              href="/terms"
+              target="_blank"
+              className="block p-4 rounded-xl bg-bg-secondary hover:bg-bg-tertiary border border-border-default transition-colors group"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-accent-primary/20 flex items-center justify-center">
+                    <FileText className="text-accent-primary" size={20} />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold mb-0.5">Algemene Voorwaarden</h3>
+                    <p className="text-xs text-txt-tertiary">Aansprakelijkheid, disclaimers en gebruiksvoorwaarden</p>
+                  </div>
+                </div>
+                <ExternalLink className="text-txt-tertiary group-hover:text-accent-primary transition-colors" size={16} />
+              </div>
+            </a>
+
+            <a
+              href="/privacy"
+              target="_blank"
+              className="block p-4 rounded-xl bg-bg-secondary hover:bg-bg-tertiary border border-border-default transition-colors group"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-accent-primary/20 flex items-center justify-center">
+                    <Shield className="text-accent-primary" size={20} />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold mb-0.5">Privacyverklaring</h3>
+                    <p className="text-xs text-txt-tertiary">Hoe we je gegevens verzamelen, gebruiken en beschermen</p>
+                  </div>
+                </div>
+                <ExternalLink className="text-txt-tertiary group-hover:text-accent-primary transition-colors" size={16} />
+              </div>
+            </a>
+          </div>
+
+          <div className="mt-4 p-3 rounded-lg bg-accent-success/10 border border-accent-success/30">
+            <p className="text-xs text-txt-secondary">
+              ✓ Je gegevens worden alleen gebruikt voor de werking van de app<br/>
+              ✓ Geen marketing of verkoop aan derden<br/>
+              ✓ Veilige opslag op EU-servers
+            </p>
+          </div>
+        </div>
 
         {/* Support Section */}
         <div>

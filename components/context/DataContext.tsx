@@ -119,6 +119,12 @@ export interface UserProfile {
   height: number;
   gender: 'male' | 'female';
   activityLevel: number;
+  // Legal acceptance tracking
+  termsAccepted?: boolean;
+  privacyAccepted?: boolean;
+  legalAcceptanceDate?: string;
+  termsVersion?: string;
+  privacyVersion?: string;
 }
 
 // ============================================================================
@@ -340,7 +346,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           weight: profileData.weight,
           height: profileData.height,
           gender: profileData.gender,
-          activityLevel: profileData.activity_level
+          activityLevel: profileData.activity_level,
+          termsAccepted: profileData.terms_accepted,
+          privacyAccepted: profileData.privacy_accepted,
+          legalAcceptanceDate: profileData.legal_acceptance_date,
+          termsVersion: profileData.terms_version,
+          privacyVersion: profileData.privacy_version
         });
       }
 
@@ -898,7 +909,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             weight: data.weight,
             height: data.height,
             gender: data.gender,
-            activityLevel: data.activity_level
+            activityLevel: data.activity_level,
+            termsAccepted: data.terms_accepted,
+            privacyAccepted: data.privacy_accepted,
+            legalAcceptanceDate: data.legal_acceptance_date,
+            termsVersion: data.terms_version,
+            privacyVersion: data.privacy_version
           });
         }
       } else {
@@ -923,7 +939,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             weight: data.weight,
             height: data.height,
             gender: data.gender,
-            activityLevel: data.activity_level
+            activityLevel: data.activity_level,
+            termsAccepted: data.terms_accepted,
+            privacyAccepted: data.privacy_accepted,
+            legalAcceptanceDate: data.legal_acceptance_date,
+            termsVersion: data.terms_version,
+            privacyVersion: data.privacy_version
           });
         }
       }
