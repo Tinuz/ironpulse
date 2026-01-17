@@ -42,7 +42,7 @@ export default function LegalGuard({ children }: LegalGuardProps) {
     }
 
     const { error } = await supabase
-      .from('user_profiles')
+      .from('user_profile')
       .update({
         terms_accepted: true,
         privacy_accepted: true,
@@ -50,7 +50,7 @@ export default function LegalGuard({ children }: LegalGuardProps) {
         terms_version: CURRENT_TERMS_VERSION,
         privacy_version: CURRENT_PRIVACY_VERSION
       })
-      .eq('id', session.user.id);
+      .eq('user_id', session.user.id);
 
     if (error) {
       console.error('Error updating legal acceptance:', error);
