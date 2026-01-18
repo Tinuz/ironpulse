@@ -112,6 +112,18 @@ export interface NutritionLog {
   waterIntake: number; // total water in ml
 }
 
+export interface Supplement {
+  id: string;
+  date: string; // ISO date string YYYY-MM-DD
+  name: string;
+  dosageAmount: number;
+  dosageUnit: 'g' | 'mg' | 'pills' | 'capsules' | 'scoops' | 'ml' | 'tablets';
+  brand?: string;
+  timing?: 'morning' | 'pre-workout' | 'post-workout' | 'evening' | 'with-meal' | 'before-bed';
+  notes?: string;
+  createdAt?: string;
+}
+
 export interface UserProfile {
   id: string;
   age: number;
@@ -137,6 +149,7 @@ interface DataContextType {
   activeWorkout: WorkoutLog | null;
   bodyStats: BodyStats[];
   nutritionLogs: NutritionLog[];
+  supplements: Supplement[];
   coachProfile: CoachProfileType;
   userProfile: UserProfile | null;
   achievements: string[]; // Array of unlocked achievement IDs
@@ -155,6 +168,9 @@ interface DataContextType {
   addMeal: (date: string, item: Omit<NutritionItem, 'id'>) => void;
   deleteMeal: (date: string, itemId: string) => void;
   addWater: (date: string, amount: number) => void;
+  addSupplement: (supplement: Omit<Supplement, 'id'>) => Promise<void>;
+  updateSupplement: (id: string, supplement: Partial<Supplement>) => Promise<void>;
+  deleteSupplement: (id: string) => Promise<void>;
   setCoachProfile: (profile: CoachProfileType) => void;
   saveUserProfile: (profile: Omit<UserProfile, 'id'>) => Promise<void>;
 }
@@ -213,6 +229,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [activeWorkout, setActiveWorkout] = useState<WorkoutLog | null>(null);
   const [bodyStats, setBodyStats] = useState<BodyStats[]>([]);
   const [nutritionLogs, setNutritionLogs] = useState<NutritionLog[]>([]);
+  const [supplements, setSupplements] = useState<Supplement[]>([]);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [achievements, setAchievements] = useState<string[]>([]);
   const [unlockedAchievement, setUnlockedAchievement] = useState<{ id: string; name: string; description: string; icon: string; category: string } | null>(null);
@@ -329,6 +346,27 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           date: n.date,
           items: n.items || [],
           waterIntake: n.water_intake || 0
+        })));
+      }
+
+      // Load supplements
+      const { data: supplementsData } = await supabase
+        .from('supplements')
+        .select('*')
+        .eq('user_id', USER_ID)
+        .order('date', { ascending: false });
+
+      if (supplementsData) {
+        setSupplements(supplementsData.map(s => ({
+          id: s.id,
+          date: s.date,
+          name: s.name,
+          dosageAmount: s.dosage_amount,
+          dosageUnit: s.dosage_unit,
+          brand: s.brand || undefined,
+          timing: s.timing || undefined,
+          notes: s.notes || undefined,
+          createdAt: s.created_at
         })));
       }
 
@@ -870,6 +908,87 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // ---------------------------------------------------------------------------
+  // SUPPLEMENTS CRUD
+  // ---------------------------------------------------------------------------
+
+  const addSupplement = async (supplement: Omit<Supplement, 'id'>) => {
+    const { data, error } = await supabase
+      .from('supplements')
+      .insert({
+        user_id: USER_ID,
+        date: supplement.date,
+        name: supplement.name,
+        dosage_amount: supplement.dosageAmount,
+        dosage_unit: supplement.dosageUnit,
+        brand: supplement.brand || null,
+        timing: supplement.timing || null,
+        notes: supplement.notes || null
+      })
+      .select()
+      .single();
+
+    if (!error && data) {
+      const newSupplement: Supplement = {
+        id: data.id,
+        date: data.date,
+        name: data.name,
+        dosageAmount: data.dosage_amount,
+        dosageUnit: data.dosage_unit,
+        brand: data.brand,
+        timing: data.timing,
+        notes: data.notes,
+        createdAt: data.created_at
+      };
+      setSupplements(prev => [...prev, newSupplement]);
+    }
+  };
+
+  const updateSupplement = async (id: string, supplement: Partial<Supplement>) => {
+    const updateData: any = {};
+    if (supplement.name !== undefined) updateData.name = supplement.name;
+    if (supplement.dosageAmount !== undefined) updateData.dosage_amount = supplement.dosageAmount;
+    if (supplement.dosageUnit !== undefined) updateData.dosage_unit = supplement.dosageUnit;
+    if (supplement.brand !== undefined) updateData.brand = supplement.brand;
+    if (supplement.timing !== undefined) updateData.timing = supplement.timing;
+    if (supplement.notes !== undefined) updateData.notes = supplement.notes;
+
+    const { error } = await supabase
+      .from('supplements')
+      .update(updateData)
+      .eq('id', id)
+      .eq('user_id', USER_ID);
+
+    if (!error) {
+      setSupplements(prev => prev.map(s => {
+        if (s.id === id) {
+          return {
+            ...s,
+            name: supplement.name ?? s.name,
+            dosageAmount: supplement.dosageAmount ?? s.dosageAmount,
+            dosageUnit: supplement.dosageUnit ?? s.dosageUnit,
+            brand: supplement.brand ?? s.brand,
+            timing: supplement.timing ?? s.timing,
+            notes: supplement.notes ?? s.notes
+          };
+        }
+        return s;
+      }));
+    }
+  };
+
+  const deleteSupplement = async (id: string) => {
+    const { error } = await supabase
+      .from('supplements')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', USER_ID);
+
+    if (!error) {
+      setSupplements(prev => prev.filter(s => s.id !== id));
+    }
+  };
+
   const setCoachProfile = (profile: CoachProfileType) => {
     setCoachProfileState(profile);
     if (typeof window !== 'undefined') {
@@ -961,6 +1080,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       activeWorkout,
       bodyStats,
       nutritionLogs,
+      supplements,
       coachProfile,
       userProfile,
       achievements,
@@ -979,6 +1099,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       addMeal,
       deleteMeal,
       addWater,
+      addSupplement,
+      updateSupplement,
+      deleteSupplement,
       setCoachProfile,
       saveUserProfile
     }}>

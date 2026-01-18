@@ -14,8 +14,11 @@ import BarcodeScanner from '@/components/BarcodeScanner'
 import WaterTracker from '@/components/WaterTracker'
 import { NutritionSearchResult } from '@/types/nutrition'
 import { getCachedResults, setCachedResults } from '@/lib/nutritionSearch'
+import SupplementsSection from '@/components/SupplementsSection'
+import SupplementsCoach from '@/components/SupplementsCoach'
 
 type ViewMode = 'day' | 'week' | 'month';
+type ActiveTab = 'food' | 'supplements';
 
 export default function Nutrition() {
   const router = useRouter()
@@ -27,6 +30,8 @@ export default function Nutrition() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<ViewMode>('day');
   const [showHistory, setShowHistory] = useState(false);
+  const [activeTab, setActiveTab] = useState<ActiveTab>('food');
+  const [showSupplementsCoach, setShowSupplementsCoach] = useState(false);
   
   // Nutrition search state
   const [searchResults, setSearchResults] = useState<NutritionSearchResult[]>([]);
@@ -536,6 +541,33 @@ export default function Nutrition() {
           </button>
         </div>
 
+        {/* Tab Selector - Only show in day view */}
+        {viewMode === 'day' && (
+          <div className="flex gap-2 bg-card border border-white/5 rounded-xl p-1">
+            <button
+              onClick={() => setActiveTab('food')}
+              className={`flex-1 py-2.5 px-4 rounded-lg font-bold text-sm transition-colors flex items-center justify-center gap-2 ${
+                activeTab === 'food' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'
+              }`}
+            >
+              <Utensils size={16} />
+              Food & Drinks
+            </button>
+            <button
+              onClick={() => setActiveTab('supplements')}
+              className={`flex-1 py-2.5 px-4 rounded-lg font-bold text-sm transition-colors flex items-center justify-center gap-2 ${
+                activeTab === 'supplements' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'
+              }`}
+            >
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 2a10 10 0 1 0 10 10H12V2z"/>
+                <path d="M2 12h10v10"/>
+              </svg>
+              Supplements
+            </button>
+          </div>
+        )}
+
         {/* Date Navigator */}
         <div className="bg-card border border-white/5 rounded-xl p-4 flex items-center justify-between">
           <button
@@ -672,7 +704,7 @@ export default function Nutrition() {
         )}
 
         {/* Day View - Summary Card */}
-        {viewMode === 'day' && (
+        {viewMode === 'day' && activeTab === 'food' && (
           <>
             <div className="bg-card border border-white/5 rounded-3xl p-6 relative overflow-hidden">
               <div className="flex justify-between items-start mb-6">
@@ -906,7 +938,7 @@ export default function Nutrition() {
             )}
 
             {/* Water Tracker */}
-            {viewMode === 'day' && (
+            {viewMode === 'day' && activeTab === 'food' && (
               <WaterTracker 
                 currentIntake={todaysLog?.waterIntake || 0}
                 targetIntake={2000}
@@ -1315,6 +1347,23 @@ export default function Nutrition() {
               </div>
             </motion.div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Supplements Tab */}
+      {viewMode === 'day' && activeTab === 'supplements' && (
+        <div className="bg-card border border-white/5 rounded-3xl p-6">
+          <SupplementsSection 
+            selectedDate={selectedDate} 
+            onOpenCoach={() => setShowSupplementsCoach(true)}
+          />
+        </div>
+      )}
+
+      {/* Supplements Coach Modal */}
+      <AnimatePresence>
+        {showSupplementsCoach && (
+          <SupplementsCoach onClose={() => setShowSupplementsCoach(false)} />
         )}
       </AnimatePresence>
 
