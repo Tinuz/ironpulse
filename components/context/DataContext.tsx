@@ -25,6 +25,7 @@ export interface Exercise {
   id: string;
   name: string;
   type?: ExerciseType; // 'strength' (default) or 'cardio'
+  muscleGroup?: 'chest' | 'back' | 'shoulders' | 'biceps' | 'triceps' | 'legs' | 'core' | 'full-body' | 'cardio';
   // Strength fields
   targetSets: number;
   targetReps: number;
@@ -55,6 +56,7 @@ export interface WorkoutExercise {
   exerciseId: string;
   name: string;
   type?: ExerciseType; // 'strength' or 'cardio'
+  muscleGroup?: 'chest' | 'back' | 'shoulders' | 'biceps' | 'triceps' | 'legs' | 'core' | 'full-body' | 'cardio';
   sets: WorkoutSet[]; // for strength exercises
   cardioData?: CardioData; // for cardio exercises
   notes?: string;
@@ -607,12 +609,15 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         id: crypto.randomUUID(),
         exerciseId: e.id,
         name: e.name,
-        sets: Array(e.targetSets).fill(null).map(() => ({
+        type: e.type,
+        muscleGroup: e.muscleGroup,
+        sets: e.type === 'cardio' ? [] : Array(e.targetSets).fill(null).map(() => ({
           id: crypto.randomUUID(),
           weight: e.startWeight ?? 0,
           reps: e.targetReps,
           completed: false
-        }))
+        })),
+        cardioData: e.cardioData
       })) : [])
     };
     // Save to localStorage immediately

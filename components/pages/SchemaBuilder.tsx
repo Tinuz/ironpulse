@@ -29,6 +29,7 @@ export default function SchemaBuilder() {
   const [newExSets, setNewExSets] = useState(3);
   const [newExReps, setNewExReps] = useState(10);
   const [newExStartWeight, setNewExStartWeight] = useState<number | undefined>(undefined);
+  const [newExMuscleGroup, setNewExMuscleGroup] = useState<Exercise['muscleGroup']>(undefined);
   
   // Cardio-specific state
   const [cardioDuration, setCardioDuration] = useState<number>(1800); // 30 min default in seconds
@@ -106,6 +107,7 @@ export default function SchemaBuilder() {
       id: crypto.randomUUID(),
       name: newExName,
       type: exerciseType,
+      muscleGroup: newExMuscleGroup,
       targetSets: exerciseType === 'strength' ? newExSets : 0,
       targetReps: exerciseType === 'strength' ? newExReps : 0,
       startWeight: exerciseType === 'strength' ? newExStartWeight : undefined,
@@ -123,6 +125,7 @@ export default function SchemaBuilder() {
     setNewExSets(3);
     setNewExReps(10);
     setNewExStartWeight(undefined);
+    setNewExMuscleGroup(undefined);
     setCardioDuration(1800);
     setCardioDistance(undefined);
     setCardioHeartRate(undefined);
@@ -178,6 +181,7 @@ export default function SchemaBuilder() {
     setNewExSets(exercise.targetSets);
     setNewExReps(exercise.targetReps);
     setNewExStartWeight(exercise.startWeight);
+    setNewExMuscleGroup(exercise.muscleGroup);
     
     // Load cardio data if exists
     if (exercise.cardioData) {
@@ -199,6 +203,7 @@ export default function SchemaBuilder() {
             ...ex, 
             name: newExName, 
             type: exerciseType,
+            muscleGroup: newExMuscleGroup,
             targetSets: exerciseType === 'strength' ? newExSets : 0, 
             targetReps: exerciseType === 'strength' ? newExReps : 0, 
             startWeight: exerciseType === 'strength' ? newExStartWeight : undefined,
@@ -218,6 +223,7 @@ export default function SchemaBuilder() {
     setNewExSets(3);
     setNewExReps(10);
     setNewExStartWeight(undefined);
+    setNewExMuscleGroup(undefined);
     setCardioDuration(1800);
     setCardioDistance(undefined);
     setCardioHeartRate(undefined);
@@ -231,6 +237,7 @@ export default function SchemaBuilder() {
     setNewExSets(3);
     setNewExReps(10);
     setNewExStartWeight(undefined);
+    setNewExMuscleGroup(undefined);
     setCardioDuration(1800);
     setCardioDistance(undefined);
     setCardioHeartRate(undefined);
@@ -458,6 +465,27 @@ export default function SchemaBuilder() {
                   className="w-full bg-white/5 rounded-lg px-3 py-2 mt-1 focus:outline-none focus:ring-1 focus:ring-primary font-bold"
                   placeholder={t.schema.exerciseName}
                 />
+              </div>
+
+              {/* Muscle Group Selector */}
+              <div>
+                <label className="text-[10px] uppercase font-bold text-muted-foreground">Spiergroep</label>
+                <select
+                  value={newExMuscleGroup || ''}
+                  onChange={(e) => setNewExMuscleGroup(e.target.value as Exercise['muscleGroup'] || undefined)}
+                  className="w-full bg-white/5 rounded-lg px-3 py-2 mt-1 focus:outline-none focus:ring-1 focus:ring-primary font-medium"
+                >
+                  <option value="">Selecteer spiergroep (optioneel)</option>
+                  <option value="chest">Borst</option>
+                  <option value="back">Rug</option>
+                  <option value="shoulders">Schouders</option>
+                  <option value="biceps">Biceps</option>
+                  <option value="triceps">Triceps</option>
+                  <option value="legs">Benen</option>
+                  <option value="core">Core</option>
+                  <option value="full-body">Full Body</option>
+                  <option value="cardio">Cardio</option>
+                </select>
               </div>
               
               {/* Strength-specific fields */}
