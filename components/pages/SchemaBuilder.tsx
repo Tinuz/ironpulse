@@ -473,18 +473,18 @@ export default function SchemaBuilder() {
                 <select
                   value={newExMuscleGroup || ''}
                   onChange={(e) => setNewExMuscleGroup(e.target.value as Exercise['muscleGroup'] || undefined)}
-                  className="w-full bg-white/5 rounded-lg px-3 py-2 mt-1 focus:outline-none focus:ring-1 focus:ring-primary font-medium"
+                  className="w-full bg-[#1a1a1a] text-white rounded-lg px-3 py-2 mt-1 focus:outline-none focus:ring-1 focus:ring-primary font-medium border border-white/10 hover:bg-[#202020] transition-colors"
                 >
-                  <option value="">Selecteer spiergroep (optioneel)</option>
-                  <option value="chest">Borst</option>
-                  <option value="back">Rug</option>
-                  <option value="shoulders">Schouders</option>
-                  <option value="biceps">Biceps</option>
-                  <option value="triceps">Triceps</option>
-                  <option value="legs">Benen</option>
-                  <option value="core">Core</option>
-                  <option value="full-body">Full Body</option>
-                  <option value="cardio">Cardio</option>
+                  <option value="" className="bg-[#1a1a1a] text-white/60">Selecteer spiergroep (optioneel)</option>
+                  <option value="chest" className="bg-[#1a1a1a] text-white">Borst</option>
+                  <option value="back" className="bg-[#1a1a1a] text-white">Rug</option>
+                  <option value="shoulders" className="bg-[#1a1a1a] text-white">Schouders</option>
+                  <option value="biceps" className="bg-[#1a1a1a] text-white">Biceps</option>
+                  <option value="triceps" className="bg-[#1a1a1a] text-white">Triceps</option>
+                  <option value="legs" className="bg-[#1a1a1a] text-white">Benen</option>
+                  <option value="core" className="bg-[#1a1a1a] text-white">Core</option>
+                  <option value="full-body" className="bg-[#1a1a1a] text-white">Full Body</option>
+                  <option value="cardio" className="bg-[#1a1a1a] text-white">Cardio</option>
                 </select>
               </div>
               
