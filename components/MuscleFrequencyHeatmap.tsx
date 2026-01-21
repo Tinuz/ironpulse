@@ -32,10 +32,32 @@ export default function MuscleFrequencyHeatmap({ workouts }: MuscleFrequencyHeat
       
       // Count muscle groups in this workout
       workout.exercises?.forEach((ex: any) => {
-        const muscles = getMuscleGroupsFromExercises([ex.name])
-        muscles.forEach(muscle => {
-          weekMap.set(muscle, (weekMap.get(muscle) || 0) + 1)
-        })
+        // Use muscleGroup field if available, fallback to name-based detection
+        let muscleGroup = ex.muscleGroup
+        
+        // If no muscleGroup field, try name-based detection
+        if (!muscleGroup) {
+          const muscles = getMuscleGroupsFromExercises([ex.name])
+          muscleGroup = muscles[0] // Take first match
+        }
+        
+        // Map to display names
+        const displayMapping: Record<string, string> = {
+          'chest': 'Chest',
+          'back': 'Back',
+          'shoulders': 'Shoulders',
+          'biceps': 'Biceps',
+          'triceps': 'Triceps',
+          'legs': 'Quads', // Default legs to Quads for heatmap
+          'core': 'Abs',
+          'full-body': 'Chest', // Show as chest for now
+          'cardio': 'Abs' // Show as abs for cardio
+        }
+        
+        const displayName = muscleGroup ? (displayMapping[muscleGroup.toLowerCase()] || muscleGroup) : null
+        if (displayName) {
+          weekMap.set(displayName, (weekMap.get(displayName) || 0) + 1)
+        }
       })
     })
 

@@ -59,16 +59,35 @@ const CUSTOM_MAPPINGS: Record<string, MuscleGroup> = {
 
 /**
  * Determine muscle group for an exercise
+ * Prioritizes the muscleGroup field from WorkoutExercise, falls back to name-based detection
  */
-export function getMuscleGroup(exerciseName: string): MuscleGroup | null {
-  const normalized = exerciseName.toLowerCase().trim();
+export function getMuscleGroup(exerciseName: string, muscleGroupField?: string): MuscleGroup | null {
+  // PRIORITY 1: Use muscleGroup field if available (direct from user selection)
+  if (muscleGroupField) {
+    // Map new muscle group categories to analytics categories
+    const mapping: Record<string, MuscleGroup> = {
+      'chest': 'chest',
+      'back': 'back',
+      'shoulders': 'shoulders',
+      'biceps': 'arms',
+      'triceps': 'arms',
+      'legs': 'legs',
+      'core': 'abs',
+      'full-body': 'chest', // Default to chest for full-body (could be split later)
+      'cardio': 'abs' // Default to abs for cardio (core work)
+    };
+    
+    const mapped = mapping[muscleGroupField.toLowerCase()];
+    if (mapped) return mapped;
+  }
   
-  // Check exercise database first
+  // PRIORITY 2: Check exercise database (name-based)
+  const normalized = exerciseName.toLowerCase().trim();
   if (exerciseToMuscleGroup.has(normalized)) {
     return exerciseToMuscleGroup.get(normalized)!;
   }
   
-  // Check custom mappings (keyword matching)
+  // PRIORITY 3: Check custom mappings (keyword matching)
   for (const [keyword, group] of Object.entries(CUSTOM_MAPPINGS)) {
     if (normalized.includes(keyword)) {
       return group;
@@ -114,7 +133,7 @@ export function calculateMuscleGroupVolume(
   
   filteredWorkouts.forEach(workout => {
     workout.exercises.forEach(ex => {
-      const muscleGroup = getMuscleGroup(ex.name);
+      const muscleGroup = getMuscleGroup(ex.name, ex.muscleGroup);
       if (!muscleGroup) return; // Skip unknown exercises
       
       if (!volumeMap.has(muscleGroup)) {
