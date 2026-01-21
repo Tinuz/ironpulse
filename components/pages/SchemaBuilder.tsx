@@ -481,10 +481,11 @@ export default function SchemaBuilder() {
                   <option value="shoulders" className="bg-[#1a1a1a] text-white">Schouders</option>
                   <option value="biceps" className="bg-[#1a1a1a] text-white">Biceps</option>
                   <option value="triceps" className="bg-[#1a1a1a] text-white">Triceps</option>
-                  <option value="legs" className="bg-[#1a1a1a] text-white">Benen</option>
-                  <option value="core" className="bg-[#1a1a1a] text-white">Core</option>
-                  <option value="full-body" className="bg-[#1a1a1a] text-white">Full Body</option>
-                  <option value="cardio" className="bg-[#1a1a1a] text-white">Cardio</option>
+                  <option value="quads" className="bg-[#1a1a1a] text-white">Dijspier</option>
+                  <option value="hamstring" className="bg-[#1a1a1a] text-white">Hamstring</option>
+                  <option value="calves" className="bg-[#1a1a1a] text-white">Kuiten</option>
+                  <option value="glutes" className="bg-[#1a1a1a] text-white">Billen</option>
+                  <option value="abs" className="bg-[#1a1a1a] text-white">Buikspieren</option>
                 </select>
               </div>
               
