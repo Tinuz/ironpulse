@@ -25,6 +25,7 @@ import { generateProgressiveOverloadSuggestion } from '@/components/utils/progre
 import CardioExerciseLogger from '@/components/CardioExerciseLogger'
 import { formatDuration, formatDistance } from '@/components/utils/cardioCalculations'
 import { useLanguage } from '@/components/context/LanguageContext'
+import { useWakeLock } from '@/components/utils/useWakeLock'
 
 const ExerciseStats = ({ 
   exercise,
@@ -154,6 +155,7 @@ export default function WorkoutLogger() {
   const router = useRouter();
   const workoutPreferences = useWorkoutPreferences();
   const { t } = useLanguage();
+  const { requestWakeLock, releaseWakeLock } = useWakeLock();
   const [elapsed, setElapsed] = useState(0);
   const [workoutData, setWorkoutData] = useState<typeof activeWorkout>(null);
   const [isReady, setIsReady] = useState(false);
@@ -216,13 +218,22 @@ export default function WorkoutLogger() {
       const parsed = JSON.parse(savedActive);
       setWorkoutData(parsed);
       setIsReady(true);
+      // Request wake lock when workout is active
+      requestWakeLock();
     } else if (activeWorkout) {
       setWorkoutData(activeWorkout);
       setIsReady(true);
+      // Request wake lock when workout is active
+      requestWakeLock();
     } else {
       setIsReady(true);
     }
-  }, []);
+
+    // Cleanup: release wake lock when component unmounts
+    return () => {
+      releaseWakeLock();
+    };
+  }, [requestWakeLock, releaseWakeLock]);
 
   // Sync with context updates
   useEffect(() => {
@@ -588,11 +599,18 @@ export default function WorkoutLogger() {
     
     updateActiveWorkout(finalWorkout);
     finishWorkout();
+    
+    // Release wake lock when workout is finished
+    releaseWakeLock();
+    
     router.push('/history');
   };
 
   const handleCancel = () => {
     if (window.confirm(t.workout.cancelWorkoutConfirm)) {
+      // Release wake lock when workout is cancelled
+      releaseWakeLock();
+      
       cancelWorkout();
       router.push('/');
     }
