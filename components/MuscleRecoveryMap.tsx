@@ -127,7 +127,7 @@ export default function MuscleRecoveryMap({
 
       {/* Legend */}
       <div className="mt-6 w-full max-w-md">
-        <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
+        <h3 className="text-sm font-semibold text-gray-300 dark:text-white mb-3">
           Herstel Status
         </h3>
         <div className="grid grid-cols-1 gap-2">

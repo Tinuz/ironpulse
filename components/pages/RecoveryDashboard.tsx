@@ -47,15 +47,15 @@ export default function RecoveryDashboard() {
         return workout.exercises.some(ex => {
           // PRIORITY 1: Use muscleGroup field if available
           if (ex.muscleGroup) {
-            // Map muscle group categories
+            // Comprehensive muscle group mapping
             const muscleGroupMap: Record<string, string[]> = {
               'chest': ['chest'],
               'shoulders': ['shoulders'],
               'triceps': ['triceps'],
-              'back': ['back'],
+              'back': ['back', 'lats', 'middle-back', 'lower-back', 'traps'],
               'biceps': ['biceps'],
-              'legs': ['legs'],
-              'core': ['core'],
+              'legs': ['legs', 'quads', 'quadriceps', 'hamstrings', 'glutes', 'calves'],
+              'core': ['core', 'abs', 'obliques'],
             }
             
             const mappedGroups = muscleGroupMap[muscle.id] || []
@@ -90,10 +90,10 @@ export default function RecoveryDashboard() {
             'chest': ['chest'],
             'shoulders': ['shoulders'],
             'triceps': ['triceps'],
-            'back': ['back'],
+            'back': ['back', 'lats', 'middle-back', 'lower-back', 'traps'],
             'biceps': ['biceps'],
-            'legs': ['legs'],
-            'core': ['core'],
+            'legs': ['legs', 'quads', 'quadriceps', 'hamstrings', 'glutes', 'calves'],
+            'core': ['core', 'abs', 'obliques'],
           }
           const mappedGroups = muscleGroupMap[muscle.id] || []
           if (mappedGroups.includes(ex.muscleGroup)) return true
