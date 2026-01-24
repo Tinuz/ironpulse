@@ -127,7 +127,7 @@ export default function MuscleRecoveryMap({
 
       {/* Legend */}
       <div className="mt-6 w-full max-w-md">
-        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+        <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
           Herstel Status
         </h3>
         <div className="grid grid-cols-1 gap-2">
@@ -144,10 +144,10 @@ export default function MuscleRecoveryMap({
                 style={{ backgroundColor: item.color }}
               />
               <div className="flex-1">
-                <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                <span className="text-sm font-medium text-gray-900 dark:text-white">
                   {item.label}
                 </span>
-                <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
+                <span className="text-xs text-gray-600 dark:text-gray-300 ml-2">
                   ({item.range})
                 </span>
               </div>
