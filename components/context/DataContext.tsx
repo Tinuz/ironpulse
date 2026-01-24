@@ -241,6 +241,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [unlockedAchievement, setUnlockedAchievement] = useState<{ id: string; name: string; description: string; icon: string; category: string } | null>(null);
   const [showRecoveryModal, setShowRecoveryModal] = useState(false);
   const [incompleteWorkout, setIncompleteWorkout] = useState<WorkoutLog | null>(null);
+  const [hasCheckedIncomplete, setHasCheckedIncomplete] = useState(false); // Track if we've checked for incomplete workout
   const [coachProfile, setCoachProfileState] = useState<CoachProfileType>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('ironpulse_coach_profile');
@@ -406,13 +407,18 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // Load active workout from localStorage (temporary state)
       const savedActive = localStorage.getItem('ft_active');
-      setActiveWorkout(savedActive ? JSON.parse(savedActive) : null);
+      const parsedWorkout = savedActive ? JSON.parse(savedActive) : null;
+      setActiveWorkout(parsedWorkout);
 
-      // Check for incomplete workout (after crash/reload)
-      const { workout: incomplete, ageMinutes } = checkIncompleteWorkout();
-      if (incomplete && ageMinutes < 120) { // Only show modal if workout is < 2 hours old
-        setIncompleteWorkout(incomplete);
-        setShowRecoveryModal(true);
+      // Check for incomplete workout ONLY on first load and if there's no active workout
+      // This prevents showing the modal when starting a new workout
+      if (!parsedWorkout && !hasCheckedIncomplete) {
+        const { workout: incomplete, ageMinutes } = checkIncompleteWorkout();
+        if (incomplete && ageMinutes < 120) { // Only show modal if workout is < 2 hours old
+          setIncompleteWorkout(incomplete);
+          setShowRecoveryModal(true);
+        }
+        setHasCheckedIncomplete(true); // Mark as checked to prevent re-checking
       }
 
     } catch (error) {
