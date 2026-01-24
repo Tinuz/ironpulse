@@ -405,20 +405,28 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Load achievements from Supabase
       await loadAchievements();
 
-      // Load active workout from localStorage (temporary state)
-      const savedActive = localStorage.getItem('ft_active');
-      const parsedWorkout = savedActive ? JSON.parse(savedActive) : null;
-      setActiveWorkout(parsedWorkout);
-
-      // Check for incomplete workout ONLY on first load and if there's no active workout
-      // This prevents showing the modal when starting a new workout
-      if (!parsedWorkout && !hasCheckedIncomplete) {
+      // Check for incomplete workout ONLY on first app load
+      if (!hasCheckedIncomplete) {
         const { workout: incomplete, ageMinutes } = checkIncompleteWorkout();
-        if (incomplete && ageMinutes < 120) { // Only show modal if workout is < 2 hours old
+        
+        // If there's an incomplete workout (crashed), show recovery modal
+        if (incomplete && ageMinutes < 120) {
           setIncompleteWorkout(incomplete);
           setShowRecoveryModal(true);
+          // Don't set as activeWorkout yet - let user decide via modal
+        } else {
+          // No incomplete workout found, load normally from localStorage
+          const savedActive = localStorage.getItem('ft_active');
+          const parsedWorkout = savedActive ? JSON.parse(savedActive) : null;
+          setActiveWorkout(parsedWorkout);
         }
-        setHasCheckedIncomplete(true); // Mark as checked to prevent re-checking
+        
+        setHasCheckedIncomplete(true);
+      } else {
+        // Already checked, just load from localStorage
+        const savedActive = localStorage.getItem('ft_active');
+        const parsedWorkout = savedActive ? JSON.parse(savedActive) : null;
+        setActiveWorkout(parsedWorkout);
       }
 
     } catch (error) {
