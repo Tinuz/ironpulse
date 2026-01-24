@@ -41,12 +41,32 @@ export default function RecoveryDashboard() {
     const fourWeeksAgo = subDays(now, 28)
 
     return MUSCLE_GROUPS.map(muscle => {
-      // Get all workouts for this muscle
+      // Get all workouts for this muscle group
       const muscleWorkouts = history.filter(workout => {
-        return workout.exercises.some(ex => 
-          ex.name.toLowerCase().includes(muscle.id) ||
-          ex.name.toLowerCase().includes(muscle.name.toLowerCase())
-        )
+        return workout.exercises.some(ex => {
+          // PRIORITY 1: Use muscleGroup field if available
+          if (ex.muscleGroup) {
+            // Map muscle group categories
+            const muscleGroupMap: Record<string, string[]> = {
+              'chest': ['chest'],
+              'shoulders': ['shoulders'],
+              'triceps': ['triceps'],
+              'back': ['back'],
+              'biceps': ['biceps'],
+              'legs': ['legs'],
+              'core': ['core'],
+            }
+            
+            const mappedGroups = muscleGroupMap[muscle.id] || []
+            if (mappedGroups.includes(ex.muscleGroup)) {
+              return true
+            }
+          }
+          
+          // PRIORITY 2: Fallback to name-based detection (for old workouts)
+          return ex.name.toLowerCase().includes(muscle.id) ||
+                 ex.name.toLowerCase().includes(muscle.name.toLowerCase())
+        })
       })
 
       // Find last trained date
@@ -60,12 +80,32 @@ export default function RecoveryDashboard() {
       const recentWorkouts = muscleWorkouts.filter(w => 
         new Date(w.date) >= sevenDaysAgo
       )
+      
+      // Helper function to check if exercise belongs to muscle group
+      const exerciseBelongsToMuscle = (ex: any) => {
+        // Check muscleGroup field first
+        if (ex.muscleGroup) {
+          const muscleGroupMap: Record<string, string[]> = {
+            'chest': ['chest'],
+            'shoulders': ['shoulders'],
+            'triceps': ['triceps'],
+            'back': ['back'],
+            'biceps': ['biceps'],
+            'legs': ['legs'],
+            'core': ['core'],
+          }
+          const mappedGroups = muscleGroupMap[muscle.id] || []
+          if (mappedGroups.includes(ex.muscleGroup)) return true
+        }
+        
+        // Fallback to name-based
+        return ex.name.toLowerCase().includes(muscle.id) ||
+               ex.name.toLowerCase().includes(muscle.name.toLowerCase())
+      }
+      
       const recentVolume = recentWorkouts.reduce((total, workout) => {
         return total + workout.exercises
-          .filter(ex => 
-            ex.name.toLowerCase().includes(muscle.id) ||
-            ex.name.toLowerCase().includes(muscle.name.toLowerCase())
-          )
+          .filter(exerciseBelongsToMuscle)
           .reduce((exTotal, ex) => {
             return exTotal + ex.sets
               .filter(s => s.completed && !s.isWarmup)
@@ -80,10 +120,7 @@ export default function RecoveryDashboard() {
       const baselineVolume = baselineWorkouts.length > 0
         ? baselineWorkouts.reduce((total, workout) => {
             return total + workout.exercises
-              .filter(ex => 
-                ex.name.toLowerCase().includes(muscle.id) ||
-                ex.name.toLowerCase().includes(muscle.name.toLowerCase())
-              )
+              .filter(exerciseBelongsToMuscle)
               .reduce((exTotal, ex) => {
                 return exTotal + ex.sets
                   .filter(s => s.completed && !s.isWarmup)
@@ -92,33 +129,51 @@ export default function RecoveryDashboard() {
           }, 0) / 4
         : 0
 
-      // Calculate readiness score (0-100%)
-      let readinessScore = 100
+      // Calculate readiness score (0-100%) based on recovery time
+      let readinessScore = 0
+      
+      // Base recovery curve (days since last training)
+      // Day 0 = 0%, Day 1 = 20%, Day 2 = 45%, Day 3 = 70%, Day 4 = 90%, Day 5+ = 100%
+      if (daysSinceTraining === 0) {
+        readinessScore = 0 // Just trained today
+      } else if (daysSinceTraining === 1) {
+        readinessScore = 20 // 1 day recovery
+      } else if (daysSinceTraining === 2) {
+        readinessScore = 45 // 2 days recovery
+      } else if (daysSinceTraining === 3) {
+        readinessScore = 70 // 3 days recovery
+      } else if (daysSinceTraining === 4) {
+        readinessScore = 90 // 4 days recovery
+      } else if (daysSinceTraining >= 5) {
+        readinessScore = 100 // Fully recovered
+      } else {
+        readinessScore = 100 // Never trained (fresh)
+      }
 
-      // Reduce score based on recent volume vs baseline
-      if (baselineVolume > 0) {
+      // Adjust for volume load (recent vs baseline)
+      if (baselineVolume > 0 && recentVolume > 0) {
         const volumeRatio = recentVolume / baselineVolume
-        if (volumeRatio > 1.5) {
-          readinessScore -= 40 // High fatigue
+        
+        // High volume week -> slower recovery
+        if (volumeRatio > 2.0) {
+          readinessScore = Math.max(0, readinessScore - 30) // Very high volume
+        } else if (volumeRatio > 1.5) {
+          readinessScore = Math.max(0, readinessScore - 20) // High volume
         } else if (volumeRatio > 1.2) {
-          readinessScore -= 20 // Moderate fatigue
+          readinessScore = Math.max(0, readinessScore - 10) // Moderate volume increase
+        }
+        
+        // Low volume week -> faster recovery bonus (deload)
+        if (volumeRatio < 0.5 && daysSinceTraining >= 2) {
+          readinessScore = Math.min(100, readinessScore + 15) // Deload week bonus
         }
       }
 
-      // Increase score based on recovery time
-      if (daysSinceTraining >= 5) {
-        readinessScore = Math.min(100, readinessScore + 30)
-      } else if (daysSinceTraining >= 3) {
-        readinessScore = Math.min(100, readinessScore + 15)
-      } else if (daysSinceTraining < 2 && recentVolume > baselineVolume * 1.2) {
-        readinessScore -= 20
-      }
-
-      // Determine status
+      // Determine status based on readiness score
       let status: MuscleRecoveryData['status'] = 'ready'
-      if (readinessScore >= 80) status = 'fresh'
-      else if (readinessScore >= 60) status = 'ready'
-      else if (readinessScore >= 40) status = 'fatigued'
+      if (readinessScore >= 85) status = 'fresh'
+      else if (readinessScore >= 50) status = 'ready'
+      else if (readinessScore >= 25) status = 'fatigued'
       else status = 'overtrained'
 
       return {
