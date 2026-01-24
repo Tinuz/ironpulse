@@ -1,5 +1,7 @@
 import { useEffect, useRef } from 'react'
 
+const isDev = process.env.NODE_ENV === 'development'
+
 /**
  * Screen Wake Lock Hook
  * Keeps the screen awake during active workouts
@@ -25,11 +27,15 @@ export function useWakeLock() {
         // Request new wake lock
         wakeLockRef.current = await navigator.wakeLock.request('screen')
         
-        console.log('✅ Screen Wake Lock activated - screen will stay awake')
+        if (isDev) {
+          console.log('✅ Screen Wake Lock activated')
+        }
 
         // Handle wake lock release (e.g., when tab becomes hidden)
         wakeLockRef.current.addEventListener('release', () => {
-          console.log('🔓 Screen Wake Lock released')
+          if (isDev) {
+            console.log('🔓 Screen Wake Lock released')
+          }
         })
       } else {
         console.warn('⚠️ Wake Lock API not supported in this browser')
@@ -44,7 +50,9 @@ export function useWakeLock() {
       if (wakeLockRef.current) {
         await wakeLockRef.current.release()
         wakeLockRef.current = null
-        console.log('🔓 Screen Wake Lock manually released')
+        if (isDev) {
+          console.log('🔓 Screen Wake Lock manually released')
+        }
       }
     } catch (err) {
       console.error('❌ Failed to release Wake Lock:', err)

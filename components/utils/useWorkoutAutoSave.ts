@@ -3,6 +3,8 @@
 import { useEffect, useRef } from 'react'
 import { WorkoutLog } from '@/components/context/DataContext'
 
+const isDev = process.env.NODE_ENV === 'development'
+
 /**
  * Auto-save workout to localStorage at regular intervals
  * Prevents data loss if app crashes during workout
@@ -29,7 +31,9 @@ export function useWorkoutAutoSave(
       localStorage.setItem('ft_active', workoutString)
       localStorage.setItem('ft_active_timestamp', Date.now().toString())
       lastSaveRef.current = workoutString
-      console.log('💾 Workout auto-saved')
+      if (isDev) {
+        console.log('💾 Workout auto-saved')
+      }
     }
 
     // Set up auto-save interval
@@ -39,7 +43,9 @@ export function useWorkoutAutoSave(
         localStorage.setItem('ft_active', currentWorkoutString)
         localStorage.setItem('ft_active_timestamp', Date.now().toString())
         lastSaveRef.current = currentWorkoutString
-        console.log('💾 Workout auto-saved (interval)')
+        if (isDev) {
+          console.log('💾 Workout auto-saved (interval)')
+        }
       }
     }, interval)
 
@@ -59,7 +65,9 @@ export function useWorkoutAutoSave(
       const workoutString = JSON.stringify(workout)
       localStorage.setItem('ft_active', workoutString)
       localStorage.setItem('ft_active_timestamp', Date.now().toString())
-      console.log('💾 Workout saved before page unload')
+      if (isDev) {
+        console.log('💾 Workout saved before page unload')
+      }
     }
 
     window.addEventListener('beforeunload', handleBeforeUnload)
@@ -100,7 +108,9 @@ export function checkIncompleteWorkout(): {
 
     // If workout is older than 24 hours, consider it stale
     if (ageMinutes > 1440) { // 24 hours
-      console.log('🗑️ Removing stale workout (>24h old)')
+      if (isDev) {
+        console.log('🗑️ Removing stale workout (>24h old)')
+      }
       localStorage.removeItem('ft_active')
       localStorage.removeItem('ft_active_timestamp')
       return { workout: null, ageMinutes: 0 }
@@ -119,5 +129,7 @@ export function checkIncompleteWorkout(): {
 export function clearIncompleteWorkout() {
   localStorage.removeItem('ft_active')
   localStorage.removeItem('ft_active_timestamp')
-  console.log('🗑️ Incomplete workout cleared')
+  if (isDev) {
+    console.log('🗑️ Incomplete workout cleared')
+  }
 }
