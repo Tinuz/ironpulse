@@ -228,6 +228,12 @@ export function buildAccessoryPrompt(analysis: {
   recentWorkouts?: string[];
   trainingFrequency?: number;
   experienceLevel?: 'beginner' | 'intermediate' | 'advanced';
+  volumeByMuscleGroup?: Array<{
+    group: string;
+    totalVolume: number;
+    workoutCount: number;
+    exercises: string[];
+  }>;
 }): string {
   const parts: string[] = [];
 
@@ -257,7 +263,16 @@ export function buildAccessoryPrompt(analysis: {
     parts.push(`\nEXPERIENCE LEVEL: ${analysis.experienceLevel}`);
   }
 
-  parts.push('\nProvide 3-5 specific accessory exercises that would best address these issues. Focus on exercises that prevent injury, fix imbalances, and break through plateaus.');
+  if (analysis.volumeByMuscleGroup && analysis.volumeByMuscleGroup.length > 0) {
+    const topMuscles = analysis.volumeByMuscleGroup
+      .sort((a, b) => b.totalVolume - a.totalVolume)
+      .slice(0, 5)
+      .map(mg => `${mg.group}: ${Math.round(mg.totalVolume / 1000)}k kg (${mg.workoutCount}x trained, ${mg.exercises.length} exercises)`)
+      .join('\n');
+    parts.push(`\nMUSCLE GROUP VOLUME BREAKDOWN:\n${topMuscles}`);
+  }
+
+  parts.push('\nProvide 3-5 specific accessory exercises that would best address these issues. Focus on exercises that prevent injury, fix imbalances, and break through plateaus. Consider the muscle group volume data when making recommendations.');
 
   return parts.join('\n');
 }

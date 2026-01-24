@@ -112,6 +112,7 @@ export default function WorkoutGeneratorModal({ isOpen, onClose }: WorkoutGenera
           exercises: workout.exercises.map(ex => ({
             id: crypto.randomUUID(),
             name: ex.name,
+            muscleGroup: ex.muscleGroup as any, // Map AI-generated muscle group to schema
             targetSets: ex.sets,
             targetReps: typeof ex.reps === 'string' 
               ? parseInt(ex.reps.split('-')[1]) || parseInt(ex.reps) 

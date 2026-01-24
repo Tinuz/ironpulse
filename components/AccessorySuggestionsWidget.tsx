@@ -30,8 +30,16 @@ export default function AccessorySuggestionsWidget() {
       // Analyze workout history
       const analysis = analyzeForAccessories(history);
 
-      // Build prompt
-      const prompt = buildAccessoryPrompt(analysis);
+      // Build prompt with muscle group volume data
+      const prompt = buildAccessoryPrompt({
+        ...analysis,
+        volumeByMuscleGroup: analysis.volumeByMuscleGroup.map(mg => ({
+          group: mg.group,
+          totalVolume: mg.totalVolume,
+          workoutCount: mg.workoutCount,
+          exercises: mg.exercises
+        }))
+      });
 
       // Get CSRF token
       const csrfToken = await getCsrfToken();

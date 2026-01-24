@@ -186,6 +186,25 @@ export default function DeloadRecommendationWidget() {
                 </div>
               ))}
             </div>
+            
+            {/* Muscle Group Specific Advice */}
+            {recommendation.deloadProtocol.muscleGroupAdvice && 
+             Object.keys(recommendation.deloadProtocol.muscleGroupAdvice).length > 0 && (
+              <div className="space-y-2">
+                <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">
+                  Per Spiergroep:
+                </div>
+                {Object.entries(recommendation.deloadProtocol.muscleGroupAdvice).map(([muscle, advice]) => (
+                  <div 
+                    key={muscle}
+                    className="text-xs bg-blue-500/5 rounded-lg px-2 py-1.5 border border-blue-500/20"
+                  >
+                    <span className="font-bold text-blue-400 uppercase">{muscle}:</span>
+                    <span className="text-muted-foreground ml-1">{advice}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </details>
       )}

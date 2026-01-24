@@ -25,6 +25,7 @@ export interface DeloadProtocol {
   intensityReduction: number; // percentage
   durationWeeks: number;
   suggestions: string[];
+  muscleGroupAdvice?: Record<string, string>; // Muscle-specific deload advice
 }
 
 /**
@@ -74,7 +75,7 @@ export function detectDeloadNeed(
   
   // Generate deload protocol if needed
   const deloadProtocol = shouldDeload 
-    ? generateDeloadProtocol(urgency, weeksOfHighVolume)
+    ? generateDeloadProtocol(urgency, weeksOfHighVolume, workouts)
     : undefined;
   
   return {
@@ -306,7 +307,57 @@ function generateRecommendation(signals: DeloadSignal[], urgency: DeloadRecommen
 /**
  * Generate deload protocol
  */
-function generateDeloadProtocol(urgency: DeloadRecommendation['urgency'], _weeksOfHighVolume: number): DeloadProtocol {
+function generateDeloadProtocol(urgency: DeloadRecommendation['urgency'], _weeksOfHighVolume: number, workouts?: WorkoutLog[]): DeloadProtocol {
+  // Calculate muscle group specific advice if workouts provided
+  const muscleGroupAdvice: Record<string, string> = {};
+  
+  if (workouts && workouts.length > 0) {
+    // Get muscle groups from recent workouts
+    const muscleGroupVolumes = new Map<string, number>();
+    
+    workouts.slice(0, 10).forEach(workout => {
+      workout.exercises.forEach(ex => {
+        const muscleGroup = ex.muscleGroup || 'unknown';
+        const volume = ex.sets.reduce((sum, set) => 
+          sum + (set.completed ? (set.weight || 0) * (set.reps || 0) : 0), 0
+        );
+        muscleGroupVolumes.set(
+          muscleGroup,
+          (muscleGroupVolumes.get(muscleGroup) || 0) + volume
+        );
+      });
+    });
+    
+    // Generate specific advice for highly trained muscle groups
+    const sortedMuscles = Array.from(muscleGroupVolumes.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3);
+    
+    sortedMuscles.forEach(([muscle, _volume]) => {
+      switch (muscle.toLowerCase()) {
+        case 'chest':
+          muscleGroupAdvice[muscle] = 'Focus op lichte dumbbell work en stretching';
+          break;
+        case 'back':
+          muscleGroupAdvice[muscle] = 'Vervang zware rows door band pull-aparts';
+          break;
+        case 'shoulders':
+          muscleGroupAdvice[muscle] = 'Gebruik lichte lateral raises, skip overhead press';
+          break;
+        case 'legs':
+          muscleGroupAdvice[muscle] = 'Goblet squats i.p.v. back squats, focus op mobility';
+          break;
+        case 'biceps':
+        case 'triceps':
+          muscleGroupAdvice[muscle] = 'Lichte pump werk met hoge reps (15-20)';
+          break;
+        case 'core':
+          muscleGroupAdvice[muscle] = 'Dead bugs en bird dogs, skip heavy loaded core';
+          break;
+      }
+    });
+  }
+  
   const protocols: Record<DeloadRecommendation['urgency'], DeloadProtocol> = {
     critical: {
       volumeReduction: 50,
@@ -318,7 +369,8 @@ function generateDeloadProtocol(urgency: DeloadRecommendation['urgency'], _weeks
         'Focus op techniek en mindful movement',
         'Verhoog slaap tot 8-9 uur per nacht',
         'Overweeg extra rustdag(en) deze week'
-      ]
+      ],
+      muscleGroupAdvice
     },
     high: {
       volumeReduction: 40,
@@ -330,7 +382,8 @@ function generateDeloadProtocol(urgency: DeloadRecommendation['urgency'], _weeks
         'Behoud frequentie maar verkort workouts',
         'Focus op compound movements, skip accessories',
         'Verhoog protein intake (2g/kg) voor herstel'
-      ]
+      ],
+      muscleGroupAdvice
     },
     medium: {
       volumeReduction: 30,
@@ -342,7 +395,8 @@ function generateDeloadProtocol(urgency: DeloadRecommendation['urgency'], _weeks
         'Behoud alle oefeningen maar minder volume',
         'Extra stretching en mobility work',
         'Zorg voor adequate voeding en hydratatie'
-      ]
+      ],
+      muscleGroupAdvice
     },
     low: {
       volumeReduction: 20,
@@ -353,7 +407,8 @@ function generateDeloadProtocol(urgency: DeloadRecommendation['urgency'], _weeks
         'Gebruik ~85% van normale gewichten',
         'Optioneel: vervang 1 workout door actief herstel',
         'Focus op slaap en stress management'
-      ]
+      ],
+      muscleGroupAdvice
     }
   };
   
