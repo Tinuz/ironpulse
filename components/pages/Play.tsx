@@ -1,12 +1,12 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Play, Plus, Edit2, Trash2, RotateCcw, MoreVertical, X } from 'lucide-react'
+import { Play, Plus, Edit2, Trash2, RotateCcw, MoreVertical, X, Activity, Battery, BatteryWarning, BatteryMedium } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useData } from '@/components/context/DataContext'
 import { useLanguage } from '@/components/context/LanguageContext'
-import { format, formatDistance } from 'date-fns'
+import { format, formatDistance, differenceInDays, subDays } from 'date-fns'
 import { nl, enUS } from 'date-fns/locale'
 
 const container = {
@@ -33,6 +33,62 @@ export default function PlayPage() {
   const [createModalOpen, setCreateModalOpen] = useState(false)
 
   const recentWorkouts = history.slice(0, 5)
+
+  // Calculate overall recovery status
+  const recoveryStatus = useMemo(() => {
+    if (history.length === 0) return { score: 100, status: 'fresh', label: 'Fris', color: 'green' }
+    
+    const now = new Date()
+    const sevenDaysAgo = subDays(now, 7)
+    
+    // Get recent workouts
+    const recentWorkouts = history.filter(w => new Date(w.date) >= sevenDaysAgo)
+    
+    // Calculate days since last workout
+    const lastWorkout = history[0]
+    const daysSinceLastWorkout = lastWorkout 
+      ? differenceInDays(now, new Date(lastWorkout.date))
+      : 999
+    
+    // Simple recovery score based on days since last workout and recent volume
+    let score = 100
+    
+    // Reduce score based on training frequency
+    const workoutsThisWeek = recentWorkouts.length
+    if (workoutsThisWeek >= 6) score -= 30 // Very high frequency
+    else if (workoutsThisWeek >= 4) score -= 15 // High frequency
+    else if (workoutsThisWeek >= 2) score -= 5 // Moderate frequency
+    
+    // Adjust based on days since last workout
+    if (daysSinceLastWorkout === 0) score = Math.min(score, 40) // Trained today
+    else if (daysSinceLastWorkout === 1) score = Math.min(score, 60) // Yesterday
+    else if (daysSinceLastWorkout >= 3) score = Math.min(100, score + 20) // Well rested
+    
+    // Determine status
+    let status: 'fresh' | 'ready' | 'fatigued' | 'overtrained' = 'ready'
+    let label = 'Klaar'
+    let color = 'blue'
+    
+    if (score >= 85) {
+      status = 'fresh'
+      label = 'Fris'
+      color = 'green'
+    } else if (score >= 60) {
+      status = 'ready'
+      label = 'Klaar'
+      color = 'blue'
+    } else if (score >= 40) {
+      status = 'fatigued'
+      label = 'Vermoeid'
+      color = 'yellow'
+    } else {
+      status = 'overtrained'
+      label = 'Rust'
+      color = 'red'
+    }
+    
+    return { score, status, label, color, daysSinceLastWorkout }
+  }, [history])
 
   const handleStartSchema = (schemaId: string) => {
     const schema = schemas.find(s => s.id === schemaId)
@@ -77,8 +133,41 @@ export default function PlayPage() {
     <div className="min-h-screen bg-background pb-24">
       {/* Header */}
       <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-md border-b border-white/5 p-4">
-        <h1 className="font-black text-2xl">{t.dashboard.startWorkout}</h1>
-        <p className="text-xs text-muted-foreground mt-1">{t.schema.chooseRoutineOrRepeat}</p>
+        <div className="flex items-start justify-between">
+          <div className="flex-1">
+            <h1 className="font-black text-2xl">{t.dashboard.startWorkout}</h1>
+            <p className="text-xs text-muted-foreground mt-1">{t.schema.chooseRoutineOrRepeat}</p>
+          </div>
+          
+          {/* Recovery Status Badge */}
+          <button
+            onClick={() => router.push('/recovery')}
+            className={`ml-4 bg-${recoveryStatus.color}-500/10 border border-${recoveryStatus.color}-500/30 rounded-xl px-3 py-2 hover:bg-${recoveryStatus.color}-500/20 transition-colors flex items-center gap-2 min-w-[110px]`}
+          >
+            <div className="flex flex-col items-start">
+              <div className="flex items-center gap-1.5">
+                {recoveryStatus.status === 'fresh' && <Battery size={16} className={`text-${recoveryStatus.color}-500`} />}
+                {recoveryStatus.status === 'ready' && <BatteryMedium size={16} className={`text-${recoveryStatus.color}-500`} />}
+                {recoveryStatus.status === 'fatigued' && <BatteryWarning size={16} className={`text-${recoveryStatus.color}-500`} />}
+                {recoveryStatus.status === 'overtrained' && <Activity size={16} className={`text-${recoveryStatus.color}-500`} />}
+                <span className={`text-xs font-bold text-${recoveryStatus.color}-500 uppercase tracking-wide`}>
+                  {recoveryStatus.label}
+                </span>
+              </div>
+              <span className="text-[10px] text-muted-foreground">
+                {recoveryStatus.daysSinceLastWorkout === 0 
+                  ? 'Vandaag getraind' 
+                  : recoveryStatus.daysSinceLastWorkout === 1
+                  ? 'Gisteren getraind'
+                  : `${recoveryStatus.daysSinceLastWorkout}d geleden`}
+              </span>
+            </div>
+            <div className={`text-2xl font-black text-${recoveryStatus.color}-500`}>
+              {recoveryStatus.score}
+              <span className="text-xs">%</span>
+            </div>
+          </button>
+        </div>
       </div>
 
       <div className="p-6 max-w-2xl mx-auto space-y-8">
