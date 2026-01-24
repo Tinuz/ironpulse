@@ -6,6 +6,7 @@ import { motion } from 'framer-motion'
 import { Activity, TrendingUp, AlertCircle, CheckCircle2, Clock, ArrowLeft } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { subDays, differenceInDays } from 'date-fns'
+import MuscleRecoveryMap from '@/components/MuscleRecoveryMap'
 
 // Muscle groups for tracking
 const MUSCLE_GROUPS = [
@@ -278,6 +279,29 @@ export default function RecoveryDashboard() {
             {overallReadiness >= 40 && overallReadiness < 60 && 'Matige vermoeidheid, overweeg een lichtere sessie'}
             {overallReadiness < 40 && 'Hoge vermoeidheid, rust of deload week aanbevolen'}
           </div>
+        </motion.div>
+      </div>
+
+      {/* Muscle Recovery Visualization */}
+      <div className="px-6 mb-6">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="bg-card border border-white/5 rounded-2xl p-6"
+        >
+          <h3 className="font-bold mb-4 flex items-center gap-2">
+            <Activity size={20} />
+            Herstel Visualisatie
+          </h3>
+          <MuscleRecoveryMap
+            muscleData={recoveryData.map(data => ({
+              muscle: data.muscleGroup,
+              recovery: data.readinessScore,
+              lastTrained: data.lastTrained ? new Date(data.lastTrained) : undefined,
+              volume: data.recentVolume
+            }))}
+          />
         </motion.div>
       </div>
 
