@@ -242,6 +242,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [showRecoveryModal, setShowRecoveryModal] = useState(false);
   const [incompleteWorkout, setIncompleteWorkout] = useState<WorkoutLog | null>(null);
   const [hasCheckedIncomplete, setHasCheckedIncomplete] = useState(false); // Track if we've checked for incomplete workout
+  
+  // Session flag - set in sessionStorage to detect app restarts
+  const isNewSession = typeof window !== 'undefined' && !sessionStorage.getItem('ft_session_active');
+  
   const [coachProfile, setCoachProfileState] = useState<CoachProfileType>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('ironpulse_coach_profile');
@@ -405,8 +409,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Load achievements from Supabase
       await loadAchievements();
 
-      // Check for incomplete workout ONLY on first app load
-      if (!hasCheckedIncomplete) {
+      // Check for incomplete workout ONLY on first app load (new session)
+      if (isNewSession && !hasCheckedIncomplete) {
         const { workout: incomplete, ageMinutes } = checkIncompleteWorkout();
         
         // If there's an incomplete workout (crashed), show recovery modal
@@ -421,9 +425,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setActiveWorkout(parsedWorkout);
         }
         
+        // Mark session as active and check as done
+        sessionStorage.setItem('ft_session_active', 'true');
         setHasCheckedIncomplete(true);
       } else {
-        // Already checked, just load from localStorage
+        // Already checked OR active session, just load from localStorage
         const savedActive = localStorage.getItem('ft_active');
         const parsedWorkout = savedActive ? JSON.parse(savedActive) : null;
         setActiveWorkout(parsedWorkout);
