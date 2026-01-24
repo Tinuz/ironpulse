@@ -5,6 +5,9 @@ import { supabase } from '@/lib/supabase';
 import { CoachProfileType } from '@/components/utils/coachProfiles';
 import { useAuth } from '@/components/context/AuthContext';
 import { checkAchievements, getNewlyUnlocked } from '@/components/utils/achievementEngine';
+import { checkIncompleteWorkout, clearIncompleteWorkout } from '@/components/utils/useWorkoutAutoSave';
+import WorkoutRecoveryModal from '@/components/WorkoutRecoveryModal';
+import { useRouter } from 'next/navigation';
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -226,6 +229,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // STATE MANAGEMENT
   // ---------------------------------------------------------------------------
   
+  const router = useRouter();
   const [schemas, setSchemas] = useState<Schema[]>([]);
   const [history, setHistory] = useState<WorkoutLog[]>([]);
   const [activeWorkout, setActiveWorkout] = useState<WorkoutLog | null>(null);
@@ -235,6 +239,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [achievements, setAchievements] = useState<string[]>([]);
   const [unlockedAchievement, setUnlockedAchievement] = useState<{ id: string; name: string; description: string; icon: string; category: string } | null>(null);
+  const [showRecoveryModal, setShowRecoveryModal] = useState(false);
+  const [incompleteWorkout, setIncompleteWorkout] = useState<WorkoutLog | null>(null);
   const [coachProfile, setCoachProfileState] = useState<CoachProfileType>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('ironpulse_coach_profile');
@@ -401,6 +407,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Load active workout from localStorage (temporary state)
       const savedActive = localStorage.getItem('ft_active');
       setActiveWorkout(savedActive ? JSON.parse(savedActive) : null);
+
+      // Check for incomplete workout (after crash/reload)
+      const { workout: incomplete, ageMinutes } = checkIncompleteWorkout();
+      if (incomplete && ageMinutes < 120) { // Only show modal if workout is < 2 hours old
+        setIncompleteWorkout(incomplete);
+        setShowRecoveryModal(true);
+      }
 
     } catch (error) {
       console.error('Error loading data:', error);
@@ -692,12 +705,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       setActiveWorkout(null);
       localStorage.removeItem('ft_active');
+      localStorage.removeItem('ft_active_timestamp');
     }
   };
 
   const cancelWorkout = () => {
     setActiveWorkout(null);
     localStorage.removeItem('ft_active');
+    localStorage.removeItem('ft_active_timestamp');
   };
 
   const updateWorkout = async (id: string, updates: Partial<WorkoutLog>) => {
@@ -1111,6 +1126,24 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       saveUserProfile
     }}>
       {children}
+      
+      {/* Workout Recovery Modal */}
+      {showRecoveryModal && incompleteWorkout && (
+        <WorkoutRecoveryModal
+          workout={incompleteWorkout}
+          onRecover={() => {
+            setActiveWorkout(incompleteWorkout);
+            setShowRecoveryModal(false);
+            setIncompleteWorkout(null);
+            router.push('/workout');
+          }}
+          onDiscard={() => {
+            clearIncompleteWorkout();
+            setShowRecoveryModal(false);
+            setIncompleteWorkout(null);
+          }}
+        />
+      )}
     </DataContext.Provider>
   );
 };

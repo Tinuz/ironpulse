@@ -26,6 +26,7 @@ import CardioExerciseLogger from '@/components/CardioExerciseLogger'
 import { formatDuration, formatDistance } from '@/components/utils/cardioCalculations'
 import { useLanguage } from '@/components/context/LanguageContext'
 import { useWakeLock } from '@/components/utils/useWakeLock'
+import { useWorkoutAutoSave } from '@/components/utils/useWorkoutAutoSave'
 
 const ExerciseStats = ({ 
   exercise,
@@ -160,6 +161,9 @@ export default function WorkoutLogger() {
   const [workoutData, setWorkoutData] = useState<typeof activeWorkout>(null);
   const [isReady, setIsReady] = useState(false);
   const [showSummary, setShowSummary] = useState(false);
+
+  // Auto-save workout every 30 seconds to prevent data loss
+  useWorkoutAutoSave(workoutData, 30000);
 
   // Substitution modal state
   const [substitutionModalOpen, setSubstitutionModalOpen] = useState(false);
