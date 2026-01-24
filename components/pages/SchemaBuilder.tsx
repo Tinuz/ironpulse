@@ -476,16 +476,42 @@ export default function SchemaBuilder() {
                   className="w-full bg-[#1a1a1a] text-white rounded-lg px-3 py-2 mt-1 focus:outline-none focus:ring-1 focus:ring-primary font-medium border border-white/10 hover:bg-[#202020] transition-colors"
                 >
                   <option value="" className="bg-[#1a1a1a] text-white/60">Selecteer spiergroep (optioneel)</option>
-                  <option value="chest" className="bg-[#1a1a1a] text-white">Borst</option>
-                  <option value="back" className="bg-[#1a1a1a] text-white">Rug</option>
-                  <option value="shoulders" className="bg-[#1a1a1a] text-white">Schouders</option>
-                  <option value="biceps" className="bg-[#1a1a1a] text-white">Biceps</option>
-                  <option value="triceps" className="bg-[#1a1a1a] text-white">Triceps</option>
-                  <option value="quads" className="bg-[#1a1a1a] text-white">Dijspier</option>
-                  <option value="hamstring" className="bg-[#1a1a1a] text-white">Hamstring</option>
-                  <option value="calves" className="bg-[#1a1a1a] text-white">Kuiten</option>
-                  <option value="glutes" className="bg-[#1a1a1a] text-white">Billen</option>
-                  <option value="abs" className="bg-[#1a1a1a] text-white">Buikspieren</option>
+                  
+                  <optgroup label="Borst" className="bg-[#1a1a1a] text-white font-bold">
+                    <option value="chest" className="bg-[#1a1a1a] text-white">Borst (algemeen)</option>
+                  </optgroup>
+                  
+                  <optgroup label="Rug" className="bg-[#1a1a1a] text-white font-bold">
+                    <option value="back" className="bg-[#1a1a1a] text-white">Rug (algemeen)</option>
+                    <option value="lats" className="bg-[#1a1a1a] text-white">Latissimus (lats)</option>
+                    <option value="traps" className="bg-[#1a1a1a] text-white">Trapezius (traps)</option>
+                    <option value="middle-back" className="bg-[#1a1a1a] text-white">Midden rug</option>
+                    <option value="lower-back" className="bg-[#1a1a1a] text-white">Onderrug</option>
+                  </optgroup>
+                  
+                  <optgroup label="Schouders" className="bg-[#1a1a1a] text-white font-bold">
+                    <option value="shoulders" className="bg-[#1a1a1a] text-white">Schouders</option>
+                  </optgroup>
+                  
+                  <optgroup label="Armen" className="bg-[#1a1a1a] text-white font-bold">
+                    <option value="biceps" className="bg-[#1a1a1a] text-white">Biceps</option>
+                    <option value="triceps" className="bg-[#1a1a1a] text-white">Triceps</option>
+                    <option value="forearms" className="bg-[#1a1a1a] text-white">Onderarmen</option>
+                  </optgroup>
+                  
+                  <optgroup label="Benen" className="bg-[#1a1a1a] text-white font-bold">
+                    <option value="legs" className="bg-[#1a1a1a] text-white">Benen (algemeen)</option>
+                    <option value="quads" className="bg-[#1a1a1a] text-white">Dijbenen (quads)</option>
+                    <option value="hamstrings" className="bg-[#1a1a1a] text-white">Hamstrings</option>
+                    <option value="glutes" className="bg-[#1a1a1a] text-white">Billen (glutes)</option>
+                    <option value="calves" className="bg-[#1a1a1a] text-white">Kuiten</option>
+                  </optgroup>
+                  
+                  <optgroup label="Core" className="bg-[#1a1a1a] text-white font-bold">
+                    <option value="abs" className="bg-[#1a1a1a] text-white">Buikspieren (abs)</option>
+                    <option value="obliques" className="bg-[#1a1a1a] text-white">Schuin buikspieren</option>
+                    <option value="core" className="bg-[#1a1a1a] text-white">Core (algemeen)</option>
+                  </optgroup>
                 </select>
               </div>
               
