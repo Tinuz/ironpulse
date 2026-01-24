@@ -102,6 +102,11 @@ export default function PlateauDetectionWidget() {
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
                     <span className="font-bold text-sm">{plateau.exerciseName}</span>
+                    {plateau.muscleGroup && (
+                      <span className="text-[9px] px-2 py-0.5 rounded-full bg-white/10 text-muted-foreground font-bold uppercase">
+                        {plateau.muscleGroup}
+                      </span>
+                    )}
                     <span className={`text-[9px] px-2 py-0.5 rounded-full bg-${severityBadge.color}-500/20 text-${severityBadge.color}-500 font-bold uppercase`}>
                       {severityBadge.label}
                     </span>

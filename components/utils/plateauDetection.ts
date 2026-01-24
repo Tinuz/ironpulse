@@ -6,6 +6,7 @@ import { detectPlateau, PlateauDetection } from './strengthAnalytics';
  */
 export interface EnhancedPlateauDetection extends PlateauDetection {
   exerciseName: string;
+  muscleGroup?: string; // Added muscle group field
   detectionType: 'weight' | 'volume' | 'reps';
   lastWorkoutDate: string;
   weeksStagnant: number;
@@ -44,13 +45,17 @@ export function detectAllPlateaus(
         (new Date().getTime() - firstStagnantDate.getTime()) / (1000 * 60 * 60 * 24 * 7)
       );
       
+      // Get muscle group from most recent workout with this exercise
+      const muscleGroup = relevantWorkouts[0]?.exercises.find(ex => ex.name === exerciseName)?.muscleGroup;
+      
       plateaus.push({
         ...detection,
         exerciseName,
+        muscleGroup,
         detectionType: 'weight',
         lastWorkoutDate,
         weeksStagnant,
-        ruleSuggestions: generateRuleSuggestions(exerciseName, weeksStagnant)
+        ruleSuggestions: generateRuleSuggestions(exerciseName, weeksStagnant, muscleGroup)
       });
     }
   });
@@ -63,7 +68,8 @@ export function detectAllPlateaus(
  */
 function generateRuleSuggestions(
   exerciseName: string,
-  weeksStagnant: number
+  weeksStagnant: number,
+  muscleGroup?: string
 ): string[] {
   const suggestions: string[] = [];
   
@@ -76,21 +82,55 @@ function generateRuleSuggestions(
     suggestions.push('Verhoog sets met zelfde gewicht');
   }
   
-  // Exercise-specific suggestions
-  const exerciseLower = exerciseName.toLowerCase();
-  
-  if (exerciseLower.includes('bench') || exerciseLower.includes('press')) {
-    suggestions.push('Voeg paused reps toe (2 sec hold)');
-    suggestions.push('Probeer close-grip of incline variatie');
-  } else if (exerciseLower.includes('squat')) {
-    suggestions.push('Check je squat depth - volle ROM kan helpen');
-    suggestions.push('Probeer pause squats of box squats');
-  } else if (exerciseLower.includes('deadlift')) {
-    suggestions.push('Voeg deficit deadlifts toe');
-    suggestions.push('Probeer Romanian deadlifts voor hamstring focus');
-  } else if (exerciseLower.includes('pull')) {
-    suggestions.push('Verhoog time under tension (langzamer neerlaten)');
-    suggestions.push('Wissel grip width');
+  // Muscle group specific suggestions (using new muscleGroup field!)
+  if (muscleGroup) {
+    switch (muscleGroup.toLowerCase()) {
+      case 'chest':
+        suggestions.push('Voeg paused reps toe (2 sec hold)');
+        suggestions.push('Probeer incline of decline variatie');
+        break;
+      case 'back':
+        suggestions.push('Verhoog time under tension (langzamer neerlaten)');
+        suggestions.push('Wissel grip width of type (overhand/underhand)');
+        break;
+      case 'shoulders':
+        suggestions.push('Focus op scapular retraction en controle');
+        suggestions.push('Voeg face pulls toe voor rear delts');
+        break;
+      case 'legs':
+        suggestions.push('Check je squat depth - volle ROM kan helpen');
+        suggestions.push('Probeer pause reps of tempo variaties');
+        break;
+      case 'biceps':
+        suggestions.push('Probeer verschillende grips (hammer, reverse)');
+        suggestions.push('Voeg eccentrics toe (langzaam neerlaten)');
+        break;
+      case 'triceps':
+        suggestions.push('Wissel tussen close grip en overhead werk');
+        suggestions.push('Focus op elbow positie en ROM');
+        break;
+      case 'core':
+        suggestions.push('Verhoog hold times of add resistance');
+        suggestions.push('Probeer anti-rotation oefeningen');
+        break;
+    }
+  } else {
+    // Fallback to name-based suggestions (old method)
+    const exerciseLower = exerciseName.toLowerCase();
+    
+    if (exerciseLower.includes('bench') || exerciseLower.includes('press')) {
+      suggestions.push('Voeg paused reps toe (2 sec hold)');
+      suggestions.push('Probeer close-grip of incline variatie');
+    } else if (exerciseLower.includes('squat')) {
+      suggestions.push('Check je squat depth - volle ROM kan helpen');
+      suggestions.push('Probeer pause squats of box squats');
+    } else if (exerciseLower.includes('deadlift')) {
+      suggestions.push('Voeg deficit deadlifts toe');
+      suggestions.push('Probeer Romanian deadlifts voor hamstring focus');
+    } else if (exerciseLower.includes('pull')) {
+      suggestions.push('Verhoog time under tension (langzamer neerlaten)');
+      suggestions.push('Wissel grip width');
+    }
   }
   
   // General suggestions

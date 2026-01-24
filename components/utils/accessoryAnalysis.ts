@@ -117,7 +117,8 @@ function calculateMuscleGroupVolume(workouts: WorkoutLog[]): MuscleGroupVolume[]
     const groupsInWorkout = new Set<MuscleGroup>();
 
     workout.exercises.forEach(exercise => {
-      const group = getMuscleGroup(exercise.name);
+      // Use muscleGroup field first, fallback to name-based detection
+      const group = getMuscleGroup(exercise.name, exercise.muscleGroup);
       if (!group) return;
 
       const data = groupData.get(group)!;
