@@ -143,14 +143,12 @@ export default function MuscleRecoveryMap({
                 className="w-6 h-6 rounded-md flex-shrink-0" 
                 style={{ backgroundColor: item.color }}
               />
-              <div className="flex-1">
-                <span className="text-sm font-medium text-gray-900 dark:text-white">
-                  {item.label}
-                </span>
-                <span className="text-xs text-gray-600 dark:text-gray-300 ml-2">
-                  ({item.range})
-                </span>
-              </div>
+              <span className="text-sm font-medium text-gray-900 dark:text-white flex-1">
+                {item.label}
+              </span>
+              <span className="text-xs text-gray-600 dark:text-gray-300 font-mono">
+                {item.range}
+              </span>
             </div>
           ))}
         </div>
