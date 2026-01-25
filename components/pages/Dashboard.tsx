@@ -7,7 +7,7 @@ import { useData } from '@/components/context/DataContext'
 import { useAuth } from '@/components/context/AuthContext'
 import { useLanguage } from '@/components/context/LanguageContext'
 import { format } from 'date-fns';
-import StreakWidget from '@/components/StreakWidget';
+import WeeklyConsistencyWidget from '@/components/WeeklyConsistencyWidget';
 import MuscleGroupVolumeWidget from '@/components/MuscleGroupVolumeWidget';
 import WeeklySummaryWidget from '@/components/WeeklySummaryWidget';
 import PlateauDetectionWidget from '@/components/PlateauDetectionWidget';
@@ -103,7 +103,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <StreakWidget history={history} />
+      <WeeklyConsistencyWidget history={history} />
       <WeeklySummaryWidget />
       <MuscleGroupVolumeWidget />
       <PlateauDetectionWidget />
