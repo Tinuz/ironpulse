@@ -34,36 +34,132 @@ export default function PlayPage() {
 
   const recentWorkouts = history.slice(0, 5)
 
-  // Calculate overall recovery status
+  // Muscle groups for recovery calculation
+  const MUSCLE_GROUPS = [
+    { id: 'chest', name: 'Borst' },
+    { id: 'shoulders', name: 'Schouders' },
+    { id: 'triceps', name: 'Triceps' },
+    { id: 'back', name: 'Rug' },
+    { id: 'biceps', name: 'Biceps' },
+    { id: 'legs', name: 'Benen' },
+    { id: 'core', name: 'Core' },
+  ]
+
+  // Calculate overall recovery status using scientific muscle group recovery
   const recoveryStatus = useMemo(() => {
     if (history.length === 0) return { score: 100, status: 'fresh', label: 'Fris', color: 'green' }
     
     const now = new Date()
     const sevenDaysAgo = subDays(now, 7)
+    const fourWeeksAgo = subDays(now, 28)
     
-    // Get recent workouts
-    const recentWorkouts = history.filter(w => new Date(w.date) >= sevenDaysAgo)
-    
-    // Calculate days since last workout
-    const lastWorkout = history[0]
-    const daysSinceLastWorkout = lastWorkout 
-      ? differenceInDays(now, new Date(lastWorkout.date))
-      : 999
-    
-    // Simple recovery score based on days since last workout and recent volume
-    let score = 100
-    
-    // Reduce score based on training frequency
-    const workoutsThisWeek = recentWorkouts.length
-    if (workoutsThisWeek >= 6) score -= 30 // Very high frequency
-    else if (workoutsThisWeek >= 4) score -= 15 // High frequency
-    else if (workoutsThisWeek >= 2) score -= 5 // Moderate frequency
-    
-    // Adjust based on days since last workout
-    if (daysSinceLastWorkout === 0) score = Math.min(score, 40) // Trained today
-    else if (daysSinceLastWorkout === 1) score = Math.min(score, 60) // Yesterday
-    else if (daysSinceLastWorkout >= 3) score = Math.min(100, score + 20) // Well rested
-    
+    // Calculate recovery per muscle group (same logic as RecoveryDashboard)
+    const muscleRecoveryScores = MUSCLE_GROUPS.map(muscle => {
+      // Get workouts for this muscle group
+      const muscleWorkouts = history.filter(workout => {
+        return workout.exercises.some(ex => {
+          // Check muscleGroup field first
+          if (ex.muscleGroup) {
+            const muscleGroupMap: Record<string, string[]> = {
+              'chest': ['chest'],
+              'shoulders': ['shoulders'],
+              'triceps': ['triceps'],
+              'back': ['back', 'lats', 'middle-back', 'lower-back', 'traps'],
+              'biceps': ['biceps'],
+              'legs': ['legs', 'quads', 'quadriceps', 'hamstrings', 'glutes', 'calves'],
+              'core': ['core', 'abs', 'obliques'],
+            }
+            const mappedGroups = muscleGroupMap[muscle.id] || []
+            if (mappedGroups.includes(ex.muscleGroup)) return true
+          }
+          // Fallback to name-based detection
+          return ex.name.toLowerCase().includes(muscle.id) ||
+                 ex.name.toLowerCase().includes(muscle.name.toLowerCase())
+        })
+      })
+
+      // Find last trained date
+      const lastWorkout = muscleWorkouts[0]
+      const daysSinceTraining = lastWorkout 
+        ? differenceInDays(now, new Date(lastWorkout.date))
+        : 999
+
+      // Helper to check if exercise belongs to muscle
+      const exerciseBelongsToMuscle = (ex: any) => {
+        if (ex.muscleGroup) {
+          const muscleGroupMap: Record<string, string[]> = {
+            'chest': ['chest'],
+            'shoulders': ['shoulders'],
+            'triceps': ['triceps'],
+            'back': ['back', 'lats', 'middle-back', 'lower-back', 'traps'],
+            'biceps': ['biceps'],
+            'legs': ['legs', 'quads', 'quadriceps', 'hamstrings', 'glutes', 'calves'],
+            'core': ['core', 'abs', 'obliques'],
+          }
+          const mappedGroups = muscleGroupMap[muscle.id] || []
+          if (mappedGroups.includes(ex.muscleGroup)) return true
+        }
+        return ex.name.toLowerCase().includes(muscle.id) ||
+               ex.name.toLowerCase().includes(muscle.name.toLowerCase())
+      }
+
+      // Calculate recent volume (last 7 days)
+      const recentWorkouts = muscleWorkouts.filter(w => new Date(w.date) >= sevenDaysAgo)
+      const recentVolume = recentWorkouts.reduce((total, workout) => {
+        return total + workout.exercises
+          .filter(exerciseBelongsToMuscle)
+          .reduce((exTotal, ex) => {
+            return exTotal + ex.sets
+              .filter(s => s.completed && !s.isWarmup)
+              .reduce((setTotal, set) => setTotal + (set.weight * set.reps), 0)
+          }, 0)
+      }, 0)
+
+      // Calculate baseline volume (4 weeks average)
+      const baselineWorkouts = muscleWorkouts.filter(w => new Date(w.date) >= fourWeeksAgo)
+      const baselineVolume = baselineWorkouts.length > 0
+        ? baselineWorkouts.reduce((total, workout) => {
+            return total + workout.exercises
+              .filter(exerciseBelongsToMuscle)
+              .reduce((exTotal, ex) => {
+                return exTotal + ex.sets
+                  .filter(s => s.completed && !s.isWarmup)
+                  .reduce((setTotal, set) => setTotal + (set.weight * set.reps), 0)
+              }, 0)
+          }, 0) / 4
+        : 0
+
+      // Calculate readiness score - Scientific recovery curve
+      let readinessScore = 0
+      if (daysSinceTraining === 0) readinessScore = 0      // Just trained
+      else if (daysSinceTraining === 1) readinessScore = 20  // 1 day
+      else if (daysSinceTraining === 2) readinessScore = 45  // 2 days
+      else if (daysSinceTraining === 3) readinessScore = 70  // 3 days
+      else if (daysSinceTraining === 4) readinessScore = 90  // 4 days
+      else if (daysSinceTraining >= 5) readinessScore = 100  // Fully recovered
+      else readinessScore = 100 // Never trained
+
+      // Adjust for volume load
+      if (baselineVolume > 0 && recentVolume > 0) {
+        const volumeRatio = recentVolume / baselineVolume
+        if (volumeRatio > 2.0) readinessScore = Math.max(0, readinessScore - 30)
+        else if (volumeRatio > 1.5) readinessScore = Math.max(0, readinessScore - 20)
+        else if (volumeRatio > 1.2) readinessScore = Math.max(0, readinessScore - 10)
+        
+        // Deload bonus
+        if (volumeRatio < 0.5 && daysSinceTraining >= 2) {
+          readinessScore = Math.min(100, readinessScore + 15)
+        }
+      }
+
+      return Math.round(readinessScore)
+    })
+
+    // Overall score = average of all muscle groups
+    const score = Math.round(
+      muscleRecoveryScores.reduce((sum, s) => sum + s, 0) / muscleRecoveryScores.length
+    )
+
     // Determine status
     let status: 'fresh' | 'ready' | 'fatigued' | 'overtrained' = 'ready'
     let label = 'Klaar'
@@ -73,11 +169,11 @@ export default function PlayPage() {
       status = 'fresh'
       label = 'Fris'
       color = 'green'
-    } else if (score >= 60) {
+    } else if (score >= 50) {
       status = 'ready'
       label = 'Klaar'
       color = 'blue'
-    } else if (score >= 40) {
+    } else if (score >= 25) {
       status = 'fatigued'
       label = 'Vermoeid'
       color = 'yellow'
@@ -86,6 +182,12 @@ export default function PlayPage() {
       label = 'Rust'
       color = 'red'
     }
+    
+    // Calculate days since last workout for display
+    const lastWorkout = history[0]
+    const daysSinceLastWorkout = lastWorkout 
+      ? differenceInDays(now, new Date(lastWorkout.date))
+      : 999
     
     return { score, status, label, color, daysSinceLastWorkout }
   }, [history])
