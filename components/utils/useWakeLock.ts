@@ -5,6 +5,7 @@ const isDev = process.env.NODE_ENV === 'development'
 /**
  * Screen Wake Lock Hook
  * Keeps the screen awake during active workouts
+ * Respects user preference from settings
  * 
  * Usage:
  * const { requestWakeLock, releaseWakeLock } = useWakeLock();
@@ -15,7 +16,22 @@ const isDev = process.env.NODE_ENV === 'development'
 export function useWakeLock() {
   const wakeLockRef = useRef<WakeLockSentinel | null>(null)
 
+  const isWakeLockEnabled = () => {
+    if (typeof window === 'undefined') return true
+    const setting = localStorage.getItem('workout_keep_screen_awake')
+    // Default to true if not set
+    return setting === null || setting === 'true'
+  }
+
   const requestWakeLock = async () => {
+    // Check if user has disabled wake lock in settings
+    if (!isWakeLockEnabled()) {
+      if (isDev) {
+        console.log('⚙️ Screen Wake Lock disabled in settings')
+      }
+      return
+    }
+
     try {
       // Check if Wake Lock API is supported
       if ('wakeLock' in navigator) {
@@ -62,7 +78,7 @@ export function useWakeLock() {
   // Re-acquire wake lock when page becomes visible again (if it was active)
   useEffect(() => {
     const handleVisibilityChange = async () => {
-      if (wakeLockRef.current !== null && document.visibilityState === 'visible') {
+      if (wakeLockRef.current !== null && document.visibilityState === 'visible' && isWakeLockEnabled()) {
         await requestWakeLock()
       }
     }

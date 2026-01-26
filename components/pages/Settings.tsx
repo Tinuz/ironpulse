@@ -34,6 +34,7 @@ export default function Settings() {
   const [showRIR, setShowRIR] = useState(false)
   const [showRPE, setShowRPE] = useState(false)
   const [showWarmupToggle, setShowWarmupToggle] = useState(true)
+  const [keepScreenAwake, setKeepScreenAwake] = useState(true)
 
   useEffect(() => {
     if (user) {
@@ -46,10 +47,13 @@ export default function Settings() {
     const savedRIR = localStorage.getItem('workout_show_rir')
     const savedRPE = localStorage.getItem('workout_show_rpe')
     const savedWarmup = localStorage.getItem('workout_show_warmup_toggle')
+    const savedKeepAwake = localStorage.getItem('workout_keep_screen_awake')
     
     if (savedRIR !== null) setShowRIR(savedRIR === 'true')
     if (savedRPE !== null) setShowRPE(savedRPE === 'true')
     if (savedWarmup !== null) setShowWarmupToggle(savedWarmup === 'true')
+    if (savedKeepAwake !== null) setKeepScreenAwake(savedKeepAwake === 'true')
+    else setKeepScreenAwake(true) // Default to true for existing users
   }
 
   const loadSocialProfile = async () => {
@@ -454,6 +458,27 @@ export default function Settings() {
               >
                 <div className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-md transition-transform ${
                   showWarmupToggle ? 'translate-x-6' : 'translate-x-0'
+                }`} />
+              </button>
+            </label>
+
+            <label className="flex items-center justify-between cursor-pointer">
+              <div>
+                <p className="font-medium text-sm">{t.settings.keepScreenAwake}</p>
+                <p className="text-xs text-muted-foreground">{t.settings.keepScreenAwakeDesc}</p>
+              </div>
+              <button
+                onClick={() => {
+                  const newValue = !keepScreenAwake
+                  setKeepScreenAwake(newValue)
+                  localStorage.setItem('workout_keep_screen_awake', String(newValue))
+                }}
+                className={`relative w-12 h-6 rounded-full transition-colors border ${
+                  keepScreenAwake ? 'bg-primary border-primary' : 'bg-gray-700 border-gray-600'
+                }`}
+              >
+                <div className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-md transition-transform ${
+                  keepScreenAwake ? 'translate-x-6' : 'translate-x-0'
                 }`} />
               </button>
             </label>
