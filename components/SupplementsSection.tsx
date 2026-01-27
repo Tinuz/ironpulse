@@ -126,29 +126,29 @@ export default function SupplementsSection({ selectedDate, onOpenCoach }: Supple
           >
             <form onSubmit={handleSubmit} className="bg-muted/50 rounded-xl p-4 space-y-3">
               {/* Name and Dosage */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-3">
                 <input
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   placeholder="Supplement name (e.g., Creatine)"
-                  className="px-3 py-2 bg-background border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  className="w-full px-3 py-2 bg-background border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/50"
                   required
                 />
-                <div className="flex gap-2">
+                <div className="grid grid-cols-[1fr_auto] gap-2">
                   <input
                     type="number"
                     step="0.01"
                     value={formData.dosageAmount}
                     onChange={(e) => setFormData({ ...formData, dosageAmount: e.target.value })}
                     placeholder="Amount"
-                    className="flex-1 px-3 py-2 bg-background border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    className="px-3 py-2 bg-background border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/50 min-w-0"
                     required
                   />
                   <select
                     value={formData.dosageUnit}
                     onChange={(e) => setFormData({ ...formData, dosageUnit: e.target.value as Supplement['dosageUnit'] })}
-                    className="px-3 py-2 bg-background border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    className="px-3 py-2 bg-background border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/50 min-w-[90px]"
                   >
                     {DOSAGE_UNITS.map(unit => (
                       <option key={unit} value={unit}>{unit}</option>
@@ -158,18 +158,18 @@ export default function SupplementsSection({ selectedDate, onOpenCoach }: Supple
               </div>
 
               {/* Brand and Timing */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-3">
                 <input
                   type="text"
                   value={formData.brand}
                   onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
                   placeholder="Brand (optional)"
-                  className="px-3 py-2 bg-background border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  className="w-full px-3 py-2 bg-background border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/50"
                 />
                 <select
                   value={formData.timing || ''}
                   onChange={(e) => setFormData({ ...formData, timing: e.target.value ? e.target.value as Supplement['timing'] : undefined })}
-                  className="px-3 py-2 bg-background border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  className="w-full px-3 py-2 bg-background border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/50"
                 >
                   <option value="">Timing (optional)</option>
                   {TIMING_OPTIONS.map(timing => (
