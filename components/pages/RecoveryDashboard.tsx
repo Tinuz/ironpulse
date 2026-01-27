@@ -14,9 +14,16 @@ const MUSCLE_GROUPS = [
   { id: 'shoulders', name: 'Schouders', category: 'push' },
   { id: 'triceps', name: 'Triceps', category: 'push' },
   { id: 'back', name: 'Rug', category: 'pull' },
+  { id: 'lats', name: 'Lats', category: 'pull' },
+  { id: 'traps', name: 'Traps', category: 'pull' },
   { id: 'biceps', name: 'Biceps', category: 'pull' },
-  { id: 'legs', name: 'Benen', category: 'legs' },
-  { id: 'core', name: 'Core', category: 'core' },
+  { id: 'forearms', name: 'Onderarmen', category: 'pull' },
+  { id: 'quads', name: 'Quads', category: 'legs' },
+  { id: 'hamstrings', name: 'Hamstrings', category: 'legs' },
+  { id: 'glutes', name: 'Billen', category: 'legs' },
+  { id: 'calves', name: 'Kuiten', category: 'legs' },
+  { id: 'abs', name: 'Abs', category: 'core' },
+  { id: 'obliques', name: 'Obliques', category: 'core' },
 ]
 
 interface MuscleRecoveryData {
@@ -47,18 +54,26 @@ export default function RecoveryDashboard() {
         return workout.exercises.some(ex => {
           // PRIORITY 1: Use muscleGroup field if available
           if (ex.muscleGroup) {
-            // Comprehensive muscle group mapping
-            const muscleGroupMap: Record<string, string[]> = {
-              'chest': ['chest'],
-              'shoulders': ['shoulders'],
-              'triceps': ['triceps'],
-              'back': ['back', 'lats', 'middle-back', 'lower-back', 'traps'],
-              'biceps': ['biceps'],
-              'legs': ['legs', 'quads', 'quadriceps', 'hamstrings', 'glutes', 'calves'],
-              'core': ['core', 'abs', 'obliques'],
+            // Direct match for specific muscle groups
+            if (ex.muscleGroup === muscle.id) {
+              return true
             }
             
-            const mappedGroups = muscleGroupMap[muscle.id] || []
+            // Fallback mapping for broader categories
+            const muscleGroupMap: Record<string, string[]> = {
+              'back': ['back', 'lats', 'middle-back', 'lower-back', 'traps'],
+              'lats': ['lats', 'back'],
+              'traps': ['traps', 'back'],
+              'quads': ['quads', 'quadriceps', 'legs'],
+              'hamstrings': ['hamstrings', 'legs'],
+              'glutes': ['glutes', 'legs'],
+              'calves': ['calves', 'legs'],
+              'abs': ['abs', 'core'],
+              'obliques': ['obliques', 'core'],
+              'forearms': ['forearms'],
+            }
+            
+            const mappedGroups = muscleGroupMap[muscle.id] || [muscle.id]
             if (mappedGroups.includes(ex.muscleGroup)) {
               return true
             }
@@ -86,16 +101,23 @@ export default function RecoveryDashboard() {
       const exerciseBelongsToMuscle = (ex: any) => {
         // Check muscleGroup field first
         if (ex.muscleGroup) {
+          // Direct match
+          if (ex.muscleGroup === muscle.id) return true
+          
+          // Fallback mapping
           const muscleGroupMap: Record<string, string[]> = {
-            'chest': ['chest'],
-            'shoulders': ['shoulders'],
-            'triceps': ['triceps'],
             'back': ['back', 'lats', 'middle-back', 'lower-back', 'traps'],
-            'biceps': ['biceps'],
-            'legs': ['legs', 'quads', 'quadriceps', 'hamstrings', 'glutes', 'calves'],
-            'core': ['core', 'abs', 'obliques'],
+            'lats': ['lats', 'back'],
+            'traps': ['traps', 'back'],
+            'quads': ['quads', 'quadriceps', 'legs'],
+            'hamstrings': ['hamstrings', 'legs'],
+            'glutes': ['glutes', 'legs'],
+            'calves': ['calves', 'legs'],
+            'abs': ['abs', 'core'],
+            'obliques': ['obliques', 'core'],
+            'forearms': ['forearms'],
           }
-          const mappedGroups = muscleGroupMap[muscle.id] || []
+          const mappedGroups = muscleGroupMap[muscle.id] || [muscle.id]
           if (mappedGroups.includes(ex.muscleGroup)) return true
         }
         
