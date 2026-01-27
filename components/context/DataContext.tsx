@@ -59,7 +59,7 @@ export interface WorkoutExercise {
   exerciseId: string;
   name: string;
   type?: ExerciseType; // 'strength' or 'cardio'
-  muscleGroup?: 'chest' | 'back' | 'shoulders' | 'biceps' | 'triceps' | 'legs' | 'core' | 'full-body' | 'cardio';
+  muscleGroup?: 'chest' | 'back' | 'lats' | 'traps' | 'middle-back' | 'lower-back' | 'shoulders' | 'biceps' | 'triceps' | 'forearms' | 'legs' | 'quads' | 'hamstrings' | 'glutes' | 'calves' | 'core' | 'abs' | 'obliques' | 'full-body' | 'cardio';
   sets: WorkoutSet[]; // for strength exercises
   cardioData?: CardioData; // for cardio exercises
   notes?: string;

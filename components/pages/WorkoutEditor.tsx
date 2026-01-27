@@ -77,6 +77,18 @@ export default function WorkoutEditor() {
     })
   }
 
+  const updateExerciseMuscleGroup = (exerciseId: string, muscleGroup: WorkoutExercise['muscleGroup']) => {
+    setWorkoutData(prev => {
+      if (!prev) return null
+      return {
+        ...prev,
+        exercises: prev.exercises.map(ex => 
+          ex.id === exerciseId ? { ...ex, muscleGroup } : ex
+        )
+      }
+    })
+  }
+
   const updateSet = (exerciseId: string, setId: string, updates: Partial<WorkoutSet>) => {
     setWorkoutData(prev => {
       if (!prev) return null
@@ -253,6 +265,52 @@ export default function WorkoutEditor() {
                 >
                   <Trash2 size={20} />
                 </button>
+              </div>
+
+              {/* Muscle Group Selector */}
+              <div className="space-y-2">
+                <label className="text-xs uppercase font-semibold text-txt-tertiary tracking-wider">Spiergroep</label>
+                <select
+                  value={exercise.muscleGroup || ''}
+                  onChange={(e) => updateExerciseMuscleGroup(exercise.id, e.target.value as WorkoutExercise['muscleGroup'])}
+                  className="w-full bg-bg-tertiary border border-border-default rounded-professional px-4 py-3 text-txt-primary focus:outline-none focus:border-accent-primary transition-colors"
+                >
+                  <option value="">Selecteer spiergroep...</option>
+                  <optgroup label="Borst">
+                    <option value="chest">Borst</option>
+                  </optgroup>
+                  <optgroup label="Rug">
+                    <option value="back">Rug (algemeen)</option>
+                    <option value="lats">Lats</option>
+                    <option value="traps">Traps</option>
+                    <option value="middle-back">Midden-rug</option>
+                    <option value="lower-back">Onderrug</option>
+                  </optgroup>
+                  <optgroup label="Schouders">
+                    <option value="shoulders">Schouders</option>
+                  </optgroup>
+                  <optgroup label="Armen">
+                    <option value="biceps">Biceps</option>
+                    <option value="triceps">Triceps</option>
+                    <option value="forearms">Onderarmen</option>
+                  </optgroup>
+                  <optgroup label="Benen">
+                    <option value="legs">Benen (algemeen)</option>
+                    <option value="quads">Quads</option>
+                    <option value="hamstrings">Hamstrings</option>
+                    <option value="glutes">Billen</option>
+                    <option value="calves">Kuiten</option>
+                  </optgroup>
+                  <optgroup label="Core">
+                    <option value="core">Core (algemeen)</option>
+                    <option value="abs">Abs</option>
+                    <option value="obliques">Obliques</option>
+                  </optgroup>
+                  <optgroup label="Anders">
+                    <option value="full-body">Full Body</option>
+                    <option value="cardio">Cardio</option>
+                  </optgroup>
+                </select>
               </div>
 
               {/* Sets */}
