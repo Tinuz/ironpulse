@@ -44,12 +44,16 @@ function getMuscleSlug(muscleGroup: string): string[] {
 }
 
 // Convert recovery percentage to intensity level (1-5)
-function getIntensityFromRecovery(recovery: number): number {
-  if (recovery === 0) return 1      // Niet getraind (paars)
-  if (recovery < 40) return 2       // Recent getraind (rood)
-  if (recovery < 70) return 3       // Herstellend (oranje)
-  if (recovery < 90) return 4       // Bijna klaar (geel)
-  return 5                          // Volledig hersteld (groen)
+// Takes into account if muscle was ever trained (lastTrained exists)
+function getIntensityFromRecovery(recovery: number, lastTrained?: Date): number {
+  // If never trained, show purple (intensity 1)
+  if (!lastTrained) return 1
+  
+  // If trained, use recovery percentage for color
+  if (recovery < 40) return 2       // Recent getraind (rood) - 0-39%
+  if (recovery < 70) return 3       // Herstellend (oranje) - 40-69%
+  if (recovery < 90) return 4       // Bijna klaar (geel) - 70-89%
+  return 5                          // Volledig hersteld (groen) - 90-100%
 }
 
 export default function MuscleRecoveryMap({ 
@@ -62,7 +66,7 @@ export default function MuscleRecoveryMap({
   // Transform muscle data to body part data
   const bodyData = muscleData.flatMap(muscle => {
     const slugs = getMuscleSlug(muscle.muscle)
-    const intensity = getIntensityFromRecovery(muscle.recovery)
+    const intensity = getIntensityFromRecovery(muscle.recovery, muscle.lastTrained)
     
     return slugs.map(slug => ({
       slug: slug as any,
@@ -135,8 +139,8 @@ export default function MuscleRecoveryMap({
             { color: recoveryColors[4], label: 'Volledig Hersteld', range: '90-100%' },
             { color: recoveryColors[3], label: 'Bijna Klaar', range: '70-89%' },
             { color: recoveryColors[2], label: 'Herstellend', range: '40-69%' },
-            { color: recoveryColors[1], label: 'Recent Getraind', range: '1-39%' },
-            { color: recoveryColors[0], label: 'Niet Getraind', range: '0%' },
+            { color: recoveryColors[1], label: 'Recent Getraind', range: '0-39%' },
+            { color: recoveryColors[0], label: 'Nooit Getraind', range: 'Ondertraint' },
           ].map((item, idx) => (
             <div key={idx} className="flex items-center gap-3">
               <div 
