@@ -769,54 +769,54 @@ export default function Nutrition() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-3">
-                <div className="bg-pink-500/10 p-3 rounded-xl border border-pink-500/20">
-                  <div className="text-[10px] text-pink-400 font-bold uppercase flex items-center gap-1 mb-1">
-                    {t.nutrition.protein}
+              <div className="grid grid-cols-3 gap-2 sm:gap-3">
+                <div className="bg-pink-500/10 p-2 sm:p-3 rounded-xl border border-pink-500/20">
+                  <div className="text-[9px] sm:text-[10px] text-pink-400 font-bold uppercase flex items-center gap-1 mb-1 leading-tight">
+                    <span className="truncate">{t.nutrition.protein}</span>
                     {nutritionStatus && nutritionStatus.protein.status === 'low' && (
-                      <TrendingDown size={10} className="text-amber-500" />
+                      <TrendingDown size={10} className="text-amber-500 flex-shrink-0" />
                     )}
                     {nutritionStatus && nutritionStatus.protein.status === 'high' && (
-                      <TrendingUp size={10} className="text-red-500" />
+                      <TrendingUp size={10} className="text-red-500 flex-shrink-0" />
                     )}
                   </div>
-                  <div className="text-lg font-bold tabular-nums">{totals.protein}g</div>
+                  <div className="text-base sm:text-lg font-bold tabular-nums">{totals.protein}g</div>
                   {targets && (
-                    <div className="text-[9px] text-muted-foreground mt-1">
+                    <div className="text-[8px] sm:text-[9px] text-muted-foreground mt-1 truncate">
                       {t.nutrition.goal}: {targets.protein}g
                     </div>
                   )}
                 </div>
-                <div className="bg-blue-500/10 p-3 rounded-xl border border-blue-500/20">
-                  <div className="text-[10px] text-blue-400 font-bold uppercase flex items-center gap-1 mb-1">
-                    {t.nutrition.carbs}
+                <div className="bg-blue-500/10 p-2 sm:p-3 rounded-xl border border-blue-500/20">
+                  <div className="text-[9px] sm:text-[10px] text-blue-400 font-bold uppercase flex items-center gap-1 mb-1 leading-tight">
+                    <span className="truncate">{t.nutrition.carbs}</span>
                     {nutritionStatus && nutritionStatus.carbs.status === 'low' && (
-                      <TrendingDown size={10} className="text-amber-500" />
+                      <TrendingDown size={10} className="text-amber-500 flex-shrink-0" />
                     )}
                     {nutritionStatus && nutritionStatus.carbs.status === 'high' && (
-                      <TrendingUp size={10} className="text-red-500" />
+                      <TrendingUp size={10} className="text-red-500 flex-shrink-0" />
                     )}
                   </div>
-                  <div className="text-lg font-bold tabular-nums">{totals.carbs}g</div>
+                  <div className="text-base sm:text-lg font-bold tabular-nums">{totals.carbs}g</div>
                   {targets && (
-                    <div className="text-[9px] text-muted-foreground mt-1">
+                    <div className="text-[8px] sm:text-[9px] text-muted-foreground mt-1 truncate">
                       {t.nutrition.goal}: {targets.carbs}g
                     </div>
                   )}
                 </div>
-                <div className="bg-amber-500/10 p-3 rounded-xl border border-amber-500/20">
-                  <div className="text-[10px] text-amber-400 font-bold uppercase flex items-center gap-1 mb-1">
-                    {t.nutrition.fats}
+                <div className="bg-amber-500/10 p-2 sm:p-3 rounded-xl border border-amber-500/20">
+                  <div className="text-[9px] sm:text-[10px] text-amber-400 font-bold uppercase flex items-center gap-1 mb-1 leading-tight">
+                    <span className="truncate">{t.nutrition.fats}</span>
                     {nutritionStatus && nutritionStatus.fats.status === 'low' && (
-                      <TrendingDown size={10} className="text-amber-500" />
+                      <TrendingDown size={10} className="text-amber-500 flex-shrink-0" />
                     )}
                     {nutritionStatus && nutritionStatus.fats.status === 'high' && (
-                      <TrendingUp size={10} className="text-red-500" />
+                      <TrendingUp size={10} className="text-red-500 flex-shrink-0" />
                     )}
                   </div>
-                  <div className="text-lg font-bold tabular-nums">{totals.fats}g</div>
+                  <div className="text-base sm:text-lg font-bold tabular-nums">{totals.fats}g</div>
                   {targets && (
-                    <div className="text-[9px] text-muted-foreground mt-1">
+                    <div className="text-[8px] sm:text-[9px] text-muted-foreground mt-1 truncate">
                       {t.nutrition.goal}: {targets.fats}g
                     </div>
                   )}
