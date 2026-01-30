@@ -127,13 +127,15 @@ END;
 $$;
 
 -- 9. get_mutual_friends (from 007_friends.sql)
+-- Note: Must drop first because return type structure may differ
+DROP FUNCTION IF EXISTS get_mutual_friends(UUID);
+
 CREATE OR REPLACE FUNCTION get_mutual_friends(user_id_param UUID)
 RETURNS TABLE (
     user_id UUID,
     username TEXT,
     display_name TEXT,
-    avatar_url TEXT,
-    is_public BOOLEAN
+    avatar_url TEXT
 )
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -145,8 +147,7 @@ BEGIN
         sp.user_id,
         sp.username,
         sp.display_name,
-        sp.avatar_url,
-        sp.is_public
+        sp.avatar_url
     FROM user_social_profiles sp
     WHERE sp.user_id IN (
         -- Users that current user follows
