@@ -57,7 +57,7 @@ export default function WorkoutDetail() {
         .from('workout_history')
         .select('*')
         .eq('id', workoutId)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
 
