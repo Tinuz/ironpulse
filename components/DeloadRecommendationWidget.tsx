@@ -112,6 +112,8 @@ export default function DeloadRecommendationWidget() {
               low: 'blue'
             }[signal.severity]
             
+            const isMuscleSpecific = signal.type === 'muscle_group_overload' && signal.muscleGroup
+            
             return (
               <div 
                 key={i}
@@ -122,9 +124,16 @@ export default function DeloadRecommendationWidget() {
                   {signal.severity === 'medium' && '🟡'}
                   {signal.severity === 'low' && '🔵'}
                 </span>
-                <span className="text-xs text-muted-foreground flex-1">
-                  {signal.description}
-                </span>
+                <div className="flex-1">
+                  <span className="text-xs text-muted-foreground">
+                    {signal.description}
+                  </span>
+                  {isMuscleSpecific && (
+                    <span className="ml-2 text-[9px] px-2 py-0.5 rounded-full bg-primary/20 text-primary font-bold uppercase">
+                      {signal.muscleGroup}
+                    </span>
+                  )}
+                </div>
               </div>
             )
           })}

@@ -82,7 +82,7 @@ function generateRuleSuggestions(
     suggestions.push('Verhoog sets met zelfde gewicht');
   }
   
-  // Muscle group specific suggestions (using new muscleGroup field!)
+  // Muscle group specific suggestions (using granular muscleGroup field!)
   if (muscleGroup) {
     switch (muscleGroup.toLowerCase()) {
       case 'chest':
@@ -93,13 +93,22 @@ function generateRuleSuggestions(
         suggestions.push('Verhoog time under tension (langzamer neerlaten)');
         suggestions.push('Wissel grip width of type (overhand/underhand)');
         break;
+      case 'lats':
+        suggestions.push('Probeer wide-grip pull-ups of lat prayers');
+        suggestions.push('Focus op scapular depression en stretch');
+        break;
+      case 'traps':
+        suggestions.push('Voeg shrugs met hold toe (3-5 sec)');
+        suggestions.push('Probeer verschillende hoeken (mid/upper traps)');
+        break;
+      case 'middle-back':
+      case 'lower-back':
+        suggestions.push('Focus op row variaties (Pendlay, Yates)');
+        suggestions.push('Verhoog tempo (3-1-3) voor meer TUT');
+        break;
       case 'shoulders':
         suggestions.push('Focus op scapular retraction en controle');
         suggestions.push('Voeg face pulls toe voor rear delts');
-        break;
-      case 'legs':
-        suggestions.push('Check je squat depth - volle ROM kan helpen');
-        suggestions.push('Probeer pause reps of tempo variaties');
         break;
       case 'biceps':
         suggestions.push('Probeer verschillende grips (hammer, reverse)');
@@ -109,9 +118,42 @@ function generateRuleSuggestions(
         suggestions.push('Wissel tussen close grip en overhead werk');
         suggestions.push('Focus op elbow positie en ROM');
         break;
+      case 'forearms':
+        suggestions.push('Voeg wrist curls en reverse curls toe');
+        suggestions.push('Focus op grip strength (dead hangs, farmers walks)');
+        break;
+      case 'legs':
+        suggestions.push('Check je squat depth - volle ROM kan helpen');
+        suggestions.push('Probeer pause reps of tempo variaties');
+        break;
+      case 'quads':
+      case 'quadriceps':
+        suggestions.push('Probeer front squats of Bulgarian split squats');
+        suggestions.push('Verhoog volume met leg extensions (pump sets)');
+        break;
+      case 'hamstrings':
+        suggestions.push('Voeg RDLs of Nordic curls toe');
+        suggestions.push('Focus op eccentrische controle (4 sec neerlaten)');
+        break;
+      case 'glutes':
+        suggestions.push('Hip thrusts met pauses (2 sec hold bovenaan)');
+        suggestions.push('Probeer single-leg variaties voor activatie');
+        break;
+      case 'calves':
+        suggestions.push('Verhoog ROM (stretch onderaan, squeeze bovenaan)');
+        suggestions.push('Probeer seated + standing variaties');
+        break;
       case 'core':
         suggestions.push('Verhoog hold times of add resistance');
         suggestions.push('Probeer anti-rotation oefeningen');
+        break;
+      case 'abs':
+        suggestions.push('Voeg weighted ab work toe (cable crunches)');
+        suggestions.push('Focus op lower abs (leg raises, reverse crunches)');
+        break;
+      case 'obliques':
+        suggestions.push('Probeer Pallof press en side planks');
+        suggestions.push('Voeg rotational work toe (Russian twists)');
         break;
     }
   } else {

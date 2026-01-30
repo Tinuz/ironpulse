@@ -15,9 +15,10 @@ export interface DeloadRecommendation {
 }
 
 export interface DeloadSignal {
-  type: 'volume_decline' | 'performance_decline' | 'accumulated_fatigue' | 'multiple_plateaus' | 'overreaching';
+  type: 'volume_decline' | 'performance_decline' | 'accumulated_fatigue' | 'multiple_plateaus' | 'overreaching' | 'muscle_group_overload';
   severity: 'low' | 'medium' | 'high';
   description: string;
+  muscleGroup?: string; // Specific muscle group affected
 }
 
 export interface DeloadProtocol {
@@ -63,6 +64,10 @@ export function detectDeloadNeed(
   // Signal 5: Overreaching (volume spike followed by drop)
   const overreachingSignal = detectOverreaching(weeklySummaries);
   if (overreachingSignal) signals.push(overreachingSignal);
+  
+  // Signal 6: Muscle group specific overload (NEW - uses granular muscle groups!)
+  const muscleGroupSignals = detectMuscleGroupOverload(workouts, weeksToAnalyze);
+  signals.push(...muscleGroupSignals);
   
   // Calculate urgency based on signals
   const { shouldDeload, urgency } = calculateUrgency(signals);
@@ -238,6 +243,96 @@ function detectOverreaching(weeklySummaries: any[]): DeloadSignal | null {
 }
 
 /**
+ * NEW: Detect muscle group specific overload using granular muscle groups
+ * More accurate than total volume - can detect if only chest is overtrained while legs are fine
+ */
+function detectMuscleGroupOverload(workouts: WorkoutLog[], weeksToAnalyze: number): DeloadSignal[] {
+  const signals: DeloadSignal[] = [];
+  
+  // Track volume per muscle group per week
+  const muscleGroupWeeklyVolumes: Record<string, number[]> = {};
+  
+  for (let weekOffset = 0; weekOffset < weeksToAnalyze; weekOffset++) {
+    const weekStart = new Date();
+    weekStart.setDate(weekStart.getDate() - (weekOffset * 7));
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekEnd.getDate() + 7);
+    
+    const weekWorkouts = workouts.filter(w => {
+      const workoutDate = new Date(w.date);
+      return workoutDate >= weekStart && workoutDate < weekEnd;
+    });
+    
+    weekWorkouts.forEach(workout => {
+      workout.exercises.forEach(ex => {
+        const muscleGroup = ex.muscleGroup || 'unknown';
+        const volume = ex.sets.reduce((sum, set) => 
+          sum + (set.completed && !set.isWarmup ? (set.weight || 0) * (set.reps || 0) : 0), 0
+        );
+        
+        if (!muscleGroupWeeklyVolumes[muscleGroup]) {
+          muscleGroupWeeklyVolumes[muscleGroup] = new Array(weeksToAnalyze).fill(0);
+        }
+        muscleGroupWeeklyVolumes[muscleGroup][weekOffset] += volume;
+      });
+    });
+  }
+  
+  // Analyze each muscle group for overload patterns
+  Object.entries(muscleGroupWeeklyVolumes).forEach(([muscleGroup, weeklyVolumes]) => {
+    if (muscleGroup === 'unknown' || muscleGroup === 'cardio' || muscleGroup === 'full-body') return;
+    
+    const avgVolume = weeklyVolumes.reduce((a, b) => a + b, 0) / weeklyVolumes.length;
+    if (avgVolume === 0) return;
+    
+    // Pattern 1: High volume for 3+ consecutive weeks (accumulated fatigue)
+    const recentWeeks = weeklyVolumes.slice(0, 3);
+    const highVolumeWeeks = recentWeeks.filter(v => v > avgVolume * 1.2).length;
+    
+    if (highVolumeWeeks >= 3) {
+      signals.push({
+        type: 'muscle_group_overload',
+        severity: 'high',
+        description: `${muscleGroup}: 3+ weken hoog volume - specifieke deload nodig`,
+        muscleGroup
+      });
+    }
+    
+    // Pattern 2: Volume spike > 200% of average (single muscle overreaching)
+    const hasSpike = weeklyVolumes.some(v => v > avgVolume * 2);
+    if (hasSpike) {
+      signals.push({
+        type: 'muscle_group_overload',
+        severity: 'medium',
+        description: `${muscleGroup}: Volume spike gedetecteerd - risico op overtraining`,
+        muscleGroup
+      });
+    }
+    
+    // Pattern 3: Declining trend in specific muscle group (local fatigue)
+    if (recentWeeks.length >= 3) {
+      let consecutiveDeclines = 0;
+      for (let i = 1; i < recentWeeks.length; i++) {
+        if (recentWeeks[i] < recentWeeks[i - 1] * 0.9) {
+          consecutiveDeclines++;
+        }
+      }
+      
+      if (consecutiveDeclines >= 2) {
+        signals.push({
+          type: 'muscle_group_overload',
+          severity: 'medium',
+          description: `${muscleGroup}: Volume daalt - mogelijk lokale vermoeidheid`,
+          muscleGroup
+        });
+      }
+    }
+  });
+  
+  return signals;
+}
+
+/**
  * Calculate deload urgency based on signals
  */
 function calculateUrgency(signals: DeloadSignal[]): { shouldDeload: boolean; urgency: DeloadRecommendation['urgency'] } {
@@ -341,18 +436,46 @@ function generateDeloadProtocol(urgency: DeloadRecommendation['urgency'], _weeks
         case 'back':
           muscleGroupAdvice[muscle] = 'Vervang zware rows door band pull-aparts';
           break;
+        case 'lats':
+          muscleGroupAdvice[muscle] = 'Lichte pulldowns (60%), skip heavy pull-ups';
+          break;
+        case 'traps':
+        case 'middle-back':
+        case 'lower-back':
+          muscleGroupAdvice[muscle] = 'Band pull-aparts en lichte rows, focus op mobility';
+          break;
         case 'shoulders':
           muscleGroupAdvice[muscle] = 'Gebruik lichte lateral raises, skip overhead press';
+          break;
+        case 'biceps':
+        case 'triceps':
+        case 'forearms':
+          muscleGroupAdvice[muscle] = 'Lichte pump werk met hoge reps (15-20)';
           break;
         case 'legs':
           muscleGroupAdvice[muscle] = 'Goblet squats i.p.v. back squats, focus op mobility';
           break;
-        case 'biceps':
-        case 'triceps':
-          muscleGroupAdvice[muscle] = 'Lichte pump werk met hoge reps (15-20)';
+        case 'quads':
+        case 'quadriceps':
+          muscleGroupAdvice[muscle] = 'Lichte goblet squats, focus op stretching en mobility';
+          break;
+        case 'hamstrings':
+          muscleGroupAdvice[muscle] = 'Lichte RDLs (60%), verhoog hamstring stretching';
+          break;
+        case 'glutes':
+          muscleGroupAdvice[muscle] = 'Bodyweight glute bridges, skip heavy hip thrusts';
+          break;
+        case 'calves':
+          muscleGroupAdvice[muscle] = 'Lichte calf raises, focus op stretch en mobility';
           break;
         case 'core':
           muscleGroupAdvice[muscle] = 'Dead bugs en bird dogs, skip heavy loaded core';
+          break;
+        case 'abs':
+          muscleGroupAdvice[muscle] = 'Lichte planks en stretching, skip weighted ab work';
+          break;
+        case 'obliques':
+          muscleGroupAdvice[muscle] = 'Side planks met lage intensiteit, focus op ademhaling';
           break;
       }
     });
