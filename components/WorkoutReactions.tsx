@@ -35,7 +35,19 @@ export default function WorkoutReactions({ workoutId }: { workoutId: string }) {
   useEffect(() => {
     loadReactions()
     
-    // Subscribe to realtime updates
+    // Only subscribe to realtime updates if battery saver is disabled
+    const batterySaverMode = localStorage.getItem('battery_saver_mode') === 'true'
+    
+    if (batterySaverMode) {
+      // In battery saver mode, poll less frequently instead of real-time
+      const pollInterval = setInterval(() => {
+        loadReactions()
+      }, 30000) // Poll every 30 seconds instead of real-time
+      
+      return () => clearInterval(pollInterval)
+    }
+    
+    // Normal mode: Subscribe to realtime updates
     const channel = supabase
       .channel(`workout-reactions-${workoutId}`)
       .on('postgres_changes', {

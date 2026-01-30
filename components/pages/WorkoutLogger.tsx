@@ -252,9 +252,13 @@ export default function WorkoutLogger() {
     
     setElapsed(Math.floor((Date.now() - workoutData.startTime) / 1000));
 
+    // Use longer interval in battery saver mode
+    const batterySaverMode = localStorage.getItem('battery_saver_mode') === 'true'
+    const updateInterval = batterySaverMode ? 5000 : 1000 // 5s vs 1s
+
     const interval = setInterval(() => {
       setElapsed(Math.floor((Date.now() - workoutData.startTime) / 1000));
-    }, 1000);
+    }, updateInterval);
 
     return () => clearInterval(interval);
   }, [workoutData, showSummary]);
@@ -281,7 +285,7 @@ export default function WorkoutLogger() {
     };
 
     updateRestTimer();
-    const interval = setInterval(updateRestTimer, 100);
+    const interval = setInterval(updateRestTimer, 1000); // Reduced from 100ms to 1000ms for battery savings
 
     return () => clearInterval(interval);
   }, [restTimer]);

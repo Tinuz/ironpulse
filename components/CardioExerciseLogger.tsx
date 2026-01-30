@@ -36,9 +36,13 @@ export default function CardioExerciseLogger({
   // Timer effect
   useEffect(() => {
     if (isRunning) {
+      // Use longer interval in battery saver mode
+      const batterySaverMode = localStorage.getItem('battery_saver_mode') === 'true'
+      const updateInterval = batterySaverMode ? 5000 : 1000 // 5s vs 1s
+
       intervalRef.current = setInterval(() => {
-        setElapsedSeconds(prev => prev + 1)
-      }, 1000)
+        setElapsedSeconds(prev => prev + (batterySaverMode ? 5 : 1))
+      }, updateInterval)
     } else {
       if (intervalRef.current) {
         clearInterval(intervalRef.current)

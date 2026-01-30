@@ -35,6 +35,8 @@ export default function Settings() {
   const [showRPE, setShowRPE] = useState(false)
   const [showWarmupToggle, setShowWarmupToggle] = useState(true)
   const [keepScreenAwake, setKeepScreenAwake] = useState(true)
+  const [batterySaverMode, setBatterySaverMode] = useState(false)
+  const [batteryLevel, setBatteryLevel] = useState<number | null>(null)
 
   useEffect(() => {
     if (user) {
@@ -48,12 +50,38 @@ export default function Settings() {
     const savedRPE = localStorage.getItem('workout_show_rpe')
     const savedWarmup = localStorage.getItem('workout_show_warmup_toggle')
     const savedKeepAwake = localStorage.getItem('workout_keep_screen_awake')
+    const savedBatterySaver = localStorage.getItem('battery_saver_mode')
     
     if (savedRIR !== null) setShowRIR(savedRIR === 'true')
     if (savedRPE !== null) setShowRPE(savedRPE === 'true')
     if (savedWarmup !== null) setShowWarmupToggle(savedWarmup === 'true')
     if (savedKeepAwake !== null) setKeepScreenAwake(savedKeepAwake === 'true')
     else setKeepScreenAwake(true) // Default to true for existing users
+    if (savedBatterySaver !== null) setBatterySaverMode(savedBatterySaver === 'true')
+
+    // Monitor battery level if Battery Status API is available
+    if ('getBattery' in navigator) {
+      (navigator as any).getBattery().then((battery: any) => {
+        setBatteryLevel(Math.round(battery.level * 100))
+        
+        // Auto-enable battery saver at 20% or lower
+        if (battery.level <= 0.2 && savedBatterySaver !== 'false') {
+          setBatterySaverMode(true)
+          localStorage.setItem('battery_saver_mode', 'true')
+        }
+
+        battery.addEventListener('levelchange', () => {
+          const level = Math.round(battery.level * 100)
+          setBatteryLevel(level)
+          
+          // Auto-enable battery saver at 20% or lower
+          if (battery.level <= 0.2 && localStorage.getItem('battery_saver_mode') !== 'false') {
+            setBatterySaverMode(true)
+            localStorage.setItem('battery_saver_mode', 'true')
+          }
+        })
+      })
+    }
   }
 
   const loadSocialProfile = async () => {
@@ -479,6 +507,38 @@ export default function Settings() {
               >
                 <div className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-md transition-transform ${
                   keepScreenAwake ? 'translate-x-6' : 'translate-x-0'
+                }`} />
+              </button>
+            </label>
+
+            <label className="flex items-center justify-between cursor-pointer">
+              <div>
+                <div className="flex items-center gap-2">
+                  <p className="font-medium text-sm">Battery Saver Mode</p>
+                  {batteryLevel !== null && (
+                    <span className={`text-xs px-2 py-0.5 rounded-full ${
+                      batteryLevel <= 20 ? 'bg-red-500/20 text-red-400' :
+                      batteryLevel <= 50 ? 'bg-yellow-500/20 text-yellow-400' :
+                      'bg-green-500/20 text-green-400'
+                    }`}>
+                      {batteryLevel}%
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">Verminder animaties en update-frequentie voor langere batterijduur</p>
+              </div>
+              <button
+                onClick={() => {
+                  const newValue = !batterySaverMode
+                  setBatterySaverMode(newValue)
+                  localStorage.setItem('battery_saver_mode', String(newValue))
+                }}
+                className={`relative w-12 h-6 rounded-full transition-colors border ${
+                  batterySaverMode ? 'bg-primary border-primary' : 'bg-gray-700 border-gray-600'
+                }`}
+              >
+                <div className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-md transition-transform ${
+                  batterySaverMode ? 'translate-x-6' : 'translate-x-0'
                 }`} />
               </button>
             </label>

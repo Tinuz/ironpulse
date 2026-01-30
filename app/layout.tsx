@@ -26,6 +26,17 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={`${oswald.variable} ${jetbrainsMono.variable}`}>
+      <head>
+        <style>{`
+          @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+              animation-duration: 0.01ms !important;
+              animation-iteration-count: 1 !important;
+              transition-duration: 0.01ms !important;
+            }
+          }
+        `}</style>
+      </head>
       <body className="w-full font-sans">{children}</body>
     </html>
   )
