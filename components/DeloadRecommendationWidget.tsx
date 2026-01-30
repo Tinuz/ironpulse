@@ -99,45 +99,55 @@ export default function DeloadRecommendationWidget() {
         <p className="text-sm font-bold">{recommendation.recommendation}</p>
       </div>
       
-      {/* Signals */}
+      {/* Signals - Collapsible */}
       {recommendation.signals.length > 0 && (
-        <div className="space-y-2 mb-4">
-          <div className="text-xs uppercase tracking-wider text-muted-foreground font-bold">
-            Gedetecteerde Signalen ({recommendation.signals.length})
-          </div>
-          {recommendation.signals.map((signal, i) => {
-            const severityColor = {
-              high: 'red',
-              medium: 'yellow',
-              low: 'blue'
-            }[signal.severity]
-            
-            const isMuscleSpecific = signal.type === 'muscle_group_overload' && signal.muscleGroup
-            
-            return (
-              <div 
-                key={i}
-                className="bg-card/50 rounded-lg px-3 py-2 border border-white/5 flex items-start gap-2"
-              >
-                <span className={`text-${severityColor}-500 text-xs font-bold flex-shrink-0 mt-0.5`}>
-                  {signal.severity === 'high' && '🔴'}
-                  {signal.severity === 'medium' && '🟡'}
-                  {signal.severity === 'low' && '🔵'}
-                </span>
-                <div className="flex-1">
-                  <span className="text-xs text-muted-foreground">
-                    {signal.description}
+        <details className="bg-card/50 rounded-xl border border-white/5 overflow-hidden group mb-4">
+          <summary className="p-3 cursor-pointer hover:bg-white/5 transition-colors flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <AlertTriangle size={16} className={`text-${config.color}-500`} />
+              <span className="font-bold text-sm">Gedetecteerde Signalen</span>
+              <span className="text-xs px-2 py-0.5 rounded-full bg-white/10 text-muted-foreground font-bold">
+                {recommendation.signals.length}
+              </span>
+            </div>
+            <Battery size={14} className="text-muted-foreground group-open:rotate-180 transition-transform" />
+          </summary>
+          
+          <div className="px-3 pb-3 pt-1 space-y-2 border-t border-white/5">
+            {recommendation.signals.map((signal, i) => {
+              const severityColor = {
+                high: 'red',
+                medium: 'yellow',
+                low: 'blue'
+              }[signal.severity]
+              
+              const isMuscleSpecific = signal.type === 'muscle_group_overload' && signal.muscleGroup
+              
+              return (
+                <div 
+                  key={i}
+                  className="bg-card/50 rounded-lg px-3 py-2 border border-white/5 flex items-start gap-2"
+                >
+                  <span className={`text-${severityColor}-500 text-xs font-bold flex-shrink-0 mt-0.5`}>
+                    {signal.severity === 'high' && '🔴'}
+                    {signal.severity === 'medium' && '🟡'}
+                    {signal.severity === 'low' && '🔵'}
                   </span>
-                  {isMuscleSpecific && (
-                    <span className="ml-2 text-[9px] px-2 py-0.5 rounded-full bg-primary/20 text-primary font-bold uppercase">
-                      {signal.muscleGroup}
+                  <div className="flex-1">
+                    <span className="text-xs text-muted-foreground">
+                      {signal.description}
                     </span>
-                  )}
+                    {isMuscleSpecific && (
+                      <span className="ml-2 text-[9px] px-2 py-0.5 rounded-full bg-primary/20 text-primary font-bold uppercase">
+                        {signal.muscleGroup}
+                      </span>
+                    )}
+                  </div>
                 </div>
-              </div>
-            )
-          })}
-        </div>
+              )
+            })}
+          </div>
+        </details>
       )}
       
       {/* Deload Protocol (only if deload recommended) */}
