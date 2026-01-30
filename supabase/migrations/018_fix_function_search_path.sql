@@ -105,19 +105,23 @@ END;
 $$;
 
 -- 8. is_following (from 007_friends.sql)
+-- Note: Must drop first because parameter names changed
+DROP FUNCTION IF EXISTS is_following(UUID, UUID);
+
 CREATE OR REPLACE FUNCTION is_following(
-    follower_id_param UUID,
-    following_id_param UUID
+    follower_user_id UUID,
+    following_user_id UUID
 )
 RETURNS BOOLEAN
 LANGUAGE plpgsql
+SECURITY DEFINER
 SET search_path = public, pg_temp
 AS $$
 BEGIN
     RETURN EXISTS (
         SELECT 1 FROM user_follows
-        WHERE follower_id = follower_id_param
-        AND following_id = following_id_param
+        WHERE follower_id = follower_user_id
+        AND following_id = following_user_id
     );
 END;
 $$;
