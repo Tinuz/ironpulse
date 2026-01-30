@@ -2,8 +2,12 @@
 -- Replace USING (true) with proper user_id check
 -- Addresses Supabase linter warning: auth-users-table-rlspolicy
 
--- Drop the overly permissive policy
+-- Drop all existing policies
 DROP POLICY IF EXISTS "Allow all operations on workout_history" ON public.workout_history;
+DROP POLICY IF EXISTS "Users can view own workout_history" ON public.workout_history;
+DROP POLICY IF EXISTS "Users can insert own workout_history" ON public.workout_history;
+DROP POLICY IF EXISTS "Users can update own workout_history" ON public.workout_history;
+DROP POLICY IF EXISTS "Users can delete own workout_history" ON public.workout_history;
 
 -- Create secure policies with proper user_id checks
 -- Users can view:
