@@ -185,34 +185,58 @@ END;
 $$;
 
 -- 11. increment_template_view (from 012_shared_templates.sql)
+-- Note: Must drop first because return type changed
+DROP FUNCTION IF EXISTS increment_template_view(TEXT);
+
 CREATE OR REPLACE FUNCTION increment_template_view(share_code_param TEXT)
-RETURNS void
+RETURNS json
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public, pg_temp
 AS $$
+DECLARE
+    result_count INTEGER;
 BEGIN
     UPDATE shared_templates
-    SET 
-        view_count = view_count + 1,
-        last_viewed_at = NOW()
-    WHERE share_code = share_code_param;
+    SET view_count = view_count + 1,
+        updated_at = NOW()
+    WHERE share_code = share_code_param
+      AND is_active = true;
+    
+    GET DIAGNOSTICS result_count = ROW_COUNT;
+    
+    RETURN json_build_object('success', result_count > 0, 'updated', result_count);
 END;
 $$;
 
+GRANT EXECUTE ON FUNCTION increment_template_view(TEXT) TO anon, authenticated;
+
 -- 12. increment_template_import (from 012_shared_templates.sql)
+-- Note: Must drop first because return type changed
+DROP FUNCTION IF EXISTS increment_template_import(TEXT);
+
 CREATE OR REPLACE FUNCTION increment_template_import(share_code_param TEXT)
-RETURNS void
+RETURNS json
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public, pg_temp
 AS $$
+DECLARE
+    result_count INTEGER;
 BEGIN
     UPDATE shared_templates
-    SET import_count = import_count + 1
-    WHERE share_code = share_code_param;
+    SET import_count = import_count + 1,
+        updated_at = NOW()
+    WHERE share_code = share_code_param
+      AND is_active = true;
+    
+    GET DIAGNOSTICS result_count = ROW_COUNT;
+    
+    RETURN json_build_object('success', result_count > 0, 'updated', result_count);
 END;
 $$;
+
+GRANT EXECUTE ON FUNCTION increment_template_import(TEXT) TO authenticated;
 
 -- ============================================================================
 -- All 12 functions now have explicit search_path set to 'public, pg_temp'
