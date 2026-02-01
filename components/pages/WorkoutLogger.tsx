@@ -1220,11 +1220,11 @@ export default function WorkoutLogger() {
                   <select
                     value={newExerciseMuscleGroup}
                     onChange={(e) => setNewExerciseMuscleGroup(e.target.value as MuscleGroup | '')}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:border-primary focus:outline-none transition-colors"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:border-primary focus:outline-none transition-colors text-foreground"
                   >
-                    <option value="">-- Kies spiergroep --</option>
+                    <option value="" className="bg-background text-foreground">-- Kies spiergroep --</option>
                     {Object.entries(MUSCLE_GROUPS).map(([key, label]) => (
-                      <option key={key} value={key}>{label}</option>
+                      <option key={key} value={key} className="bg-background text-foreground">{label}</option>
                     ))}
                   </select>
                 </div>
