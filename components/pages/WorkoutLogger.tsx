@@ -27,6 +27,7 @@ import { formatDuration, formatDistance } from '@/components/utils/cardioCalcula
 import { useLanguage } from '@/components/context/LanguageContext'
 import { useWakeLock } from '@/components/utils/useWakeLock'
 import { useWorkoutAutoSave } from '@/components/utils/useWorkoutAutoSave'
+import { MUSCLE_GROUPS, type MuscleGroup } from '@/components/utils/volumeAnalytics'
 
 const ExerciseStats = ({ 
   exercise,
@@ -176,6 +177,7 @@ export default function WorkoutLogger() {
   const [isAddingExercise, setIsAddingExercise] = useState(false);
   const [newExerciseType, setNewExerciseType] = useState<'strength' | 'cardio'>('strength');
   const [newExerciseName, setNewExerciseName] = useState('');
+  const [newExerciseMuscleGroup, setNewExerciseMuscleGroup] = useState<MuscleGroup | ''>('');
   const [newExerciseSets, setNewExerciseSets] = useState(3);
   const [newExerciseReps, setNewExerciseReps] = useState(10);
   const [newExerciseWeight, setNewExerciseWeight] = useState<number | undefined>(undefined);
@@ -440,6 +442,7 @@ export default function WorkoutLogger() {
   const openAddExerciseModal = () => {
     setIsAddingExercise(true);
     setNewExerciseName('');
+    setNewExerciseMuscleGroup('');
     setNewExerciseType('strength');
     setNewExerciseSets(3);
     setNewExerciseReps(10);
@@ -456,6 +459,7 @@ export default function WorkoutLogger() {
       id: crypto.randomUUID(),
       exerciseId: crypto.randomUUID(),
       name: newExerciseName.trim(),
+      muscleGroup: newExerciseMuscleGroup || undefined,
       type: newExerciseType,
       sets: newExerciseType === 'strength' ? [{
         id: crypto.randomUUID(),
@@ -1206,6 +1210,23 @@ export default function WorkoutLogger() {
                     className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:border-primary focus:outline-none transition-colors"
                     autoFocus
                   />
+                </div>
+
+                {/* Muscle Group Selector */}
+                <div>
+                  <label className="text-xs uppercase tracking-wider text-muted-foreground font-bold mb-2 block">
+                    Spiergroep - {t.common.optional || 'Optioneel'}
+                  </label>
+                  <select
+                    value={newExerciseMuscleGroup}
+                    onChange={(e) => setNewExerciseMuscleGroup(e.target.value as MuscleGroup | '')}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:border-primary focus:outline-none transition-colors"
+                  >
+                    <option value="">-- Kies spiergroep --</option>
+                    {Object.entries(MUSCLE_GROUPS).map(([key, label]) => (
+                      <option key={key} value={key}>{label}</option>
+                    ))}
+                  </select>
                 </div>
 
                 {/* Exercise Type Toggle */}
