@@ -459,7 +459,7 @@ export default function WorkoutLogger() {
       id: crypto.randomUUID(),
       exerciseId: crypto.randomUUID(),
       name: newExerciseName.trim(),
-      muscleGroup: newExerciseMuscleGroup || undefined,
+      muscleGroup: (newExerciseMuscleGroup || undefined) as WorkoutExercise['muscleGroup'],
       type: newExerciseType,
       sets: newExerciseType === 'strength' ? [{
         id: crypto.randomUUID(),
