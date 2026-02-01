@@ -34,6 +34,7 @@ export default function WorkoutDetail() {
   const [shareCaption, setShareCaption] = useState('');
   const [isSharing, setIsSharing] = useState(false);
   const [shareSuccess, setShareSuccess] = useState(false);
+  const [shareMode, setShareMode] = useState<'squads' | 'followers' | 'both'>('squads');
   
   // Get workout ID from URL path (e.g., /workout/abc123)
   const workoutId = pathname.split('/workout/')[1]
@@ -112,12 +113,19 @@ export default function WorkoutDetail() {
     if (!workout || !user) return;
     setIsSharing(true);
     try {
-      await shareWorkoutToSquad(squadId, user.id, workout, shareCaption || undefined);
+      if (shareMode === 'squads' || shareMode === 'both') {
+        await shareWorkoutToSquad(squadId, user.id, workout, shareCaption || undefined);
+      }
+      // Note: With current RLS policy, followers can already see workouts
+      // The 'followers' and 'both' modes are informational for the user
+      // In future, we could add a workout_visibility table if needed
+      
       setShareSuccess(true);
       setTimeout(() => {
         setShowShareModal(false);
         setShareSuccess(false);
         setShareCaption('');
+        setShareMode('squads');
       }, 1500);
     } catch (error) {
       console.error('Error sharing workout:', error);
@@ -469,7 +477,7 @@ export default function WorkoutDetail() {
                   </div>
                   <div>
                     <h3 className="font-bold text-lg">Workout Delen</h3>
-                    <p className="text-sm text-muted-foreground">Deel met je squads</p>
+                    <p className="text-sm text-muted-foreground">Kies hoe je wilt delen</p>
                   </div>
                 </div>
                 
@@ -478,6 +486,55 @@ export default function WorkoutDetail() {
                   <p className="text-xs text-muted-foreground mt-1">
                     {totalSets} sets • {(volume / 1000).toFixed(1)}k volume
                   </p>
+                </div>
+
+                {/* Share Mode Selection */}
+                <div>
+                  <label className="text-xs uppercase tracking-wider text-muted-foreground font-bold mb-2 block">
+                    Zichtbaar voor
+                  </label>
+                  <div className="grid grid-cols-3 gap-2">
+                    <button
+                      onClick={() => setShareMode('squads')}
+                      className={`py-2 px-3 rounded-lg font-bold text-xs transition-all ${
+                        shareMode === 'squads'
+                          ? 'bg-primary text-background'
+                          : 'bg-white/5 text-muted-foreground hover:bg-white/10'
+                      }`}
+                    >
+                      Squads
+                    </button>
+                    <button
+                      onClick={() => setShareMode('followers')}
+                      className={`py-2 px-3 rounded-lg font-bold text-xs transition-all ${
+                        shareMode === 'followers'
+                          ? 'bg-primary text-background'
+                          : 'bg-white/5 text-muted-foreground hover:bg-white/10'
+                      }`}
+                    >
+                      Volgers
+                    </button>
+                    <button
+                      onClick={() => setShareMode('both')}
+                      className={`py-2 px-3 rounded-lg font-bold text-xs transition-all ${
+                        shareMode === 'both'
+                          ? 'bg-primary text-background'
+                          : 'bg-white/5 text-muted-foreground hover:bg-white/10'
+                      }`}
+                    >
+                      Beide
+                    </button>
+                  </div>
+                  {shareMode === 'followers' && (
+                    <p className="text-xs text-muted-foreground mt-2">
+                      💡 Je volgers kunnen je workouts al zien via je profiel
+                    </p>
+                  )}
+                  {shareMode === 'both' && (
+                    <p className="text-xs text-muted-foreground mt-2">
+                      💡 Wordt gedeeld met squads én zichtbaar voor volgers
+                    </p>
+                  )}
                 </div>
 
                 {/* Caption Input */}
@@ -494,49 +551,70 @@ export default function WorkoutDetail() {
                   />
                 </div>
 
-                {/* Squad Selection */}
-                <div>
-                  <label className="text-xs uppercase tracking-wider text-muted-foreground font-bold mb-2 block">
-                    Deel met squad
-                  </label>
-                  {userSquads.length === 0 ? (
-                    <div className="bg-white/5 rounded-lg p-4 text-center">
-                      <Users size={24} className="text-muted-foreground mx-auto mb-2" />
-                      <p className="text-sm text-muted-foreground">Je bent nog niet lid van een squad</p>
-                      <button
-                        onClick={() => {
-                          setShowShareModal(false);
-                          router.push('/social');
-                        }}
-                        className="mt-3 text-primary text-sm font-bold hover:underline"
-                      >
-                        Maak een squad aan
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="space-y-2 max-h-60 overflow-y-auto">
-                      {userSquads.map((squad) => (
+                {/* Squad Selection - Only show if squads or both mode */}
+                {(shareMode === 'squads' || shareMode === 'both') && (
+                  <div>
+                    <label className="text-xs uppercase tracking-wider text-muted-foreground font-bold mb-2 block">
+                      {shareMode === 'both' ? 'Kies ook een squad' : 'Deel met squad'}
+                    </label>
+                    {userSquads.length === 0 ? (
+                      <div className="bg-white/5 rounded-lg p-4 text-center">
+                        <Users size={24} className="text-muted-foreground mx-auto mb-2" />
+                        <p className="text-sm text-muted-foreground">Je bent nog niet lid van een squad</p>
                         <button
-                          key={squad.id}
-                          onClick={() => handleShareToSquad(squad.id)}
-                          disabled={isSharing}
-                          className="w-full p-4 bg-white/5 hover:bg-white/10 rounded-xl transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed"
+                          onClick={() => {
+                            setShowShareModal(false);
+                            router.push('/social');
+                          }}
+                          className="mt-3 text-primary text-sm font-bold hover:underline"
                         >
-                          <div className="flex items-center gap-3">
-                            <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center">
-                              <Users size={20} className="text-primary" />
-                            </div>
-                            <div className="flex-1">
-                              <p className="font-bold">{squad.name}</p>
-                              <p className="text-xs text-muted-foreground">{squad.member_count} leden</p>
-                            </div>
-                            <Share2 size={18} className="text-muted-foreground" />
-                          </div>
+                          Maak een squad aan
                         </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-2 max-h-60 overflow-y-auto">
+                        {userSquads.map((squad) => (
+                          <button
+                            key={squad.id}
+                            onClick={() => handleShareToSquad(squad.id)}
+                            disabled={isSharing}
+                            className="w-full p-4 bg-white/5 hover:bg-white/10 rounded-xl transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center">
+                                <Users size={20} className="text-primary" />
+                              </div>
+                              <div className="flex-1">
+                                <p className="font-bold">{squad.name}</p>
+                                <p className="text-xs text-muted-foreground">{squad.member_count} leden</p>
+                              </div>
+                              <Share2 size={18} className="text-muted-foreground" />
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Followers only mode - just show confirmation button */}
+                {shareMode === 'followers' && (
+                  <button
+                    onClick={() => {
+                      setShareSuccess(true);
+                      setTimeout(() => {
+                        setShowShareModal(false);
+                        setShareSuccess(false);
+                        setShareCaption('');
+                        setShareMode('squads');
+                      }, 1500);
+                    }}
+                    disabled={isSharing}
+                    className="w-full py-3 rounded-lg font-bold bg-primary text-background hover:scale-[1.02] transition-transform disabled:opacity-50"
+                  >
+                    Bevestigen
+                  </button>
+                )}
 
                 <button
                   onClick={() => setShowShareModal(false)}
