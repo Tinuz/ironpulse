@@ -2,12 +2,13 @@
 
 import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Calendar, Clock, Trophy, Dumbbell, Edit2, BarChart3, Award, Trash2, Flame } from 'lucide-react'
+import { ArrowLeft, Calendar, Clock, Trophy, Dumbbell, Edit2, BarChart3, Award, Trash2, Flame, Share2, Users } from 'lucide-react'
 import { useRouter, usePathname } from 'next/navigation'
 import { format } from 'date-fns'
 import { useData } from '@/components/context/DataContext'
 import { useAuth } from '@/components/context/AuthContext'
 import { supabase } from '@/lib/supabase'
+import { getUserSquads, shareWorkoutToSquad, type Squad } from '@/lib/squads'
 import WorkoutReactions from '@/components/WorkoutReactions'
 import { 
   getBest1RM, 
@@ -28,13 +29,25 @@ export default function WorkoutDetail() {
   const [workout, setWorkout] = useState<WorkoutLog | null>(null);
   const [loading, setLoading] = useState(true);
   const [isOwnWorkout, setIsOwnWorkout] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [userSquads, setUserSquads] = useState<Squad[]>([]);
+  const [shareCaption, setShareCaption] = useState('');
+  const [isSharing, setIsSharing] = useState(false);
+  const [shareSuccess, setShareSuccess] = useState(false);
   
   // Get workout ID from URL path (e.g., /workout/abc123)
   const workoutId = pathname.split('/workout/')[1]
 
   useEffect(() => {
     loadWorkout();
+    loadUserSquads();
   }, [workoutId, history, user]);
+
+  const loadUserSquads = async () => {
+    if (!user) return;
+    const squads = await getUserSquads(user.id);
+    setUserSquads(squads);
+  };
 
   const loadWorkout = async () => {
     if (!workoutId) {
@@ -95,6 +108,24 @@ export default function WorkoutDetail() {
     }
   };
 
+  const handleShareToSquad = async (squadId: string) => {
+    if (!workout || !user) return;
+    setIsSharing(true);
+    try {
+      await shareWorkoutToSquad(squadId, user.id, workout, shareCaption || undefined);
+      setShareSuccess(true);
+      setTimeout(() => {
+        setShowShareModal(false);
+        setShareSuccess(false);
+        setShareCaption('');
+      }, 1500);
+    } catch (error) {
+      console.error('Error sharing workout:', error);
+    } finally {
+      setIsSharing(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -139,6 +170,13 @@ export default function WorkoutDetail() {
         <h1 className="font-bold text-lg">Workout Details</h1>
         {isOwnWorkout && (
           <div className="flex gap-2">
+            <button 
+              onClick={() => setShowShareModal(true)}
+              className="p-2 text-muted-foreground hover:text-primary"
+              title="Deel workout"
+            >
+              <Share2 size={20} />
+            </button>
             <button 
               onClick={() => setShowDeleteConfirm(true)}
               className="p-2 text-muted-foreground hover:text-destructive"
@@ -401,6 +439,114 @@ export default function WorkoutDetail() {
                 {isDeleting ? 'Verwijderen...' : 'Verwijderen'}
               </button>
             </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Share Modal */}
+      {showShareModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-card border border-white/10 rounded-2xl p-6 max-w-md w-full space-y-4"
+          >
+            {shareSuccess ? (
+              <div className="text-center py-8">
+                <div className="h-16 w-16 rounded-full bg-green-500/20 flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-8 h-8 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <h3 className="font-bold text-lg">Gedeeld!</h3>
+                <p className="text-sm text-muted-foreground mt-2">Je workout is gedeeld met je squad</p>
+              </div>
+            ) : (
+              <>
+                <div className="flex items-center gap-3">
+                  <div className="h-12 w-12 rounded-full bg-primary/20 flex items-center justify-center">
+                    <Share2 size={24} className="text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-lg">Workout Delen</h3>
+                    <p className="text-sm text-muted-foreground">Deel met je squads</p>
+                  </div>
+                </div>
+                
+                <div className="bg-white/5 rounded-lg p-3">
+                  <p className="text-sm font-medium">{workout?.name}</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {totalSets} sets • {(volume / 1000).toFixed(1)}k volume
+                  </p>
+                </div>
+
+                {/* Caption Input */}
+                <div>
+                  <label className="text-xs uppercase tracking-wider text-muted-foreground font-bold mb-2 block">
+                    Bericht (optioneel)
+                  </label>
+                  <textarea
+                    value={shareCaption}
+                    onChange={(e) => setShareCaption(e.target.value)}
+                    placeholder="Voeg een bericht toe..."
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:border-primary focus:outline-none transition-colors resize-none"
+                    rows={3}
+                  />
+                </div>
+
+                {/* Squad Selection */}
+                <div>
+                  <label className="text-xs uppercase tracking-wider text-muted-foreground font-bold mb-2 block">
+                    Deel met squad
+                  </label>
+                  {userSquads.length === 0 ? (
+                    <div className="bg-white/5 rounded-lg p-4 text-center">
+                      <Users size={24} className="text-muted-foreground mx-auto mb-2" />
+                      <p className="text-sm text-muted-foreground">Je bent nog niet lid van een squad</p>
+                      <button
+                        onClick={() => {
+                          setShowShareModal(false);
+                          router.push('/social');
+                        }}
+                        className="mt-3 text-primary text-sm font-bold hover:underline"
+                      >
+                        Maak een squad aan
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="space-y-2 max-h-60 overflow-y-auto">
+                      {userSquads.map((squad) => (
+                        <button
+                          key={squad.id}
+                          onClick={() => handleShareToSquad(squad.id)}
+                          disabled={isSharing}
+                          className="w-full p-4 bg-white/5 hover:bg-white/10 rounded-xl transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center">
+                              <Users size={20} className="text-primary" />
+                            </div>
+                            <div className="flex-1">
+                              <p className="font-bold">{squad.name}</p>
+                              <p className="text-xs text-muted-foreground">{squad.member_count} leden</p>
+                            </div>
+                            <Share2 size={18} className="text-muted-foreground" />
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <button
+                  onClick={() => setShowShareModal(false)}
+                  disabled={isSharing}
+                  className="w-full py-3 rounded-lg font-bold bg-white/5 hover:bg-white/10 transition-colors disabled:opacity-50"
+                >
+                  Annuleren
+                </button>
+              </>
+            )}
           </motion.div>
         </div>
       )}
