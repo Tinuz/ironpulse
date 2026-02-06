@@ -441,6 +441,44 @@ export default function WorkoutLogger() {
     updateActiveWorkout(updated);
   };
 
+  const updateExerciseOneRM = (exerciseIndex: number, oneRM: number | undefined) => {
+    if (!workoutData) return;
+    const newExercises = [...workoutData.exercises];
+    newExercises[exerciseIndex].oneRepMax = oneRM;
+    const updated = { ...workoutData, exercises: newExercises };
+    setWorkoutData(updated);
+    updateActiveWorkout(updated);
+  };
+
+  const regenerateSetsFromOneRM = (exerciseIndex: number) => {
+    if (!workoutData) return;
+    const exercise = workoutData.exercises[exerciseIndex];
+    
+    if (!exercise.oneRepMax || !validateOneRM(exercise.oneRepMax)) {
+      alert('Voer eerst een geldige 1RM in (tussen 5kg en 500kg)');
+      return;
+    }
+
+    if (!window.confirm('Wil je alle sets vervangen met automatisch berekende sets op basis van je 1RM?')) {
+      return;
+    }
+
+    const newExercises = [...workoutData.exercises];
+    const setsConfig = generateSetsFromOneRM(exercise.oneRepMax);
+    
+    newExercises[exerciseIndex].sets = setsConfig.map(config => ({
+      id: crypto.randomUUID(),
+      weight: config.weight,
+      reps: config.reps,
+      completed: false,
+      isWarmup: config.isWarmup
+    }));
+
+    const updated = { ...workoutData, exercises: newExercises };
+    setWorkoutData(updated);
+    updateActiveWorkout(updated);
+  };
+
   const openAddExerciseModal = () => {
     setIsAddingExercise(true);
     setNewExerciseName('');
@@ -791,6 +829,48 @@ export default function WorkoutLogger() {
                   </button>
                 </div>
               </div>
+              
+              {/* 1RM Section - Only for strength exercises */}
+              {exercise.type !== 'cardio' && (
+                <div className="px-4 pt-3 pb-2 bg-white/5 border-b border-white/5">
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1">
+                      <label className="text-xs text-muted-foreground uppercase tracking-wider font-bold mb-1 block">
+                        1RM (One Rep Max)
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="number"
+                          step="0.5"
+                          min="0"
+                          value={exercise.oneRepMax || ''}
+                          onChange={(e) => updateExerciseOneRM(exerciseIndex, e.target.value ? parseFloat(e.target.value) : undefined)}
+                          placeholder="Bijv. 100"
+                          className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm font-bold focus:outline-none focus:border-primary transition-colors"
+                        />
+                        <span className="text-xs text-muted-foreground font-bold">KG</span>
+                      </div>
+                    </div>
+                    {exercise.oneRepMax && validateOneRM(exercise.oneRepMax) && (
+                      <div className="flex flex-col gap-1">
+                        <div className="text-[10px] text-muted-foreground text-center">Auto-fill</div>
+                        <button
+                          onClick={() => regenerateSetsFromOneRM(exerciseIndex)}
+                          className="px-3 py-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded-lg font-bold text-xs transition-colors whitespace-nowrap"
+                        >
+                          <RefreshCw size={14} className="inline mr-1" />
+                          Genereer Sets
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  {exercise.oneRepMax && validateOneRM(exercise.oneRepMax) && (
+                    <div className="mt-2 text-[10px] text-blue-400 bg-blue-500/10 rounded px-2 py-1">
+                      💡 Warmup: {(exercise.oneRepMax * 0.5).toFixed(1)}kg • Werksets: {(exercise.oneRepMax * 0.75).toFixed(1)}kg × 12 reps
+                    </div>
+                  )}
+                </div>
+              )}
               
               {exercise.type === 'cardio' ? (
                 <div className="p-4 space-y-3">
