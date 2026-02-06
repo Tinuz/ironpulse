@@ -854,11 +854,10 @@ export default function WorkoutLogger() {
                     {exercise.oneRepMax && validateOneRM(exercise.oneRepMax) && (
                       <button
                         onClick={() => regenerateSetsFromOneRM(exerciseIndex)}
-                        className="px-3 py-1.5 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/30 text-blue-400 rounded-lg font-bold text-xs transition-colors flex items-center gap-1.5 mt-5"
-                        title="Genereer sets op basis van 1RM"
+                        className="px-3 py-2 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/30 text-blue-400 rounded-lg font-bold text-[10px] transition-colors flex flex-col items-center gap-0.5 min-w-[70px] mt-5"
                       >
-                        <RefreshCw size={12} />
-                        <span>Sets</span>
+                        <RefreshCw size={14} />
+                        <span className="leading-none">Auto-fill</span>
                       </button>
                     )}
                   </div>
