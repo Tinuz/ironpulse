@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Bot, Send, Sparkles, Zap, BrainCircuit, AlertTriangle, CheckCircle, Info, Lightbulb } from 'lucide-react'
+import { ArrowLeft, Bot, Send, Sparkles, Zap, BrainCircuit, AlertTriangle, CheckCircle, Info, Lightbulb, Trash2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useData } from '@/components/context/DataContext'
 import { useAuth } from '@/components/context/AuthContext'
@@ -11,12 +11,13 @@ import { generateUserContext, getRandomTip, Message, generateProactiveInsights, 
 import WorkoutGeneratorModal from '@/components/WorkoutGeneratorModal'
 import { getCsrfToken } from '@/lib/csrfClient'
 import type { ChatRequest, ChatResponse, ChatErrorResponse, ChatMessage } from '@/types/api'
+import { getChatHistory, saveChatMessage, clearChatHistory, type CoachType } from '@/lib/chatHistory'
 
 export default function AITrainer() {
   const router = useRouter()
   const { t } = useLanguage();
   const { history, bodyStats, nutritionLogs, coachProfile, userProfile } = useData();
-  const { session } = useAuth(); // Add session from auth context
+  const { session, user } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -25,24 +26,60 @@ export default function AITrainer() {
   const [showWorkoutGenerator, setShowWorkoutGenerator] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Initial greeting and insights on mount
+  const COACH_TYPE: CoachType = 'ai_trainer';
+
+  // Load chat history on mount
+  useEffect(() => {
+    const loadChatHistory = async () => {
+      if (!user?.id) return;
+      
+      try {
+        const chatHistory = await getChatHistory(user.id, COACH_TYPE);
+        
+        // Convert database messages to Message format
+        const loadedMessages: Message[] = chatHistory.map(msg => ({
+          id: msg.id,
+          role: msg.role === 'assistant' ? 'ai' : 'user',
+          text: msg.content,
+          timestamp: new Date(msg.created_at).getTime()
+        }));
+
+        if (loadedMessages.length > 0) {
+          setMessages(loadedMessages);
+        } else {
+          // Show initial greeting if no history
+          const initialMsg: Message = {
+            id: 'init-1',
+            role: 'ai',
+            text: t.aiTrainer.greeting,
+            timestamp: Date.now()
+          };
+          setMessages([initialMsg]);
+        }
+      } catch (error) {
+        console.error('Error loading chat history:', error);
+        // Fallback to greeting on error
+        const initialMsg: Message = {
+          id: 'init-1',
+          role: 'ai',
+          text: t.aiTrainer.greeting,
+          timestamp: Date.now()
+        };
+        setMessages([initialMsg]);
+      }
+    };
+
+    loadChatHistory();
+  }, [user?.id, t.aiTrainer.greeting]);
+
+  // Initial insights on mount
   useEffect(() => {
     setDailyTip(getRandomTip());
     
     // Generate proactive insights
     const newInsights = generateProactiveInsights(history, bodyStats, nutritionLogs, userProfile || undefined);
     setInsights(newInsights);
-    
-    if (messages.length === 0) {
-      const initialMsg: Message = {
-        id: 'init-1',
-        role: 'ai',
-        text: t.aiTrainer.greeting,
-        timestamp: Date.now()
-      };
-      setMessages([initialMsg]);
-    }
-  }, []);
+  }, [history, bodyStats, nutritionLogs, userProfile]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -69,7 +106,7 @@ export default function AITrainer() {
   };
 
   const handleSendMessage = async () => {
-    if (!inputText.trim() || !session?.access_token) return;
+    if (!inputText.trim() || !session?.access_token || !user?.id) return;
 
     const userMsg: Message = {
       id: crypto.randomUUID(),
@@ -79,15 +116,25 @@ export default function AITrainer() {
     };
 
     setMessages(prev => [...prev, userMsg]);
+    const currentInput = inputText;
     setInputText('');
     setIsTyping(true);
 
     try {
+      // Save user message to database immediately
+      await saveChatMessage({
+        userId: user.id,
+        coachType: COACH_TYPE,
+        role: 'user',
+        content: currentInput
+      });
+
       // Generate comprehensive user context from data with userProfile
       const userContext = generateUserContext(history, bodyStats, nutritionLogs, userProfile || undefined);
 
-      // Prepare messages for API
-      const apiMessages: ChatMessage[] = messages
+      // Prepare messages for API - use ONLY the last 20 messages to keep context window manageable
+      const recentMessages = messages.slice(-20);
+      const apiMessages: ChatMessage[] = recentMessages
         .map(m => ({
           role: (m.role === 'ai' ? 'assistant' : 'user') as 'assistant' | 'user',
           content: m.text
@@ -96,7 +143,7 @@ export default function AITrainer() {
       // Add current user message
       apiMessages.push({
         role: 'user' as const,
-        content: userMsg.text
+        content: currentInput
       });
 
       // Get CSRF token
@@ -136,6 +183,15 @@ export default function AITrainer() {
       };
 
       setMessages(prev => [...prev, aiMsg]);
+
+      // Save AI response to database
+      await saveChatMessage({
+        userId: user.id,
+        coachType: COACH_TYPE,
+        role: 'assistant',
+        content: data.message
+      });
+
     } catch (error) {
       console.error('Error getting AI response:', error);
       const errorMsg: Message = {
@@ -158,6 +214,34 @@ export default function AITrainer() {
     setInputText(prompt);
   };
 
+  const handleClearHistory = async () => {
+    if (!user?.id) return;
+    
+    if (!window.confirm('Weet je zeker dat je de chat geschiedenis wilt wissen? Dit kan niet ongedaan worden gemaakt.')) {
+      return;
+    }
+
+    try {
+      const success = await clearChatHistory(user.id, COACH_TYPE);
+      
+      if (success) {
+        // Reset to initial greeting
+        const initialMsg: Message = {
+          id: 'init-1',
+          role: 'ai',
+          text: t.aiTrainer.greeting,
+          timestamp: Date.now()
+        };
+        setMessages([initialMsg]);
+      } else {
+        alert('Er ging iets mis bij het wissen van de chat geschiedenis.');
+      }
+    } catch (error) {
+      console.error('Error clearing chat history:', error);
+      alert('Er ging iets mis bij het wissen van de chat geschiedenis.');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background pb-20 flex flex-col">
       {/* Header */}
@@ -169,7 +253,13 @@ export default function AITrainer() {
           <Bot className="text-primary" size={24} />
           <h1 className="font-bold text-lg">{t.aiTrainer.title}</h1>
         </div>
-        <div className="w-10"></div>
+        <button 
+          onClick={handleClearHistory}
+          className="p-2 -mr-2 text-muted-foreground hover:text-red-500 transition-colors"
+          title="Wis chat geschiedenis"
+        >
+          <Trash2 size={20} />
+        </button>
       </div>
 
       {/* Main Content Area */}

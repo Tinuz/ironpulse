@@ -2,12 +2,13 @@
 
 import React, { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
-import { X, Send, Pill, Loader2 } from 'lucide-react'
+import { X, Send, Pill, Loader2, Trash2 } from 'lucide-react'
 import { useData } from '@/components/context/DataContext'
 import { useAuth } from '@/components/context/AuthContext'
 import { getCsrfToken } from '@/lib/csrfClient'
 import type { ChatMessage } from '@/types/api'
 import { format } from 'date-fns'
+import { getChatHistory, saveChatMessage, clearChatHistory, type CoachType } from '@/lib/chatHistory'
 
 interface SupplementsCoachProps {
   onClose: () => void
@@ -22,22 +23,54 @@ interface Message {
 
 export default function SupplementsCoach({ onClose }: SupplementsCoachProps) {
   const { supplements, userProfile, history } = useData()
-  const { session } = useAuth()
+  const { session, user } = useAuth()
   const [messages, setMessages] = useState<Message[]>([])
   const [inputText, setInputText] = useState('')
   const [isTyping, setIsTyping] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
 
+  const COACH_TYPE: CoachType = 'supplements_coach'
+
   useEffect(() => {
-    // Initial greeting
-    const greeting: Message = {
-      id: crypto.randomUUID(),
-      role: 'assistant',
-      content: `Hey! I'm your brutal honest supplements coach. I'm here to cut through the BS and tell you exactly what works, what doesn't, and what's just marketing hype.\n\nI can see you're tracking ${supplements.length} supplement${supplements.length !== 1 ? 's' : ''}. Let me know what you want to optimize—muscle gain, fat loss, performance, recovery—and I'll give you the real deal. No sugar coating.\n\nWhat's on your mind?`,
-      timestamp: Date.now()
+    const loadChatHistory = async () => {
+      if (!user?.id) return
+      
+      try {
+        const chatHistory = await getChatHistory(user.id, COACH_TYPE)
+        
+        if (chatHistory.length > 0) {
+          const loadedMessages: Message[] = chatHistory.map(msg => ({
+            id: msg.id,
+            role: msg.role,
+            content: msg.content,
+            timestamp: new Date(msg.created_at).getTime()
+          }))
+          setMessages(loadedMessages)
+        } else {
+          // Initial greeting if no history
+          const greeting: Message = {
+            id: crypto.randomUUID(),
+            role: 'assistant',
+            content: `Hey! I'm your brutal honest supplements coach. I'm here to cut through the BS and tell you exactly what works, what doesn't, and what's just marketing hype.\n\nI can see you're tracking ${supplements.length} supplement${supplements.length !== 1 ? 's' : ''}. Let me know what you want to optimize—muscle gain, fat loss, performance, recovery—and I'll give you the real deal. No sugar coating.\n\nWhat's on your mind?`,
+            timestamp: Date.now()
+          }
+          setMessages([greeting])
+        }
+      } catch (error) {
+        console.error('Error loading chat history:', error)
+        // Fallback to greeting
+        const greeting: Message = {
+          id: crypto.randomUUID(),
+          role: 'assistant',
+          content: `Hey! I'm your brutal honest supplements coach. I'm here to cut through the BS and tell you exactly what works, what doesn't, and what's just marketing hype.\n\nI can see you're tracking ${supplements.length} supplement${supplements.length !== 1 ? 's' : ''}. Let me know what you want to optimize—muscle gain, fat loss, performance, recovery—and I'll give you the real deal. No sugar coating.\n\nWhat's on your mind?`,
+          timestamp: Date.now()
+        }
+        setMessages([greeting])
+      }
     }
-    setMessages([greeting])
-  }, [])
+
+    loadChatHistory()
+  }, [user?.id, supplements.length])
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -114,7 +147,7 @@ export default function SupplementsCoach({ onClose }: SupplementsCoachProps) {
   }
 
   const handleSendMessage = async () => {
-    if (!inputText.trim() || !session?.access_token) return
+    if (!inputText.trim() || !session?.access_token || !user?.id) return
 
     const userMsg: Message = {
       id: crypto.randomUUID(),
@@ -124,13 +157,24 @@ export default function SupplementsCoach({ onClose }: SupplementsCoachProps) {
     }
 
     setMessages(prev => [...prev, userMsg])
+    const currentInput = inputText
     setInputText('')
     setIsTyping(true)
 
     try {
+      // Save user message to database
+      await saveChatMessage({
+        userId: user.id,
+        coachType: COACH_TYPE,
+        role: 'user',
+        content: currentInput
+      })
+
       const supplementsContext = generateSupplementsContext()
       
-      const apiMessages: ChatMessage[] = messages
+      // Use only last 20 messages for context window
+      const recentMessages = messages.slice(-20)
+      const apiMessages: ChatMessage[] = recentMessages
         .map(m => ({
           role: m.role === 'assistant' ? 'assistant' : 'user',
           content: m.content
@@ -138,7 +182,7 @@ export default function SupplementsCoach({ onClose }: SupplementsCoachProps) {
 
       apiMessages.push({
         role: 'user',
-        content: userMsg.content
+        content: currentInput
       })
 
       const csrfToken = await getCsrfToken()
@@ -174,6 +218,15 @@ export default function SupplementsCoach({ onClose }: SupplementsCoachProps) {
       }
 
       setMessages(prev => [...prev, aiMsg])
+
+      // Save AI response to database
+      await saveChatMessage({
+        userId: user.id,
+        coachType: COACH_TYPE,
+        role: 'assistant',
+        content: data.message
+      })
+
     } catch (error) {
       console.error('Error getting AI response:', error)
       const errorMsg: Message = {
@@ -185,6 +238,34 @@ export default function SupplementsCoach({ onClose }: SupplementsCoachProps) {
       setMessages(prev => [...prev, errorMsg])
     } finally {
       setIsTyping(false)
+    }
+  }
+
+  const handleClearHistory = async () => {
+    if (!user?.id) return
+    
+    if (!window.confirm('Are you sure you want to clear the chat history? This cannot be undone.')) {
+      return
+    }
+
+    try {
+      const success = await clearChatHistory(user.id, COACH_TYPE)
+      
+      if (success) {
+        // Reset to initial greeting
+        const greeting: Message = {
+          id: crypto.randomUUID(),
+          role: 'assistant',
+          content: `Hey! I'm your brutal honest supplements coach. I'm here to cut through the BS and tell you exactly what works, what doesn't, and what's just marketing hype.\n\nI can see you're tracking ${supplements.length} supplement${supplements.length !== 1 ? 's' : ''}. Let me know what you want to optimize—muscle gain, fat loss, performance, recovery—and I'll give you the real deal. No sugar coating.\n\nWhat's on your mind?`,
+          timestamp: Date.now()
+        }
+        setMessages([greeting])
+      } else {
+        alert('Something went wrong while clearing the chat history.')
+      }
+    } catch (error) {
+      console.error('Error clearing chat history:', error)
+      alert('Something went wrong while clearing the chat history.')
     }
   }
 
@@ -211,12 +292,21 @@ export default function SupplementsCoach({ onClose }: SupplementsCoachProps) {
               <p className="text-sm text-muted-foreground">Brutally honest, evidence-based advice</p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-muted rounded-lg transition-colors"
-          >
-            <X size={20} />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleClearHistory}
+              className="p-2 hover:bg-red-500/20 text-muted-foreground hover:text-red-500 rounded-lg transition-colors"
+              title="Clear chat history"
+            >
+              <Trash2 size={18} />
+            </button>
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-muted rounded-lg transition-colors"
+            >
+              <X size={20} />
+            </button>
+          </div>
         </div>
 
         {/* Messages */}
