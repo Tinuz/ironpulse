@@ -26,6 +26,11 @@ export default function PlateauDetectionWidget() {
     !recentPRExercises.has(plateau.exerciseName.toLowerCase())
   )
   
+  // Recalculate severity counts based on filtered plateaus
+  const severeCount = plateaus.filter(p => getPlateauSeverity(p.weeksStagnant) === 'severe').length
+  const moderateCount = plateaus.filter(p => getPlateauSeverity(p.weeksStagnant) === 'moderate').length
+  const mildCount = plateaus.filter(p => getPlateauSeverity(p.weeksStagnant) === 'mild').length
+  
   const displayPlateaus = showAll ? plateaus : plateaus.slice(0, 3)
   
   if (plateaus.length === 0) {
@@ -85,21 +90,21 @@ export default function PlateauDetectionWidget() {
       
       {/* Status Summary */}
       <div className="grid grid-cols-3 gap-2 mb-4">
-        {summary.severeCount > 0 && (
+        {severeCount > 0 && (
           <div className="bg-red-500/10 rounded-lg p-2 text-center border border-red-500/30">
-            <div className="text-xl font-black text-red-500">{summary.severeCount}</div>
+            <div className="text-xl font-black text-red-500">{severeCount}</div>
             <div className="text-[9px] text-muted-foreground uppercase tracking-wider">Ernstig</div>
           </div>
         )}
-        {summary.moderateCount > 0 && (
+        {moderateCount > 0 && (
           <div className="bg-yellow-500/10 rounded-lg p-2 text-center border border-yellow-500/30">
-            <div className="text-xl font-black text-yellow-500">{summary.moderateCount}</div>
+            <div className="text-xl font-black text-yellow-500">{moderateCount}</div>
             <div className="text-[9px] text-muted-foreground uppercase tracking-wider">Matig</div>
           </div>
         )}
-        {summary.mildCount > 0 && (
+        {mildCount > 0 && (
           <div className="bg-blue-500/10 rounded-lg p-2 text-center border border-blue-500/30">
-            <div className="text-xl font-black text-blue-500">{summary.mildCount}</div>
+            <div className="text-xl font-black text-blue-500">{mildCount}</div>
             <div className="text-[9px] text-muted-foreground uppercase tracking-wider">Licht</div>
           </div>
         )}
