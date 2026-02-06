@@ -1,22 +1,34 @@
 'use client'
 
-import React from 'react'
+import React, { useState } from 'react'
 import { motion } from 'framer-motion'
-import { AlertCircle, TrendingDown, Lightbulb, ChevronRight } from 'lucide-react'
+import { AlertCircle, TrendingDown, Lightbulb, ChevronRight, ChevronDown } from 'lucide-react'
 import { useData } from '@/components/context/DataContext'
 import { 
   detectAllPlateaus, 
   getPlateauSeverity, 
   generatePlateauSummary 
 } from '@/components/utils/plateauDetection'
+import { getRecentPRs } from '@/components/utils/strengthAnalytics'
 
 export default function PlateauDetectionWidget() {
   const { history } = useData()
+  const [showAll, setShowAll] = useState(false)
   
   const summary = generatePlateauSummary(history)
-  const plateaus = detectAllPlateaus(history, 3)
+  const allPlateaus = detectAllPlateaus(history, 3)
   
-  if (summary.totalPlateaus === 0) {
+  // Filter out exercises with recent PRs (last 7 days)
+  const recentPRs = getRecentPRs(history, 7)
+  const recentPRExercises = new Set(recentPRs.map(pr => pr.exerciseName.toLowerCase()))
+  
+  const plateaus = allPlateaus.filter(plateau => 
+    !recentPRExercises.has(plateau.exerciseName.toLowerCase())
+  )
+  
+  const displayPlateaus = showAll ? plateaus : plateaus.slice(0, 3)
+  
+  if (plateaus.length === 0) {
     return (
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -57,9 +69,19 @@ export default function PlateauDetectionWidget() {
           <h3 className="font-bold text-lg">Plateau Detectie</h3>
         </div>
         <div className="text-xs text-muted-foreground">
-          {summary.totalPlateaus} {summary.totalPlateaus === 1 ? 'oefening' : 'oefeningen'}
+          {plateaus.length} {plateaus.length === 1 ? 'oefening' : 'oefeningen'}
         </div>
       </div>
+      
+      {/* Info about recent PRs */}
+      {recentPRExercises.size > 0 && (
+        <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-3 mb-4">
+          <p className="text-xs text-green-500 font-bold mb-1">✨ Recente PRs uitgesloten</p>
+          <p className="text-xs text-muted-foreground">
+            {recentPRExercises.size} {recentPRExercises.size === 1 ? 'oefening' : 'oefeningen'} met PR in de laatste 7 dagen worden niet getoond
+          </p>
+        </div>
+      )}
       
       {/* Status Summary */}
       <div className="grid grid-cols-3 gap-2 mb-4">
@@ -85,7 +107,7 @@ export default function PlateauDetectionWidget() {
       
       {/* Top Plateaus */}
       <div className="space-y-3">
-        {summary.topPlateaus.map((plateau) => {
+        {displayPlateaus.map((plateau) => {
           const severity = getPlateauSeverity(plateau.weeksStagnant)
           const severityBadge = {
             severe: { label: 'Ernstig', color: 'red' },
@@ -141,9 +163,22 @@ export default function PlateauDetectionWidget() {
       </div>
       
       {plateaus.length > 3 && (
-        <div className="mt-3 text-center text-xs text-muted-foreground">
-          +{plateaus.length - 3} meer {plateaus.length - 3 === 1 ? 'oefening' : 'oefeningen'} met plateaus
-        </div>
+        <button
+          onClick={() => setShowAll(!showAll)}
+          className="mt-3 w-full py-2 text-xs text-primary hover:text-primary/80 font-bold flex items-center justify-center gap-1 transition-colors"
+        >
+          {showAll ? (
+            <>
+              <ChevronDown size={14} className="rotate-180" />
+              Toon minder
+            </>
+          ) : (
+            <>
+              <ChevronDown size={14} />
+              Toon alle {plateaus.length} oefeningen
+            </>
+          )}
+        </button>
       )}
     </motion.div>
   )
