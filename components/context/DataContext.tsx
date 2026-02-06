@@ -8,6 +8,7 @@ import { checkAchievements, getNewlyUnlocked } from '@/components/utils/achievem
 import { checkIncompleteWorkout, clearIncompleteWorkout } from '@/components/utils/useWorkoutAutoSave';
 import WorkoutRecoveryModal from '@/components/WorkoutRecoveryModal';
 import { useRouter } from 'next/navigation';
+import { generateSetsFromOneRM, validateOneRM } from '@/components/utils/oneRepMaxCalculations';
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -33,6 +34,7 @@ export interface Exercise {
   targetSets: number;
   targetReps: number;
   startWeight?: number;
+  oneRepMax?: number; // 1RM for automatic set weight calculation
   // Cardio fields
   cardioData?: CardioData;
 }
@@ -65,6 +67,7 @@ export interface WorkoutExercise {
   notes?: string;
   durationMinutes?: number; // Duration of exercise in minutes (deprecated, use cardioData.duration)
   estimatedCalories?: number; // Calculated calories for this exercise
+  oneRepMax?: number; // 1RM for automatic set weight calculation
 }
 
 export interface WorkoutLog {
@@ -638,20 +641,43 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       date: new Date().toISOString(),
       startTime: Date.now(),
       endTime: null,
-      exercises: exercises ? exercises : (schema ? schema.exercises.map(e => ({
-        id: crypto.randomUUID(),
-        exerciseId: e.id,
-        name: e.name,
-        type: e.type,
-        muscleGroup: e.muscleGroup,
-        sets: e.type === 'cardio' ? [] : Array(e.targetSets).fill(null).map(() => ({
+      exercises: exercises ? exercises : (schema ? schema.exercises.map(e => {
+        let sets: WorkoutSet[] = [];
+        
+        // Generate sets based on 1RM or target values
+        if (e.type !== 'cardio') {
+          if (e.oneRepMax && validateOneRM(e.oneRepMax)) {
+            // Generate sets from 1RM: 1 warmup + 4 work sets
+            const setsConfig = generateSetsFromOneRM(e.oneRepMax);
+            sets = setsConfig.map(config => ({
+              id: crypto.randomUUID(),
+              weight: config.weight,
+              reps: config.reps,
+              completed: false,
+              isWarmup: config.isWarmup
+            }));
+          } else {
+            // Use manual values
+            sets = Array(e.targetSets).fill(null).map(() => ({
+              id: crypto.randomUUID(),
+              weight: e.startWeight ?? 0,
+              reps: e.targetReps,
+              completed: false
+            }));
+          }
+        }
+        
+        return {
           id: crypto.randomUUID(),
-          weight: e.startWeight ?? 0,
-          reps: e.targetReps,
-          completed: false
-        })),
-        cardioData: e.cardioData
-      })) : [])
+          exerciseId: e.id,
+          name: e.name,
+          type: e.type,
+          muscleGroup: e.muscleGroup,
+          oneRepMax: e.oneRepMax,
+          sets,
+          cardioData: e.cardioData
+        };
+      }) : [])
     };
     // Save to localStorage immediately
     localStorage.setItem('ft_active', JSON.stringify(newWorkout));

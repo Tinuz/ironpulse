@@ -28,6 +28,7 @@ import { useLanguage } from '@/components/context/LanguageContext'
 import { useWakeLock } from '@/components/utils/useWakeLock'
 import { useWorkoutAutoSave } from '@/components/utils/useWorkoutAutoSave'
 import { MUSCLE_GROUPS, type MuscleGroup } from '@/components/utils/volumeAnalytics'
+import { generateSetsFromOneRM, validateOneRM } from '@/components/utils/oneRepMaxCalculations'
 
 const ExerciseStats = ({ 
   exercise,
@@ -181,6 +182,7 @@ export default function WorkoutLogger() {
   const [newExerciseSets, setNewExerciseSets] = useState(3);
   const [newExerciseReps, setNewExerciseReps] = useState(10);
   const [newExerciseWeight, setNewExerciseWeight] = useState<number | undefined>(undefined);
+  const [newExerciseOneRM, setNewExerciseOneRM] = useState<number | undefined>(undefined);
   
   // Cardio fields for new exercise
   const [newCardioDuration, setNewCardioDuration] = useState(1800); // 30 min
@@ -461,28 +463,37 @@ export default function WorkoutLogger() {
       name: newExerciseName.trim(),
       muscleGroup: (newExerciseMuscleGroup || undefined) as WorkoutExercise['muscleGroup'],
       type: newExerciseType,
-      sets: newExerciseType === 'strength' ? [{
-        id: crypto.randomUUID(),
-        weight: newExerciseWeight || 0,
-        reps: newExerciseReps,
-        completed: false
-      }] : [],
+      sets: [],
       cardioData: newExerciseType === 'cardio' ? {
         duration: newCardioDuration,
         distance: newCardioDistance,
         intensity: newCardioIntensity
-      } : undefined
+      } : undefined,
+      oneRepMax: newExerciseOneRM
     };
 
-    // Add remaining sets for strength exercises
+    // Generate sets based on 1RM or manually specified values
     if (newExerciseType === 'strength') {
-      for (let i = 1; i < newExerciseSets; i++) {
-        newExercise.sets.push({
+      if (newExerciseOneRM && validateOneRM(newExerciseOneRM)) {
+        // Generate sets from 1RM: 1 warmup + 4 work sets
+        const setsConfig = generateSetsFromOneRM(newExerciseOneRM);
+        newExercise.sets = setsConfig.map(config => ({
           id: crypto.randomUUID(),
-          weight: newExerciseWeight || 0,
-          reps: newExerciseReps,
-          completed: false
-        });
+          weight: config.weight,
+          reps: config.reps,
+          completed: false,
+          isWarmup: config.isWarmup
+        }));
+      } else {
+        // Use manual values
+        for (let i = 0; i < newExerciseSets; i++) {
+          newExercise.sets.push({
+            id: crypto.randomUUID(),
+            weight: newExerciseWeight || 0,
+            reps: newExerciseReps,
+            completed: false
+          });
+        }
       }
     }
 
@@ -490,6 +501,12 @@ export default function WorkoutLogger() {
     setWorkoutData(updated);
     updateActiveWorkout(updated);
     setIsAddingExercise(false);
+    
+    // Reset form
+    setNewExerciseName('');
+    setNewExerciseOneRM(undefined);
+    setNewExerciseWeight(undefined);
+    setNewExerciseMuscleGroup('');
   };
 
   const cancelAddExercise = () => {
@@ -1306,8 +1323,35 @@ export default function WorkoutLogger() {
                         className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:border-primary focus:outline-none transition-colors"
                       />
                     </div>
+
+                    <div>
+                      <label className="text-xs uppercase tracking-wider text-muted-foreground font-bold mb-2 block flex items-center gap-2">
+                        1RM (kg) - {t.common.optional || 'Optional'}
+                        <span className="text-[10px] font-normal text-muted-foreground/60 normal-case">(One Rep Max)</span>
+                      </label>
+                      <input
+                        type="number"
+                        step="0.5"
+                        min="0"
+                        value={newExerciseOneRM || ''}
+                        onChange={(e) => setNewExerciseOneRM(e.target.value ? parseFloat(e.target.value) : undefined)}
+                        placeholder="100"
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:border-primary focus:outline-none transition-colors"
+                      />
+                      {newExerciseOneRM && newExerciseOneRM >= 5 && (
+                        <div className="mt-2 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                          <div className="text-xs font-bold text-blue-400 mb-1.5">💡 Automatische gewichten</div>
+                          <div className="text-[11px] text-blue-300/80 space-y-0.5">
+                            <div>• 1 warmup set: <span className="font-bold">{(newExerciseOneRM * 0.5).toFixed(1)}kg</span> (50% 1RM)</div>
+                            <div>• 4 werksets: <span className="font-bold">{(newExerciseOneRM * 0.75).toFixed(1)}kg</span> × 12 reps (75% 1RM)</div>
+                          </div>
+                          <div className="text-[10px] text-blue-300/60 mt-1.5 italic">Sets worden automatisch ingevuld. Je kunt alles handmatig aanpassen.</div>
+                        </div>
+                      )}
+                    </div>
                   </>
                 )}
+```
 
                 {/* Cardio Fields */}
                 {newExerciseType === 'cardio' && (

@@ -30,6 +30,7 @@ export default function SchemaBuilder() {
   const [newExReps, setNewExReps] = useState(10);
   const [newExStartWeight, setNewExStartWeight] = useState<number | undefined>(undefined);
   const [newExMuscleGroup, setNewExMuscleGroup] = useState<Exercise['muscleGroup']>(undefined);
+  const [newExOneRM, setNewExOneRM] = useState<number | undefined>(undefined);
   
   // Cardio-specific state
   const [cardioDuration, setCardioDuration] = useState<number>(1800); // 30 min default in seconds
@@ -111,6 +112,7 @@ export default function SchemaBuilder() {
       targetSets: exerciseType === 'strength' ? newExSets : 0,
       targetReps: exerciseType === 'strength' ? newExReps : 0,
       startWeight: exerciseType === 'strength' ? newExStartWeight : undefined,
+      oneRepMax: exerciseType === 'strength' ? newExOneRM : undefined,
       cardioData: exerciseType === 'cardio' ? {
         duration: cardioDuration,
         distance: cardioDistance,
@@ -126,6 +128,7 @@ export default function SchemaBuilder() {
     setNewExReps(10);
     setNewExStartWeight(undefined);
     setNewExMuscleGroup(undefined);
+    setNewExOneRM(undefined);
     setCardioDuration(1800);
     setCardioDistance(undefined);
     setCardioHeartRate(undefined);
@@ -182,6 +185,7 @@ export default function SchemaBuilder() {
     setNewExReps(exercise.targetReps);
     setNewExStartWeight(exercise.startWeight);
     setNewExMuscleGroup(exercise.muscleGroup);
+    setNewExOneRM(exercise.oneRepMax);
     
     // Load cardio data if exists
     if (exercise.cardioData) {
@@ -207,6 +211,7 @@ export default function SchemaBuilder() {
             targetSets: exerciseType === 'strength' ? newExSets : 0, 
             targetReps: exerciseType === 'strength' ? newExReps : 0, 
             startWeight: exerciseType === 'strength' ? newExStartWeight : undefined,
+            oneRepMax: exerciseType === 'strength' ? newExOneRM : undefined,
             cardioData: exerciseType === 'cardio' ? {
               duration: cardioDuration,
               distance: cardioDistance,
@@ -224,6 +229,7 @@ export default function SchemaBuilder() {
     setNewExReps(10);
     setNewExStartWeight(undefined);
     setNewExMuscleGroup(undefined);
+    setNewExOneRM(undefined);
     setCardioDuration(1800);
     setCardioDistance(undefined);
     setCardioHeartRate(undefined);
@@ -238,6 +244,7 @@ export default function SchemaBuilder() {
     setNewExReps(10);
     setNewExStartWeight(undefined);
     setNewExMuscleGroup(undefined);
+    setNewExOneRM(undefined);
     setCardioDuration(1800);
     setCardioDistance(undefined);
     setCardioHeartRate(undefined);
@@ -606,6 +613,33 @@ export default function SchemaBuilder() {
                   min="0"
                 />
                 <p className="text-[9px] text-muted-foreground mt-1 px-1">{t.schema.startWeight}</p>
+              </div>
+
+              {/* 1RM Input Field */}
+              <div>
+                <label className="text-[10px] uppercase font-bold text-muted-foreground flex items-center gap-2">
+                  1RM (kg)
+                  <span className="text-[9px] font-normal text-muted-foreground/60 normal-case italic">{t.common.optional || 'Optioneel'}</span>
+                </label>
+                <input
+                  type="number"
+                  value={newExOneRM ?? ''}
+                  onChange={(e) => setNewExOneRM(e.target.value ? parseFloat(e.target.value) : undefined)}
+                  className="w-full bg-white/5 rounded-lg px-3 py-2 mt-1 focus:outline-none focus:ring-1 focus:ring-primary font-mono font-bold"
+                  placeholder="100"
+                  step="0.5"
+                  min="0"
+                />
+                {newExOneRM && newExOneRM >= 5 && (
+                  <div className="mt-2 p-2 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                    <div className="text-[9px] font-bold text-blue-400 mb-1">💡 Sets worden automatisch ingevuld</div>
+                    <div className="text-[10px] text-blue-300/80 space-y-0.5">
+                      <div>• Warmup: <span className="font-bold">{(newExOneRM * 0.5).toFixed(1)}kg</span></div>
+                      <div>• Werksets: <span className="font-bold">{(newExOneRM * 0.75).toFixed(1)}kg × 12</span></div>
+                    </div>
+                  </div>
+                )}
+                <p className="text-[9px] text-muted-foreground mt-1 px-1">Bij starten workout worden sets automatisch ingevuld op basis van 1RM</p>
               </div>
                 </>
               )}
