@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft, Trash2, Save, Search, Loader2, Scan } from 'lucide-react'
+import { ArrowLeft, Trash2, Save, Search, Loader2, Scan, Check } from 'lucide-react'
 import { useRouter, useParams } from 'next/navigation'
 import { useAuth } from '@/components/context/AuthContext'
 import { useLanguage } from '@/components/context/LanguageContext'
@@ -33,8 +33,13 @@ export default function MealTemplateEditor() {
   const [isSearching, setIsSearching] = useState(false)
   const [showDropdown, setShowDropdown] = useState(false)
   const [isScannerOpen, setIsScannerOpen] = useState(false)
+  const [searchPage, setSearchPage] = useState(1)
+  const [hasMoreResults, setHasMoreResults] = useState(false)
+  const [isLoadingMore, setIsLoadingMore] = useState(false)
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
+  const loadMoreTriggerRef = useRef<HTMLDivElement>(null)
+  const scrollObserverRef = useRef<IntersectionObserver | null>(null)
 
   // Load existing template if editing
   useEffect(() => {
@@ -81,6 +86,7 @@ export default function MealTemplateEditor() {
   // Debounced search
   const handleSearchChange = (value: string) => {
     setSearchQuery(value)
+    setSearchPage(1)
 
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current)
@@ -88,34 +94,43 @@ export default function MealTemplateEditor() {
 
     if (value.trim().length >= 3) {
       searchTimeoutRef.current = setTimeout(() => {
-        searchNutrition(value)
+        searchNutrition(value, 1, false)
       }, 300)
     } else {
       setSearchResults([])
       setShowDropdown(false)
+      setHasMoreResults(false)
     }
   }
 
-  const searchNutrition = useCallback(async (query: string) => {
+  const searchNutrition = useCallback(async (query: string, page = 1, append = false) => {
     if (query.trim().length < 3 || !session?.access_token) {
       setSearchResults([])
       setShowDropdown(false)
+      setHasMoreResults(false)
       return
     }
 
-    // Check cache first
-    const cached = getCachedResults(query)
-    if (cached) {
-      setSearchResults(cached)
-      setShowDropdown(true)
-      return
+    // Check cache first (only for page 1)
+    if (page === 1 && !append) {
+      const cached = getCachedResults(query)
+      if (cached) {
+        setSearchResults(cached)
+        setShowDropdown(true)
+        setHasMoreResults(cached.length >= 20)
+        return
+      }
     }
 
-    setIsSearching(true)
+    if (append) {
+      setIsLoadingMore(true)
+    } else {
+      setIsSearching(true)
+    }
 
     try {
       const response = await fetch(
-        `/api/search-nutrition?query=${encodeURIComponent(query)}&limit=10&page=1`,
+        `/api/search-nutrition?query=${encodeURIComponent(query)}&limit=20&page=${page}`,
         {
           headers: {
             'Authorization': `Bearer ${session.access_token}`
@@ -125,14 +140,26 @@ export default function MealTemplateEditor() {
 
       if (response.ok) {
         const data = await response.json()
-        setSearchResults(data.results)
-        setCachedResults(query, data.results)
+        
+        if (append) {
+          setSearchResults(prev => [...prev, ...data.results])
+        } else {
+          setSearchResults(data.results)
+          setCachedResults(query, data.results)
+        }
+        
         setShowDropdown(true)
+        setHasMoreResults(data.results.length >= 20)
       }
     } catch (error) {
       console.error('Error searching nutrition:', error)
+      if (!append) {
+        setSearchResults([])
+        setShowDropdown(false)
+      }
     } finally {
       setIsSearching(false)
+      setIsLoadingMore(false)
     }
   }, [session])
 
@@ -154,6 +181,40 @@ export default function MealTemplateEditor() {
     setShowDropdown(false)
     setSearchResults([])
   }
+
+  // Load more results
+  const loadMoreResults = useCallback(() => {
+    if (!isLoadingMore && hasMoreResults && searchQuery.trim().length >= 3) {
+      const nextPage = searchPage + 1
+      setSearchPage(nextPage)
+      searchNutrition(searchQuery, nextPage, true)
+    }
+  }, [isLoadingMore, hasMoreResults, searchPage, searchQuery, searchNutrition])
+
+  // Setup Intersection Observer for infinite scroll
+  useEffect(() => {
+    if (!loadMoreTriggerRef.current) return
+
+    scrollObserverRef.current = new IntersectionObserver(
+      (entries) => {
+        const first = entries[0]
+        if (first.isIntersecting && hasMoreResults && !isLoadingMore) {
+          loadMoreResults()
+        }
+      },
+      { threshold: 0.1 }
+    )
+
+    if (showDropdown && searchResults.length > 0) {
+      scrollObserverRef.current.observe(loadMoreTriggerRef.current)
+    }
+
+    return () => {
+      if (scrollObserverRef.current) {
+        scrollObserverRef.current.disconnect()
+      }
+    }
+  }, [hasMoreResults, isLoadingMore, loadMoreResults, showDropdown, searchResults.length])
 
   const handleProductScanned = (product: any) => {
     const newItem: TemplateItemDraft = {
@@ -336,6 +397,34 @@ export default function MealTemplateEditor() {
                       </div>
                     </button>
                   ))}
+
+                  {/* Infinite Scroll Trigger & Status */}
+                  {hasMoreResults ? (
+                    <div ref={loadMoreTriggerRef} className="p-4 text-center">
+                      {isLoadingMore ? (
+                        <div className="flex items-center justify-center gap-2 text-muted-foreground">
+                          <Loader2 size={16} className="animate-spin" />
+                          <span className="text-sm">Laden...</span>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={loadMoreResults}
+                          className="text-sm text-primary hover:text-primary/80 transition-colors font-semibold"
+                        >
+                          Meer resultaten laden (pagina {searchPage} van 25)
+                        </button>
+                      )}
+                    </div>
+                  ) : searchResults.length >= 20 ? (
+                    <div className="p-4 text-center text-sm text-muted-foreground">
+                      <Check size={16} className="inline mr-2 text-green-500" />
+                      Alle {searchResults.length} resultaten geladen
+                    </div>
+                  ) : null}
+                  
+                  <div className="p-2 text-[10px] text-center text-muted-foreground border-t border-white/5">
+                    {searchResults.length} resultaten • Data van Open Food Facts & USDA • per 100g/ml
+                  </div>
                 </motion.div>
               )}
             </AnimatePresence>
