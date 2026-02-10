@@ -11,7 +11,8 @@ import {
   templateToNutritionItems 
 } from '@/lib/mealTemplates';
 
-export const runtime = 'edge';
+// Use Node.js runtime for better compatibility
+export const runtime = 'nodejs';
 
 /**
  * POST - Log template as meal

@@ -14,7 +14,8 @@ import {
   deleteMealTemplate
 } from '@/lib/mealTemplates';
 
-export const runtime = 'edge';
+// Use Node.js runtime for better compatibility
+export const runtime = 'nodejs';
 
 /**
  * GET single template

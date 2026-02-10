@@ -8,7 +8,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { getMealTemplates, suggestTemplatesFromHistory } from '@/lib/mealTemplates';
 
-export const runtime = 'edge';
+// Use Node.js runtime for better compatibility
+export const runtime = 'nodejs';
 
 export async function GET(request: NextRequest) {
   try {
@@ -127,8 +128,9 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Error in meal templates POST:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Internal server error', details: errorMessage },
       { status: 500 }
     );
   }
