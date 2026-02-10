@@ -24,6 +24,8 @@ import WorkoutDetail from '@/components/pages/WorkoutDetail'
 import WorkoutEditor from '@/components/pages/WorkoutEditor'
 import ExerciseProgress from '@/components/pages/ExerciseProgress'
 import ExerciseLibrary from '@/components/pages/ExerciseLibrary'
+import MealTemplates from '@/components/pages/MealTemplates'
+import MealTemplateEditor from '@/components/pages/MealTemplateEditor'
 import { DataProvider } from '@/components/context/DataContext'
 import { AuthProvider, useAuth } from '@/components/context/AuthContext'
 import { LanguageProvider, useLanguage } from '@/components/context/LanguageContext'
@@ -93,6 +95,11 @@ const ProtectedLayout = () => {
     if (pathname === '/progress-photos') return <ProgressPhotos />
     if (pathname === '/trainer') return <AITrainer />
     if (pathname === '/nutrition') return <Nutrition />
+    if (pathname === '/meal-templates') return <MealTemplates />
+    if (pathname === '/meal-templates/new') return <MealTemplateEditor />
+    if (pathname.startsWith('/meal-templates/') && pathname.endsWith('/edit')) {
+      return <MealTemplateEditor />
+    }
     if (pathname === '/settings') return <Settings />
     return <Play />
   }

@@ -16,6 +16,7 @@ import { NutritionSearchResult } from '@/types/nutrition'
 import { getCachedResults, setCachedResults } from '@/lib/nutritionSearch'
 import SupplementsSection from '@/components/SupplementsSection'
 import SupplementsCoach from '@/components/SupplementsCoach'
+import QuickMealTemplates from '@/components/QuickMealTemplates'
 
 type ViewMode = 'day' | 'week' | 'month';
 type ActiveTab = 'food' | 'supplements';
@@ -944,6 +945,11 @@ export default function Nutrition() {
                 targetIntake={2000}
                 onAddWater={(amount) => addWater(currentDateStr, amount)}
               />
+            )}
+
+            {/* Quick Meal Templates */}
+            {viewMode === 'day' && activeTab === 'food' && isToday && (
+              <QuickMealTemplates onTemplateLogged={() => window.location.reload()} />
             )}
 
             {/* Meals List */}
