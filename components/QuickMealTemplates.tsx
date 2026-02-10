@@ -30,34 +30,49 @@ export default function QuickMealTemplates({ onTemplateLogged }: QuickMealTempla
   const [loggingTemplate, setLoggingTemplate] = useState<string | null>(null)
 
   useEffect(() => {
-    if (session?.access_token) {
-      fetchTopTemplates()
-    }
-  }, [session])
+    let isMounted = true
+    const controller = new AbortController()
 
-  const fetchTopTemplates = async () => {
-    setIsLoading(true)
-    try {
-      const response = await fetch('/api/meal-templates', {
-        headers: {
-          'Authorization': `Bearer ${session?.access_token}`
+    const fetchTopTemplates = async () => {
+      if (!session?.access_token) return
+      
+      setIsLoading(true)
+      try {
+        const response = await fetch('/api/meal-templates', {
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`
+          },
+          signal: controller.signal
+        })
+
+        if (response.ok && isMounted) {
+          const data = await response.json()
+          // Show top 3 most used templates
+          const topTemplates = (data.templates || [])
+            .sort((a: MealTemplate, b: MealTemplate) => b.usageCount - a.usageCount)
+            .slice(0, 3)
+          setTemplates(topTemplates)
         }
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        // Show top 3 most used templates
-        const topTemplates = (data.templates || [])
-          .sort((a: MealTemplate, b: MealTemplate) => b.usageCount - a.usageCount)
-          .slice(0, 3)
-        setTemplates(topTemplates)
+      } catch (error: any) {
+        if (error.name !== 'AbortError') {
+          console.error('Error fetching templates:', error)
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false)
+        }
       }
-    } catch (error) {
-      console.error('Error fetching templates:', error)
-    } finally {
-      setIsLoading(false)
     }
-  }
+
+    fetchTopTemplates()
+
+    return () => {
+      isMounted = false
+      controller.abort()
+    }
+  }, [session?.access_token])
+
+
 
   const handleLogTemplate = async (template: MealTemplate) => {
     setLoggingTemplate(template.id)

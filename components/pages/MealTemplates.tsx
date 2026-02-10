@@ -28,30 +28,45 @@ export default function MealTemplatesPage() {
 
   // Fetch templates on mount
   useEffect(() => {
-    if (session?.access_token) {
-      fetchTemplates()
-    }
-  }, [session])
+    let isMounted = true
+    const controller = new AbortController()
 
-  const fetchTemplates = async () => {
-    setIsLoading(true)
-    try {
-      const response = await fetch('/api/meal-templates', {
-        headers: {
-          'Authorization': `Bearer ${session?.access_token}`
+    const fetchData = async () => {
+      if (!session?.access_token) return
+      
+      setIsLoading(true)
+      try {
+        const response = await fetch('/api/meal-templates', {
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`
+          },
+          signal: controller.signal
+        })
+
+        if (response.ok && isMounted) {
+          const data = await response.json()
+          setTemplates(data.templates || [])
         }
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        setTemplates(data.templates || [])
+      } catch (error: any) {
+        if (error.name !== 'AbortError') {
+          console.error('Error fetching templates:', error)
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false)
+        }
       }
-    } catch (error) {
-      console.error('Error fetching templates:', error)
-    } finally {
-      setIsLoading(false)
     }
-  }
+
+    fetchData()
+
+    return () => {
+      isMounted = false
+      controller.abort()
+    }
+  }, [session?.access_token])
+
+
 
   const handleDelete = async (templateId: string) => {
     try {

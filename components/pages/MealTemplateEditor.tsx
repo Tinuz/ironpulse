@@ -43,45 +43,58 @@ export default function MealTemplateEditor() {
 
   // Load existing template if editing
   useEffect(() => {
-    if (isEditing && templateId && session?.access_token) {
-      loadTemplate()
-    }
-  }, [isEditing, templateId, session])
+    let isMounted = true
+    const controller = new AbortController()
 
-  const loadTemplate = async () => {
-    setIsLoading(true)
-    try {
-      const response = await fetch(`/api/meal-templates/${templateId}`, {
-        headers: {
-          'Authorization': `Bearer ${session?.access_token}`
+    const loadTemplate = async () => {
+      if (!isEditing || !templateId || !session?.access_token) return
+      
+      setIsLoading(true)
+      try {
+        const response = await fetch(`/api/meal-templates/${templateId}`, {
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`
+          },
+          signal: controller.signal
+        })
+
+        if (response.ok && isMounted) {
+          const data = await response.json()
+          const template: MealTemplate = data.template
+          
+          setName(template.name)
+          setCategory(template.category || 'breakfast')
+          setItems(template.items.map(item => ({
+            foodName: item.foodName,
+            foodBrand: item.foodBrand,
+            caloriesPer100g: item.caloriesPer100g,
+            proteinPer100g: item.proteinPer100g,
+            carbsPer100g: item.carbsPer100g,
+            fatsPer100g: item.fatsPer100g,
+            quantity: item.quantity,
+            unit: item.unit,
+            foodItemId: item.foodItemId,
+            customNotes: item.customNotes
+          })))
         }
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        const template: MealTemplate = data.template
-        
-        setName(template.name)
-        setCategory(template.category || 'breakfast')
-        setItems(template.items.map(item => ({
-          foodName: item.foodName,
-          foodBrand: item.foodBrand,
-          caloriesPer100g: item.caloriesPer100g,
-          proteinPer100g: item.proteinPer100g,
-          carbsPer100g: item.carbsPer100g,
-          fatsPer100g: item.fatsPer100g,
-          quantity: item.quantity,
-          unit: item.unit,
-          foodItemId: item.foodItemId,
-          customNotes: item.customNotes
-        })))
+      } catch (error: any) {
+        if (error.name !== 'AbortError') {
+          console.error('Error loading template:', error)
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false)
+        }
       }
-    } catch (error) {
-      console.error('Error loading template:', error)
-    } finally {
-      setIsLoading(false)
     }
-  }
+
+    loadTemplate()
+
+    return () => {
+      isMounted = false
+      controller.abort()
+    }
+  }, [isEditing, templateId, session?.access_token])
 
   // Debounced search
   const handleSearchChange = (value: string) => {

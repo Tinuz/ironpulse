@@ -56,6 +56,8 @@ export default function Nutrition() {
 
   // Load custom food items
   useEffect(() => {
+    let isMounted = true;
+
     const loadCustomItems = async () => {
       if (!session?.user) return;
       
@@ -69,14 +71,21 @@ export default function Nutrition() {
         });
 
         const items = await getCustomFoodItems(supabase, session.user.id, { sortBy: 'usage', limit: 20 });
-        setCustomFoodItems(items);
+        
+        if (isMounted) {
+          setCustomFoodItems(items);
+        }
       } catch (err) {
         console.error('Error loading custom food items:', err);
       }
     };
 
     loadCustomItems();
-  }, [session]);
+
+    return () => {
+      isMounted = false;
+    };
+  }, [session?.user?.id, session?.access_token]);
 
   const today = format(new Date(), 'yyyy-MM-dd');
   const currentDateStr = format(selectedDate, 'yyyy-MM-dd');
