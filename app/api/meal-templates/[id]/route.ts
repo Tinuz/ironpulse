@@ -7,7 +7,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@supabase/supabase-js';
 import { 
   getMealTemplate, 
   updateMealTemplate, 
@@ -16,6 +16,9 @@ import {
 
 // Use Node.js runtime for better compatibility
 export const runtime = 'nodejs';
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 /**
  * GET single template
@@ -34,6 +37,11 @@ export async function GET(
     }
 
     const token = authHeader.substring(7);
+    
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: `Bearer ${token}` } }
+    });
+    
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     
     if (authError || !user) {
@@ -43,7 +51,7 @@ export async function GET(
       );
     }
 
-    const template = await getMealTemplate(params.id);
+    const template = await getMealTemplate(supabase, params.id);
 
     if (!template) {
       return NextResponse.json(
@@ -88,6 +96,11 @@ export async function PUT(
     }
 
     const token = authHeader.substring(7);
+    
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: `Bearer ${token}` } }
+    });
+    
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     
     if (authError || !user) {
@@ -98,7 +111,7 @@ export async function PUT(
     }
 
     // Verify ownership
-    const existingTemplate = await getMealTemplate(params.id);
+    const existingTemplate = await getMealTemplate(supabase, params.id);
     if (!existingTemplate || existingTemplate.userId !== user.id) {
       return NextResponse.json(
         { error: 'Template not found or forbidden' },
@@ -107,7 +120,7 @@ export async function PUT(
     }
 
     const body = await request.json();
-    const updatedTemplate = await updateMealTemplate(params.id, body);
+    const updatedTemplate = await updateMealTemplate(supabase, params.id, body);
 
     if (!updatedTemplate) {
       return NextResponse.json(
@@ -144,6 +157,11 @@ export async function DELETE(
     }
 
     const token = authHeader.substring(7);
+    
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: `Bearer ${token}` } }
+    });
+    
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     
     if (authError || !user) {
@@ -154,7 +172,7 @@ export async function DELETE(
     }
 
     // Verify ownership
-    const existingTemplate = await getMealTemplate(params.id);
+    const existingTemplate = await getMealTemplate(supabase, params.id);
     if (!existingTemplate || existingTemplate.userId !== user.id) {
       return NextResponse.json(
         { error: 'Template not found or forbidden' },
@@ -162,7 +180,7 @@ export async function DELETE(
       );
     }
 
-    const success = await deleteMealTemplate(params.id);
+    const success = await deleteMealTemplate(supabase, params.id);
 
     if (!success) {
       return NextResponse.json(

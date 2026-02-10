@@ -4,7 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@supabase/supabase-js';
 import { 
   getMealTemplate,
   incrementTemplateUsage,
@@ -13,6 +13,9 @@ import {
 
 // Use Node.js runtime for better compatibility
 export const runtime = 'nodejs';
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 /**
  * POST - Log template as meal
@@ -31,6 +34,11 @@ export async function POST(
     }
 
     const token = authHeader.substring(7);
+    
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: `Bearer ${token}` } }
+    });
+    
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     
     if (authError || !user) {
@@ -52,7 +60,7 @@ export async function POST(
     }
 
     // Get template
-    const template = await getMealTemplate(params.id);
+    const template = await getMealTemplate(supabase, params.id);
 
     if (!template) {
       return NextResponse.json(
@@ -144,7 +152,7 @@ export async function POST(
     }
 
     // Increment template usage count
-    await incrementTemplateUsage(params.id);
+    await incrementTemplateUsage(supabase, params.id);
 
     return NextResponse.json({ 
       success: true,

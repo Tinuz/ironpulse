@@ -3,7 +3,6 @@
  * CRUD operations for meal templates and automatic suggestions
  */
 
-import { supabase } from '@/lib/supabase';
 import { 
   MealTemplate, 
   MealTemplateItem, 
@@ -68,7 +67,7 @@ function mapDbRowToTemplate(row: any): MealTemplate {
 /**
  * Get all templates for a user
  */
-export async function getMealTemplates(userId: string): Promise<MealTemplate[]> {
+export async function getMealTemplates(supabase: any, userId: string): Promise<MealTemplate[]> {
   try {
     const { data, error } = await supabase
       .from('meal_templates')
@@ -94,7 +93,7 @@ export async function getMealTemplates(userId: string): Promise<MealTemplate[]> 
 /**
  * Get single template by ID
  */
-export async function getMealTemplate(templateId: string): Promise<MealTemplate | null> {
+export async function getMealTemplate(supabase: any, templateId: string): Promise<MealTemplate | null> {
   try {
     const { data, error } = await supabase
       .from('meal_templates')
@@ -121,6 +120,7 @@ export async function getMealTemplate(templateId: string): Promise<MealTemplate 
  * Create new meal template
  */
 export async function createMealTemplate(
+  supabase: any,
   userId: string,
   request: CreateTemplateRequest
 ): Promise<MealTemplate | null> {
@@ -170,7 +170,7 @@ export async function createMealTemplate(
     }
 
     // 3. Fetch complete template with items
-    return await getMealTemplate(templateData.id);
+    return await getMealTemplate(supabase, templateData.id);
   } catch (err) {
     console.error('Exception creating meal template:', err);
     return null;
@@ -181,6 +181,7 @@ export async function createMealTemplate(
  * Update existing meal template
  */
 export async function updateMealTemplate(
+  supabase: any,
   templateId: string,
   updates: Partial<CreateTemplateRequest>
 ): Promise<MealTemplate | null> {
@@ -235,7 +236,7 @@ export async function updateMealTemplate(
     }
 
     // 3. Return updated template
-    return await getMealTemplate(templateId);
+    return await getMealTemplate(supabase, templateId);
   } catch (err) {
     console.error('Exception updating meal template:', err);
     return null;
@@ -245,7 +246,7 @@ export async function updateMealTemplate(
 /**
  * Delete meal template (cascade deletes items via DB constraint)
  */
-export async function deleteMealTemplate(templateId: string): Promise<boolean> {
+export async function deleteMealTemplate(supabase: any, templateId: string): Promise<boolean> {
   try {
     const { error } = await supabase
       .from('meal_templates')
@@ -267,7 +268,7 @@ export async function deleteMealTemplate(templateId: string): Promise<boolean> {
 /**
  * Increment usage count when template is logged
  */
-export async function incrementTemplateUsage(templateId: string): Promise<void> {
+export async function incrementTemplateUsage(supabase: any, templateId: string): Promise<void> {
   try {
     const { error } = await supabase
       .rpc('increment', { row_id: templateId });
