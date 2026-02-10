@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Save, Utensils, AlertCircle } from 'lucide-react';
 import { useLanguage } from './context/LanguageContext';
 import { useAuth } from './context/AuthContext';
-import { createClient } from '@supabase/supabase-js';
+import { getAuthenticatedClient } from '@/lib/supabase'
 import { createCustomFoodItem } from '@/lib/customFoodItems';
 import { CustomFoodItem } from '@/types/nutrition';
 
@@ -104,13 +104,7 @@ export default function CustomFoodItemModal({ isOpen, onClose, onItemCreated }: 
     setError(null);
 
     try {
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-      const token = session.access_token;
-
-      const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-        global: { headers: { Authorization: `Bearer ${token}` } }
-      });
+      const supabase = getAuthenticatedClient(session.access_token)
 
       const newItem = await createCustomFoodItem(supabase, session.user.id, {
         name: formData.name.trim(),

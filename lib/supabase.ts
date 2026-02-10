@@ -1,9 +1,43 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient, SupabaseClient } from '@supabase/supabase-js'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+
+// Cache for authenticated clients per access token
+const authenticatedClients = new Map<string, SupabaseClient>()
+
+/**
+ * Get an authenticated Supabase client
+ * Reuses the same client instance for the same access token to avoid multiple instances
+ */
+export function getAuthenticatedClient(accessToken: string): SupabaseClient {
+  // Return cached client if exists
+  if (authenticatedClients.has(accessToken)) {
+    return authenticatedClients.get(accessToken)!
+  }
+  
+  // Create new client with auth headers
+  const client = createClient(supabaseUrl, supabaseAnonKey, {
+    global: { 
+      headers: { Authorization: `Bearer ${accessToken}` } 
+    }
+  })
+  
+  // Cache it
+  authenticatedClients.set(accessToken, client)
+  
+  // Clean up old clients when cache gets too large (keep max 5)
+  if (authenticatedClients.size > 5) {
+    const firstKey = authenticatedClients.keys().next().value
+    if (firstKey) {
+      authenticatedClients.delete(firstKey)
+    }
+  }
+  
+  return client
+}
 
 // Database types
 export type Database = {

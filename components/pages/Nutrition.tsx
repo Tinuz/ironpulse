@@ -19,7 +19,7 @@ import SupplementsCoach from '@/components/SupplementsCoach'
 import QuickMealTemplates from '@/components/QuickMealTemplates'
 import CustomFoodItemModal from '@/components/CustomFoodItemModal'
 import { CustomFoodItem } from '@/types/nutrition'
-import { createClient } from '@supabase/supabase-js'
+import { getAuthenticatedClient } from '@/lib/supabase'
 import { getCustomFoodItems, incrementCustomItemUsage } from '@/lib/customFoodItems'
 
 type ViewMode = 'day' | 'week' | 'month';
@@ -62,13 +62,7 @@ export default function Nutrition() {
       if (!session?.user) return;
       
       try {
-        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-        const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-        const token = session.access_token;
-
-        const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-          global: { headers: { Authorization: `Bearer ${token}` } }
-        });
+        const supabase = getAuthenticatedClient(session.access_token);
 
         const items = await getCustomFoodItems(supabase, session.user.id, { sortBy: 'usage', limit: 20 });
         
@@ -470,13 +464,7 @@ export default function Nutrition() {
     // Increment usage count
     if (session?.user) {
       try {
-        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-        const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-        const token = session.access_token;
-
-        const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-          global: { headers: { Authorization: `Bearer ${token}` } }
-        });
+        const supabase = getAuthenticatedClient(session.access_token);
 
         await incrementCustomItemUsage(supabase, item.id);
       } catch (err) {
