@@ -185,3 +185,61 @@ export interface TemplateSuggestion {
   occurrences: number; // How many times this combo appeared
   lastSeen: string; // ISO timestamp
 }
+
+// ===== CUSTOM FOOD ITEMS =====
+// User-defined food items with manual nutritional values
+
+export interface CustomFoodItem {
+  id: string;
+  userId: string;
+  name: string;
+  brand?: string; // Optional brand/restaurant name
+  
+  // Nutritional values (per serving size)
+  calories: number;
+  protein: number;
+  carbs: number;
+  fats: number;
+  
+  // Serving info
+  servingSize: number; // e.g., 300 for a 300g meal
+  servingUnit: string; // 'g', 'ml', 'piece', 'portion', etc.
+  
+  // Additional info
+  category?: string; // 'meal', 'snack', 'drink', 'dessert', etc.
+  notes?: string;
+  
+  // Usage tracking
+  usageCount: number;
+  lastUsedAt?: string; // ISO timestamp
+  
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+// ===== API Request/Response for Custom Food Items =====
+export interface CreateCustomFoodItemRequest {
+  name: string;
+  brand?: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fats: number;
+  servingSize: number;
+  servingUnit: string;
+  category?: string;
+  notes?: string;
+}
+
+export interface UpdateCustomFoodItemRequest {
+  name?: string;
+  brand?: string;
+  calories?: number;
+  protein?: number;
+  carbs?: number;
+  fats?: number;
+  servingSize?: number;
+  servingUnit?: string;
+  category?: string;
+  notes?: string;
+}

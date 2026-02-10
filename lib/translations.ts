@@ -14,6 +14,7 @@ export const translations = {
       next: 'Volgende',
       previous: 'Vorige',
       loading: 'Laden...',
+      saving: 'Opslaan...',
       error: 'Fout',
       success: 'Succes',
       confirm: 'Bevestigen',
@@ -153,6 +154,48 @@ export const translations = {
       moreItems: 'meer items',
       viewAll: 'Bekijk alle',
       createToQuickLog: 'Maak templates voor snel loggen'
+    },
+
+    // Custom Food Items
+    customFood: {
+      addTitle: 'Aangepast Voedingsitem',
+      yourItems: 'Jouw Items',
+      database: 'Database',
+      custom: 'Aangepast',
+      createNew: 'Maak aangepast item',
+      basicInfo: 'Basisinformatie',
+      name: 'Naam',
+      namePlaceholder: 'bijv. Kip Siam, Oma\'s Appeltaart',
+      brand: 'Merk/Restaurant',
+      brandPlaceholder: 'bijv. Restaurant naam, merk',
+      category: 'Categorie',
+      categories: {
+        meal: 'Maaltijd',
+        snack: 'Tussendoortje',
+        drink: 'Drank',
+        dessert: 'Dessert',
+        other: 'Anders'
+      },
+      servingInfo: 'Portie Informatie',
+      servingSize: 'Portiegrootte',
+      unit: 'Eenheid',
+      nutritionInfo: 'Voedingswaarden',
+      perServing: 'per portie',
+      calories: 'Calorieën',
+      protein: 'Eiwit',
+      carbs: 'Koolhydraten',
+      fats: 'Vetten',
+      notes: 'Notities',
+      notesPlaceholder: 'bijv. Extra pittig, zonder saus, etc.',
+      errors: {
+        nameRequired: 'Naam is verplicht',
+        caloriesInvalid: 'Voer geldige calorieën in',
+        proteinInvalid: 'Voer geldig eiwit in',
+        carbsInvalid: 'Voer geldige koolhydraten in',
+        fatsInvalid: 'Voer geldige vetten in',
+        servingSizeInvalid: 'Voer geldige portiegrootte in',
+        createFailed: 'Aanmaken mislukt. Probeer opnieuw.'
+      }
     },
     
     // Workout
@@ -603,6 +646,7 @@ export const translations = {
       next: 'Next',
       previous: 'Previous',
       loading: 'Loading...',
+      saving: 'Saving...',
       error: 'Error',
       success: 'Success',
       confirm: 'Confirm',
@@ -742,6 +786,48 @@ export const translations = {
       moreItems: 'more items',
       viewAll: 'View all',
       createToQuickLog: 'Create templates for quick logging'
+    },
+
+    // Custom Food Items
+    customFood: {
+      addTitle: 'Custom Food Item',
+      yourItems: 'Your Items',
+      database: 'Database',
+      custom: 'Custom',
+      createNew: 'Create custom item',
+      basicInfo: 'Basic Information',
+      name: 'Name',
+      namePlaceholder: 'e.g. Chicken Siam, Grandma\'s Apple Pie',
+      brand: 'Brand/Restaurant',
+      brandPlaceholder: 'e.g. Restaurant name, brand',
+      category: 'Category',
+      categories: {
+        meal: 'Meal',
+        snack: 'Snack',
+        drink: 'Drink',
+        dessert: 'Dessert',
+        other: 'Other'
+      },
+      servingInfo: 'Serving Information',
+      servingSize: 'Serving Size',
+      unit: 'Unit',
+      nutritionInfo: 'Nutritional Values',
+      perServing: 'per serving',
+      calories: 'Calories',
+      protein: 'Protein',
+      carbs: 'Carbohydrates',
+      fats: 'Fats',
+      notes: 'Notes',
+      notesPlaceholder: 'e.g. Extra spicy, without sauce, etc.',
+      errors: {
+        nameRequired: 'Name is required',
+        caloriesInvalid: 'Enter valid calories',
+        proteinInvalid: 'Enter valid protein',
+        carbsInvalid: 'Enter valid carbs',
+        fatsInvalid: 'Enter valid fats',
+        servingSizeInvalid: 'Enter valid serving size',
+        createFailed: 'Creation failed. Please try again.'
+      }
     },
     
     // Workout

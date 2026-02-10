@@ -17,6 +17,10 @@ import { getCachedResults, setCachedResults } from '@/lib/nutritionSearch'
 import SupplementsSection from '@/components/SupplementsSection'
 import SupplementsCoach from '@/components/SupplementsCoach'
 import QuickMealTemplates from '@/components/QuickMealTemplates'
+import CustomFoodItemModal from '@/components/CustomFoodItemModal'
+import { CustomFoodItem } from '@/types/nutrition'
+import { createClient } from '@supabase/supabase-js'
+import { getCustomFoodItems, incrementCustomItemUsage } from '@/lib/customFoodItems'
 
 type ViewMode = 'day' | 'week' | 'month';
 type ActiveTab = 'food' | 'supplements';
@@ -34,6 +38,10 @@ export default function Nutrition() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('food');
   const [showSupplementsCoach, setShowSupplementsCoach] = useState(false);
   
+  // Custom food items state
+  const [showCustomFoodModal, setShowCustomFoodModal] = useState(false);
+  const [customFoodItems, setCustomFoodItems] = useState<CustomFoodItem[]>([]);
+  
   // Nutrition search state
   const [searchResults, setSearchResults] = useState<NutritionSearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -45,6 +53,30 @@ export default function Nutrition() {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const scrollObserverRef = useRef<IntersectionObserver | null>(null);
   const loadMoreTriggerRef = useRef<HTMLDivElement>(null);
+
+  // Load custom food items
+  useEffect(() => {
+    const loadCustomItems = async () => {
+      if (!session?.user) return;
+      
+      try {
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+        const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+        const token = session.access_token;
+
+        const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+          global: { headers: { Authorization: `Bearer ${token}` } }
+        });
+
+        const items = await getCustomFoodItems(supabase, session.user.id, { sortBy: 'usage', limit: 20 });
+        setCustomFoodItems(items);
+      } catch (err) {
+        console.error('Error loading custom food items:', err);
+      }
+    };
+
+    loadCustomItems();
+  }, [session]);
 
   const today = format(new Date(), 'yyyy-MM-dd');
   const currentDateStr = format(selectedDate, 'yyyy-MM-dd');
@@ -319,11 +351,23 @@ export default function Nutrition() {
       clearTimeout(searchTimeoutRef.current);
     }
 
-    if (value.trim().length >= 3) {
-      // Debounce search (300ms)
-      searchTimeoutRef.current = setTimeout(() => {
-        searchNutrition(value, 1, false);
-      }, 300);
+    if (value.trim().length >= 2) {
+      // Show dropdown immediately if we have matching custom items
+      const hasMatchingCustomItems = customFoodItems.some(item => 
+        item.name.toLowerCase().includes(value.toLowerCase()) ||
+        (item.brand && item.brand.toLowerCase().includes(value.toLowerCase()))
+      );
+      
+      if (hasMatchingCustomItems) {
+        setShowDropdown(true);
+      }
+
+      if (value.trim().length >= 3) {
+        // Debounce database search (300ms)
+        searchTimeoutRef.current = setTimeout(() => {
+          searchNutrition(value, 1, false);
+        }, 300);
+      }
     } else {
       setSearchResults([]);
       setShowDropdown(false);
@@ -385,6 +429,61 @@ export default function Nutrition() {
     });
     setShowDropdown(false);
     setSearchResults([]);
+  };
+
+  // Handle custom food item selection
+  const handleSelectCustomItem = async (item: CustomFoodItem) => {
+    const selectedName = item.brand ? `${item.brand} - ${item.name}` : item.name;
+    
+    // Calculate values per 100g from the serving size
+    const per100gMultiplier = 100 / item.servingSize;
+    const calories = Math.round(item.calories * per100gMultiplier);
+    const protein = Math.round(item.protein * per100gMultiplier * 10) / 10;
+    const carbs = Math.round(item.carbs * per100gMultiplier * 10) / 10;
+    const fats = Math.round(item.fats * per100gMultiplier * 10) / 10;
+    
+    setNewItem({
+      name: selectedName,
+      calories: calories.toString(),
+      protein: protein.toString(),
+      carbs: carbs.toString(),
+      fats: fats.toString(),
+      volume: '',
+      amount: item.servingSize.toString(), // Use original serving size
+      type: newItem.type,
+      // Store base values (per 100g) for recalculation
+      baseCalories: calories.toString(),
+      baseProtein: protein.toString(),
+      baseCarbs: carbs.toString(),
+      baseFats: fats.toString()
+    });
+    
+    // Increment usage count
+    if (session?.user) {
+      try {
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+        const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+        const token = session.access_token;
+
+        const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+          global: { headers: { Authorization: `Bearer ${token}` } }
+        });
+
+        await incrementCustomItemUsage(supabase, item.id);
+      } catch (err) {
+        console.error('Error incrementing custom item usage:', err);
+      }
+    }
+    
+    setShowDropdown(false);
+    setSearchResults([]);
+  };
+
+  // Handle custom item created
+  const handleCustomItemCreated = (item: CustomFoodItem) => {
+    setCustomFoodItems([item, ...customFoodItems]);
+    handleSelectCustomItem(item);
+    setShowCustomFoodModal(false);
   };
 
   // Close dropdown when clicking outside
@@ -1132,13 +1231,98 @@ export default function Nutrition() {
 
                   {/* Autocomplete Dropdown */}
                   <AnimatePresence>
-                    {showDropdown && searchResults.length > 0 && (
+                    {showDropdown && (searchResults.length > 0 || customFoodItems.length > 0) && (
                       <motion.div
                         initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -10 }}
                         className="absolute z-50 w-full mt-2 bg-bg-secondary border border-border-default rounded-professional shadow-elevated overflow-hidden max-h-96 overflow-y-auto"
                       >
+                        {/* Custom Food Items Section */}
+                        {customFoodItems.length > 0 && newItem.name.trim().length >= 2 && (
+                          (() => {
+                            const filtered = customFoodItems.filter(item => 
+                              item.name.toLowerCase().includes(newItem.name.toLowerCase()) ||
+                              (item.brand && item.brand.toLowerCase().includes(newItem.name.toLowerCase()))
+                            );
+                            
+                            if (filtered.length > 0) {
+                              return (
+                                <>
+                                  <div className="px-4 py-2 bg-purple-500/10 border-b border-purple-500/20">
+                                    <div className="text-xs font-semibold text-purple-400 uppercase tracking-wider">
+                                      {t.customFood.yourItems}
+                                    </div>
+                                  </div>
+                                  {filtered.map((item) => (
+                                    <button
+                                      key={item.id}
+                                      onClick={() => handleSelectCustomItem(item)}
+                                      className="w-full p-4 text-left hover:bg-bg-tertiary transition-colors border-b border-border-default flex gap-3"
+                                    >
+                                      <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center">
+                                        <Utensils className="w-5 h-5 text-white" />
+                                      </div>
+                                      
+                                      <div className="flex-1 min-w-0">
+                                        <div className="flex items-start justify-between gap-3">
+                                          <div className="flex-1 min-w-0">
+                                            <div className="font-bold text-sm truncate text-txt-primary">
+                                              {item.name}
+                                            </div>
+                                            {item.brand && (
+                                              <div className="text-xs text-txt-tertiary truncate mt-0.5">
+                                                {item.brand}
+                                              </div>
+                                            )}
+                                            <div className="flex items-center gap-2 mt-2 text-xs flex-wrap">
+                                              <span className="font-semibold text-accent-primary">
+                                                {item.calories} kcal
+                                              </span>
+                                              {item.protein > 0 && (
+                                                <span className="text-pink-400">
+                                                  {item.protein}g P
+                                                </span>
+                                              )}
+                                              {item.carbs > 0 && (
+                                                <span className="text-blue-400">
+                                                  {item.carbs}g C
+                                                </span>
+                                              )}
+                                              {item.fats > 0 && (
+                                                <span className="text-amber-400">
+                                                  {item.fats}g F
+                                                </span>
+                                              )}
+                                              <span className="text-txt-tertiary">
+                                                • per {item.servingSize}{item.servingUnit}
+                                              </span>
+                                            </div>
+                                          </div>
+                                          <div className="flex-shrink-0 text-[10px] text-purple-400 uppercase tracking-wider font-semibold">
+                                            {t.customFood.custom}
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </button>
+                                  ))}
+                                </>
+                              );
+                            }
+                            return null;
+                          })()
+                        )}
+
+                        {/* Database Search Results */}
+                        {searchResults.length > 0 && (
+                          <>
+                            {customFoodItems.length > 0 && (
+                              <div className="px-4 py-2 bg-blue-500/10 border-b border-blue-500/20">
+                                <div className="text-xs font-semibold text-blue-400 uppercase tracking-wider">
+                                  {t.customFood.database}
+                                </div>
+                              </div>
+                            )}
                         {searchResults.map((result) => (
                           <button
                             key={result.id}
@@ -1222,6 +1406,24 @@ export default function Nutrition() {
                             Alle {searchResults.length} resultaten geladen
                           </div>
                         ) : null}
+                          </>
+                        )}
+                        
+                        {/* Add Custom Item Button */}
+                        {newItem.name.trim().length >= 2 && (
+                          <button
+                            onClick={() => {
+                              setShowDropdown(false);
+                              setShowCustomFoodModal(true);
+                            }}
+                            className="w-full p-4 bg-gradient-to-r from-purple-500/10 to-pink-600/10 hover:from-purple-500/20 hover:to-pink-600/20 border-t border-purple-500/20 transition-all flex items-center justify-center gap-2 text-purple-400 hover:text-purple-300"
+                          >
+                            <Plus size={16} />
+                            <span className="font-semibold text-sm">
+                              {t.customFood.createNew}
+                            </span>
+                          </button>
+                        )}
                         
                         <div className="p-2 text-[10px] text-center text-txt-tertiary border-t border-border-default">
                           {language === 'nl' 
@@ -1382,6 +1584,13 @@ export default function Nutrition() {
           />
         )}
       </AnimatePresence>
+
+      {/* Custom Food Item Modal */}
+      <CustomFoodItemModal
+        isOpen={showCustomFoodModal}
+        onClose={() => setShowCustomFoodModal(false)}
+        onItemCreated={handleCustomItemCreated}
+      />
     </div>
   );
 }
