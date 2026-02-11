@@ -2,24 +2,28 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft, Trash2, Save, Search, Loader2, Scan, Check } from 'lucide-react'
-import { useRouter, useParams } from 'next/navigation'
+import { ArrowLeft, Trash2, Save, Search, Loader2, Scan, Check, Plus } from 'lucide-react'
+import { useRouter, usePathname } from 'next/navigation'
 import { useAuth } from '@/components/context/AuthContext'
 import { useLanguage } from '@/components/context/LanguageContext'
-import { MealTemplate, MealTemplateItem, MealCategory, NutritionSearchResult } from '@/types/nutrition'
+import { MealTemplate, MealTemplateItem, MealCategory, NutritionSearchResult, CustomFoodItem } from '@/types/nutrition'
 import { getCachedResults, setCachedResults } from '@/lib/nutritionSearch'
 import BarcodeScanner from '@/components/BarcodeScanner'
+import CustomFoodItemModal from '@/components/CustomFoodItemModal'
+import { getAuthenticatedClient } from '@/lib/supabase'
+import { getCustomFoodItems, incrementCustomItemUsage } from '@/lib/customFoodItems'
 
 type TemplateItemDraft = Omit<MealTemplateItem, 'id' | 'templateId' | 'createdAt'>
 
 export default function MealTemplateEditor() {
   const router = useRouter()
-  const params = useParams()
+  const pathname = usePathname()
   const { session } = useAuth()
   const { t } = useLanguage()
   
-  const isEditing = !!params?.id
-  const templateId = params?.id as string | undefined
+  // Extract template ID from pathname (e.g., /meal-templates/123/edit -> 123)
+  const isEditing = pathname?.includes('/edit') ?? false
+  const templateId = isEditing ? pathname?.split('/')[2] : undefined
 
   const [name, setName] = useState('')
   const [category, setCategory] = useState<MealCategory>('breakfast')
@@ -40,6 +44,10 @@ export default function MealTemplateEditor() {
   const dropdownRef = useRef<HTMLDivElement>(null)
   const loadMoreTriggerRef = useRef<HTMLDivElement>(null)
   const scrollObserverRef = useRef<IntersectionObserver | null>(null)
+  
+  // Custom food items state
+  const [showCustomFoodModal, setShowCustomFoodModal] = useState(false)
+  const [customFoodItems, setCustomFoodItems] = useState<CustomFoodItem[]>([])
 
   // Load existing template if editing
   useEffect(() => {
@@ -95,6 +103,32 @@ export default function MealTemplateEditor() {
       controller.abort()
     }
   }, [isEditing, templateId, session?.access_token])
+
+  // Load custom food items
+  useEffect(() => {
+    let isMounted = true
+
+    const loadCustomItems = async () => {
+      if (!session?.user) return
+      
+      try {
+        const supabase = getAuthenticatedClient(session.access_token)
+        const items = await getCustomFoodItems(supabase, session.user.id, { sortBy: 'usage', limit: 20 })
+        
+        if (isMounted) {
+          setCustomFoodItems(items)
+        }
+      } catch (err) {
+        console.error('Error loading custom food items:', err)
+      }
+    }
+
+    loadCustomItems()
+
+    return () => {
+      isMounted = false
+    }
+  }, [session?.user?.id, session?.access_token])
 
   // Debounced search
   const handleSearchChange = (value: string) => {
@@ -193,6 +227,50 @@ export default function MealTemplateEditor() {
     setSearchQuery('')
     setShowDropdown(false)
     setSearchResults([])
+  }
+
+  // Handle custom food item selection
+  const handleSelectCustomItem = async (item: CustomFoodItem) => {
+    // Calculate values per 100g from the serving size
+    const per100gMultiplier = 100 / item.servingSize
+    const caloriesPer100g = Math.round(item.calories * per100gMultiplier)
+    const proteinPer100g = Math.round(item.protein * per100gMultiplier * 10) / 10
+    const carbsPer100g = Math.round(item.carbs * per100gMultiplier * 10) / 10
+    const fatsPer100g = Math.round(item.fats * per100gMultiplier * 10) / 10
+    
+    const newItem: TemplateItemDraft = {
+      foodName: item.name,
+      foodBrand: item.brand,
+      caloriesPer100g,
+      proteinPer100g,
+      carbsPer100g,
+      fatsPer100g,
+      quantity: 100,
+      unit: 'g'
+    }
+
+    setItems(prev => [...prev, newItem])
+    
+    // Increment usage count
+    if (session?.user) {
+      try {
+        const supabase = getAuthenticatedClient(session.access_token)
+        await incrementCustomItemUsage(supabase, item.id)
+      } catch (err) {
+        console.error('Error incrementing custom item usage:', err)
+      }
+    }
+    
+    setSearchQuery('')
+    setShowDropdown(false)
+    setSearchResults([])
+  }
+
+  // Handle custom item created
+  const handleCustomItemCreated = (item: CustomFoodItem) => {
+    setCustomFoodItems([item, ...customFoodItems])
+    handleSelectCustomItem(item)
+    setShowCustomFoodModal(false)
   }
 
   // Load more results
@@ -388,28 +466,148 @@ export default function MealTemplateEditor() {
 
             {/* Search Results Dropdown */}
             <AnimatePresence>
-              {showDropdown && searchResults.length > 0 && (
+              {showDropdown && (searchResults.length > 0 || (searchQuery.trim().length >= 2 && customFoodItems.some(item => 
+                item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                (item.brand && item.brand.toLowerCase().includes(searchQuery.toLowerCase()))
+              ))) && (
                 <motion.div
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
                   className="absolute top-full mt-2 w-full bg-card border border-white/10 rounded-xl shadow-2xl max-h-80 overflow-y-auto z-20"
                 >
-                  {searchResults.map((result, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => handleAddFromSearch(result)}
-                      className="w-full p-3 hover:bg-white/5 transition-colors border-b border-white/5 last:border-0 text-left"
-                    >
-                      <div className="font-semibold">{result.name}</div>
-                      {result.brand && (
-                        <div className="text-xs text-muted-foreground">{result.brand}</div>
+                  {/* Custom Food Items (if matching search) */}
+                  {searchQuery.trim().length >= 2 && (() => {
+                    const matchingCustomItems = customFoodItems.filter(item =>
+                      item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                      (item.brand && item.brand.toLowerCase().includes(searchQuery.toLowerCase()))
+                    )
+                    
+                    if (matchingCustomItems.length > 0) {
+                      return (
+                        <>
+                          <div className="px-4 py-2 bg-purple-500/10 border-b border-purple-500/20">
+                            <div className="text-xs font-semibold text-purple-400 uppercase tracking-wider">
+                              {t.customFood?.yourItems || 'Your Custom Items'}
+                            </div>
+                          </div>
+                          {matchingCustomItems.map((item) => (
+                            <button
+                              key={item.id}
+                              onClick={() => handleSelectCustomItem(item)}
+                              className="w-full p-3 hover:bg-white/5 transition-colors border-b border-white/5 text-left"
+                            >
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                  <div className="font-semibold">
+                                    {item.brand ? `${item.brand} - ${item.name}` : item.name}
+                                  </div>
+                                  <div className="flex items-center gap-2 mt-1 text-xs">
+                                    <span className="font-semibold text-primary">
+                                      {item.calories} kcal
+                                    </span>
+                                    {item.protein > 0 && (
+                                      <span className="text-pink-400">
+                                        {item.protein}g P
+                                      </span>
+                                    )}
+                                    {item.carbs > 0 && (
+                                      <span className="text-blue-400">
+                                        {item.carbs}g C
+                                      </span>
+                                    )}
+                                    {item.fats > 0 && (
+                                      <span className="text-amber-400">
+                                        {item.fats}g F
+                                      </span>
+                                    )}
+                                    <span className="text-muted-foreground">
+                                      • per {item.servingSize}{item.servingUnit}
+                                    </span>
+                                  </div>
+                                </div>
+                                <div className="flex-shrink-0 text-[10px] text-purple-400 uppercase tracking-wider font-semibold">
+                                  {t.customFood?.custom || 'CUSTOM'}
+                                </div>
+                              </div>
+                            </button>
+                          ))}
+                        </>
+                      )
+                    }
+                    return null
+                  })()}
+
+                  {/* Database Search Results */}
+                  {searchResults.length > 0 && (
+                    <>
+                      {customFoodItems.length > 0 && searchQuery.trim().length >= 2 && customFoodItems.some(item => 
+                        item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                        (item.brand && item.brand.toLowerCase().includes(searchQuery.toLowerCase()))
+                      ) && (
+                        <div className="px-4 py-2 bg-blue-500/10 border-b border-blue-500/20">
+                          <div className="text-xs font-semibold text-blue-400 uppercase tracking-wider">
+                            {t.customFood?.database || 'Database'}
+                          </div>
+                        </div>
                       )}
-                      <div className="text-xs text-muted-foreground mt-1">
-                        {result.nutrients.calories} kcal • {result.nutrients.protein}g protein
-                      </div>
-                    </button>
-                  ))}
+                      {searchResults.map((result, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => handleAddFromSearch(result)}
+                          className="w-full p-3 hover:bg-white/5 transition-colors border-b border-white/5 last:border-0 text-left flex gap-3"
+                        >
+                          {/* Product Image */}
+                          {result.imageUrl && (
+                            <div className="flex-shrink-0 w-16 h-16 bg-white/5 rounded-lg overflow-hidden border border-white/10">
+                              <img 
+                                src={result.imageUrl} 
+                                alt={result.name}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  e.currentTarget.style.display = 'none'
+                                }}
+                              />
+                            </div>
+                          )}
+                          
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="flex-1 min-w-0">
+                                <div className="font-semibold text-sm truncate">{result.name}</div>
+                                {result.brand && (
+                                  <div className="text-xs text-muted-foreground truncate mt-0.5">{result.brand}</div>
+                                )}
+                                <div className="flex items-center gap-2 mt-2 text-xs flex-wrap">
+                                  <span className="font-semibold text-primary">
+                                    {result.nutrients.calories} kcal
+                                  </span>
+                                  {result.nutrients.protein > 0 && (
+                                    <span className="text-pink-400">
+                                      {result.nutrients.protein}g P
+                                    </span>
+                                  )}
+                                  {result.nutrients.carbs > 0 && (
+                                    <span className="text-blue-400">
+                                      {result.nutrients.carbs}g C
+                                    </span>
+                                  )}
+                                  {result.nutrients.fats > 0 && (
+                                    <span className="text-amber-400">
+                                      {result.nutrients.fats}g F
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="flex-shrink-0 text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
+                                {result.source === 'openfoodfacts' ? 'OFF' : 'USDA'}
+                              </div>
+                            </div>
+                          </div>
+                        </button>
+                      ))}
+                    </>
+                  )}
 
                   {/* Infinite Scroll Trigger & Status */}
                   {hasMoreResults ? (
@@ -443,14 +641,23 @@ export default function MealTemplateEditor() {
             </AnimatePresence>
           </div>
 
-          {/* Scan Button */}
-          <button
-            onClick={() => setIsScannerOpen(true)}
-            className="w-full py-3 bg-white/5 border border-white/10 rounded-xl font-bold hover:bg-white/10 transition-colors flex items-center justify-center gap-2 mb-4"
-          >
-            <Scan size={20} />
-            {t.templates.scanBarcode}
-          </button>
+          {/* Action Buttons */}
+          <div className="grid grid-cols-2 gap-2 mb-4">
+            <button
+              onClick={() => setIsScannerOpen(true)}
+              className="py-3 bg-white/5 border border-white/10 rounded-xl font-bold hover:bg-white/10 transition-colors flex items-center justify-center gap-2"
+            >
+              <Scan size={20} />
+              {t.templates?.scanBarcode || 'Scan Barcode'}
+            </button>
+            <button
+              onClick={() => setShowCustomFoodModal(true)}
+              className="py-3 bg-white/5 border border-white/10 rounded-xl font-bold hover:bg-white/10 transition-colors flex items-center justify-center gap-2"
+            >
+              <Plus size={20} />
+              {t.customFood?.createNew || 'Add Custom'}
+            </button>
+          </div>
         </div>
 
         {/* Items List */}
@@ -544,6 +751,17 @@ export default function MealTemplateEditor() {
           <BarcodeScanner
             onProductScanned={handleProductScanned}
             onClose={() => setIsScannerOpen(false)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Custom Food Item Modal */}
+      <AnimatePresence>
+        {showCustomFoodModal && (
+          <CustomFoodItemModal
+            isOpen={showCustomFoodModal}
+            onClose={() => setShowCustomFoodModal(false)}
+            onItemCreated={handleCustomItemCreated}
           />
         )}
       </AnimatePresence>
