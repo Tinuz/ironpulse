@@ -81,16 +81,17 @@ const EnhancedSetRow = forwardRef<HTMLDivElement, EnhancedSetRowProps>(({
               <button
                 onClick={onToggleWarmup}
                 className={clsx(
-                  "w-7 h-7 rounded-lg text-xs font-mono font-bold transition-all flex items-center justify-center",
+                  "w-9 h-9 rounded-lg text-sm font-mono font-bold transition-all flex items-center justify-center",
                   set.isWarmup 
-                    ? "bg-blue-500/30 text-blue-300 border border-blue-500/50" 
-                    : "text-muted-foreground hover:bg-white/5"
+                    ? "bg-blue-500/40 text-blue-300 border-2 border-blue-500/60 shadow-[0_0_10px_rgba(59,130,246,0.3)]" 
+                    : "text-muted-foreground hover:bg-blue-500/10 hover:border hover:border-blue-500/30"
                 )}
+                title={set.isWarmup ? "Warmup set (klik om uit te schakelen)" : "Klik om warmup te markeren"}
               >
                 {index + 1}
               </button>
               {set.isWarmup && (
-                <div className="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full" />
+                <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-blue-400 rounded-full animate-pulse" />
               )}
             </div>
             
@@ -172,7 +173,7 @@ const EnhancedSetRow = forwardRef<HTMLDivElement, EnhancedSetRowProps>(({
           {!set.isWarmup && (showRIR || showRPE) && (
             <div className="mt-2 flex items-center gap-2">
               {showRIR && (
-                <div className="flex items-center gap-1.5 flex-1">
+                <div className="flex items-center gap-1.5">
                   <label className="text-[9px] text-zinc-500 font-semibold uppercase tracking-wide">
                     RIR
                   </label>
@@ -181,7 +182,7 @@ const EnhancedSetRow = forwardRef<HTMLDivElement, EnhancedSetRowProps>(({
                     onChange={(e) => onUpdate('rir', e.target.value ? Number(e.target.value) : undefined)}
                     disabled={set.completed}
                     className={clsx(
-                      "flex-1 text-center font-medium text-xs focus:outline-none px-1.5 py-1 rounded-md transition-all",
+                      "w-12 text-center font-medium text-xs focus:outline-none px-1.5 py-1 rounded-md transition-all",
                       set.completed
                         ? "bg-white/5 border border-white/5 text-zinc-500"
                         : "bg-white/5 border border-white/10 focus:border-primary/40"
@@ -193,7 +194,7 @@ const EnhancedSetRow = forwardRef<HTMLDivElement, EnhancedSetRowProps>(({
                 </div>
               )}
               {showRPE && (
-                <div className="flex items-center gap-1.5 flex-1">
+                <div className="flex items-center gap-1.5">
                   <label className="text-[9px] text-zinc-500 font-semibold uppercase tracking-wide">
                     RPE
                   </label>
@@ -202,7 +203,7 @@ const EnhancedSetRow = forwardRef<HTMLDivElement, EnhancedSetRowProps>(({
                     onChange={(e) => onUpdate('rpe', e.target.value ? Number(e.target.value) : undefined)}
                     disabled={set.completed}
                     className={clsx(
-                      "flex-1 text-center font-medium text-xs focus:outline-none px-1.5 py-1 rounded-md transition-all",
+                      "w-12 text-center font-medium text-xs focus:outline-none px-1.5 py-1 rounded-md transition-all",
                       set.completed
                         ? "bg-white/5 border border-white/5 text-zinc-500"
                         : "bg-white/5 border border-white/10 focus:border-primary/40"
