@@ -27,7 +27,7 @@ import { formatDuration, formatDistance } from '@/components/utils/cardioCalcula
 import { useLanguage } from '@/components/context/LanguageContext'
 import { useWakeLock } from '@/components/utils/useWakeLock'
 import { useWorkoutAutoSave } from '@/components/utils/useWorkoutAutoSave'
-import { MUSCLE_GROUPS, type MuscleGroup } from '@/components/utils/volumeAnalytics'
+import { type MuscleGroup } from '@/components/utils/volumeAnalytics'
 import { generateSetsFromOneRM, validateOneRM } from '@/components/utils/oneRepMaxCalculations'
 
 const ExerciseStats = ({ 
@@ -1411,9 +1411,42 @@ export default function WorkoutLogger() {
                     className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:border-primary focus:outline-none transition-colors text-foreground"
                   >
                     <option value="" className="bg-background text-foreground">-- Kies spiergroep --</option>
-                    {Object.entries(MUSCLE_GROUPS).map(([key, label]) => (
-                      <option key={key} value={key} className="bg-background text-foreground">{label}</option>
-                    ))}
+                    
+                    <optgroup label="Borst" className="bg-background text-foreground font-bold">
+                      <option value="chest" className="bg-background text-foreground">Borst (algemeen)</option>
+                    </optgroup>
+                    
+                    <optgroup label="Rug" className="bg-background text-foreground font-bold">
+                      <option value="back" className="bg-background text-foreground">Rug (algemeen)</option>
+                      <option value="lats" className="bg-background text-foreground">Latissimus (lats)</option>
+                      <option value="traps" className="bg-background text-foreground">Trapezius (traps)</option>
+                      <option value="middle-back" className="bg-background text-foreground">Midden rug</option>
+                      <option value="lower-back" className="bg-background text-foreground">Onderrug</option>
+                    </optgroup>
+                    
+                    <optgroup label="Schouders" className="bg-background text-foreground font-bold">
+                      <option value="shoulders" className="bg-background text-foreground">Schouders</option>
+                    </optgroup>
+                    
+                    <optgroup label="Armen" className="bg-background text-foreground font-bold">
+                      <option value="biceps" className="bg-background text-foreground">Biceps</option>
+                      <option value="triceps" className="bg-background text-foreground">Triceps</option>
+                      <option value="forearms" className="bg-background text-foreground">Onderarmen</option>
+                    </optgroup>
+                    
+                    <optgroup label="Benen" className="bg-background text-foreground font-bold">
+                      <option value="legs" className="bg-background text-foreground">Benen (algemeen)</option>
+                      <option value="quads" className="bg-background text-foreground">Dijbenen (quads)</option>
+                      <option value="hamstrings" className="bg-background text-foreground">Hamstrings</option>
+                      <option value="glutes" className="bg-background text-foreground">Billen (glutes)</option>
+                      <option value="calves" className="bg-background text-foreground">Kuiten</option>
+                    </optgroup>
+                    
+                    <optgroup label="Core" className="bg-background text-foreground font-bold">
+                      <option value="abs" className="bg-background text-foreground">Buikspieren (abs)</option>
+                      <option value="obliques" className="bg-background text-foreground">Schuin buikspieren</option>
+                      <option value="core" className="bg-background text-foreground">Core (algemeen)</option>
+                    </optgroup>
                   </select>
                 </div>
 

@@ -275,37 +275,44 @@ export default function WorkoutEditor() {
                   onChange={(e) => updateExerciseMuscleGroup(exercise.id, e.target.value as WorkoutExercise['muscleGroup'])}
                   className="w-full bg-bg-tertiary border border-border-default rounded-professional px-4 py-3 text-txt-primary focus:outline-none focus:border-accent-primary transition-colors"
                 >
-                  <option value="">Selecteer spiergroep...</option>
+                  <option value="">Selecteer spiergroep (optioneel)</option>
+                  
                   <optgroup label="Borst">
-                    <option value="chest">Borst</option>
+                    <option value="chest">Borst (algemeen)</option>
                   </optgroup>
+                  
                   <optgroup label="Rug">
                     <option value="back">Rug (algemeen)</option>
-                    <option value="lats">Lats</option>
-                    <option value="traps">Traps</option>
-                    <option value="middle-back">Midden-rug</option>
+                    <option value="lats">Latissimus (lats)</option>
+                    <option value="traps">Trapezius (traps)</option>
+                    <option value="middle-back">Midden rug</option>
                     <option value="lower-back">Onderrug</option>
                   </optgroup>
+                  
                   <optgroup label="Schouders">
                     <option value="shoulders">Schouders</option>
                   </optgroup>
+                  
                   <optgroup label="Armen">
                     <option value="biceps">Biceps</option>
                     <option value="triceps">Triceps</option>
                     <option value="forearms">Onderarmen</option>
                   </optgroup>
+                  
                   <optgroup label="Benen">
                     <option value="legs">Benen (algemeen)</option>
-                    <option value="quads">Quads</option>
+                    <option value="quads">Dijbenen (quads)</option>
                     <option value="hamstrings">Hamstrings</option>
-                    <option value="glutes">Billen</option>
+                    <option value="glutes">Billen (glutes)</option>
                     <option value="calves">Kuiten</option>
                   </optgroup>
+                  
                   <optgroup label="Core">
+                    <option value="abs">Buikspieren (abs)</option>
+                    <option value="obliques">Schuin buikspieren</option>
                     <option value="core">Core (algemeen)</option>
-                    <option value="abs">Abs</option>
-                    <option value="obliques">Obliques</option>
                   </optgroup>
+                  
                   <optgroup label="Anders">
                     <option value="full-body">Full Body</option>
                     <option value="cardio">Cardio</option>
