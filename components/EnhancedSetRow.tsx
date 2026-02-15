@@ -162,64 +162,64 @@ const EnhancedSetRow = forwardRef<HTMLDivElement, EnhancedSetRowProps>(({
             </button>
           </div>
 
-          {/* RIR/RPE selectors (compact, on one line) */}
-          {!set.isWarmup && (showRIR || showRPE) && (
-            <div className="mt-2 flex items-center gap-2">
-              {showRIR && (
-                <div className="flex items-center gap-1.5 max-w-[70px]">
-                  <label className="text-[9px] text-zinc-500 font-semibold uppercase tracking-wide flex-shrink-0">
-                    RIR
-                  </label>
-                  <select
-                    value={set.rir ?? ''}
-                    onChange={(e) => onUpdate('rir', e.target.value ? Number(e.target.value) : undefined)}
-                    disabled={set.completed}
-                    className={clsx(
-                      "w-12 text-center font-medium text-xs focus:outline-none px-1.5 py-1 rounded-md transition-all",
-                      set.completed
-                        ? "bg-white/5 border border-white/5 text-zinc-500"
-                        : "bg-white/5 border border-white/10 focus:border-primary/40"
-                    )}
-                  >
-                    <option value="">-</option>
-                    {[0,1,2,3,4,5,6,7,8,9,10].map(n => <option key={n} value={n}>{n}</option>)}
-                  </select>
-                </div>
+          {/* RIR/RPE selectors + Suggestion hint (combined on one line) */}
+          {!set.isWarmup && ((showRIR || showRPE) || suggestion) && (
+            <div className="mt-2 flex items-center gap-2 justify-between">
+              <div className="flex items-center gap-2">
+                {showRIR && (
+                  <div className="flex items-center gap-1.5">
+                    <label className="text-[9px] text-zinc-500 font-semibold uppercase tracking-wide flex-shrink-0">
+                      RIR
+                    </label>
+                    <select
+                      value={set.rir ?? ''}
+                      onChange={(e) => onUpdate('rir', e.target.value ? Number(e.target.value) : undefined)}
+                      disabled={set.completed}
+                      className={clsx(
+                        "w-12 text-center font-medium text-xs focus:outline-none px-1.5 py-1 rounded-md transition-all",
+                        set.completed
+                          ? "bg-white/5 border border-white/5 text-zinc-500"
+                          : "bg-white/5 border border-white/10 focus:border-primary/40"
+                      )}
+                    >
+                      <option value="">-</option>
+                      {[0,1,2,3,4,5,6,7,8,9,10].map(n => <option key={n} value={n}>{n}</option>)}
+                    </select>
+                  </div>
+                )}
+                {showRPE && (
+                  <div className="flex items-center gap-1.5">
+                    <label className="text-[9px] text-zinc-500 font-semibold uppercase tracking-wide flex-shrink-0">
+                      RPE
+                    </label>
+                    <select
+                      value={set.rpe ?? ''}
+                      onChange={(e) => onUpdate('rpe', e.target.value ? Number(e.target.value) : undefined)}
+                      disabled={set.completed}
+                      className={clsx(
+                        "w-12 text-center font-medium text-xs focus:outline-none px-1.5 py-1 rounded-md transition-all",
+                        set.completed
+                          ? "bg-white/5 border border-white/5 text-zinc-500"
+                          : "bg-white/5 border border-white/10 focus:border-primary/40"
+                      )}
+                    >
+                      <option value="">-</option>
+                      {[1,2,3,4,5,6,7,8,9,10].map(n => <option key={n} value={n}>{n}</option>)}
+                    </select>
+                  </div>
+                )}
+              </div>
+              
+              {/* Suggestion hint */}
+              {suggestion && !set.completed && (
+                <button
+                  onClick={() => onUpdate('weight', suggestion.weight)}
+                  className="text-[10px] bg-green-500/10 text-green-400 px-2 py-1 rounded-md hover:bg-green-500/20 transition-all flex items-center gap-1 flex-shrink-0"
+                >
+                  <TrendingUp size={11} />
+                  {suggestion.weight}kg - {suggestion.reason === 'Upward trend in weight' ? 'Stijgende lijn' : suggestion.reason}
+                </button>
               )}
-              {showRPE && (
-                <div className="flex items-center gap-1.5 max-w-[70px]">
-                  <label className="text-[9px] text-zinc-500 font-semibold uppercase tracking-wide flex-shrink-0">
-                    RPE
-                  </label>
-                  <select
-                    value={set.rpe ?? ''}
-                    onChange={(e) => onUpdate('rpe', e.target.value ? Number(e.target.value) : undefined)}
-                    disabled={set.completed}
-                    className={clsx(
-                      "w-12 text-center font-medium text-xs focus:outline-none px-1.5 py-1 rounded-md transition-all",
-                      set.completed
-                        ? "bg-white/5 border border-white/5 text-zinc-500"
-                        : "bg-white/5 border border-white/10 focus:border-primary/40"
-                    )}
-                  >
-                    <option value="">-</option>
-                    {[1,2,3,4,5,6,7,8,9,10].map(n => <option key={n} value={n}>{n}</option>)}
-                  </select>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Suggestion hint */}
-          {suggestion && !set.completed && !set.isWarmup && (
-            <div className="mt-2">
-              <button
-                onClick={() => onUpdate('weight', suggestion.weight)}
-                className="text-[10px] bg-green-500/10 text-green-400 px-2 py-1 rounded-md hover:bg-green-500/20 transition-all flex items-center gap-1"
-              >
-                <TrendingUp size={11} />
-                {suggestion.weight}kg - {suggestion.reason === 'Upward trend in weight' ? 'Stijgende lijn' : suggestion.reason}
-              </button>
             </div>
           )}
         </div>
