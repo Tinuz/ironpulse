@@ -50,15 +50,6 @@ const EnhancedSetRow = forwardRef<HTMLDivElement, EnhancedSetRowProps>(({
           "bg-card border border-white/5 hover:border-white/10"
         )}
       >
-        {/* Warm-up badge */}
-        {set.isWarmup && (
-          <div className="absolute top-1 left-1 z-10">
-            <span className="text-[9px] bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded-md font-bold">
-              WARM-UP
-            </span>
-          </div>
-        )}
-
         {/* PR badge */}
         {isNewPR && set.completed && !set.isWarmup && (
           <div className="absolute top-1 right-1 z-10">
