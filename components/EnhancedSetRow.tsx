@@ -2,7 +2,7 @@
 
 import React, { forwardRef } from 'react'
 import { motion } from 'framer-motion'
-import { Check, Trash2, Flame, TrendingUp } from 'lucide-react'
+import { Check, Trash2, TrendingUp } from 'lucide-react'
 import clsx from 'clsx'
 import { WorkoutSet } from '@/components/context/DataContext'
 
@@ -76,9 +76,22 @@ const EnhancedSetRow = forwardRef<HTMLDivElement, EnhancedSetRowProps>(({
         <div className="p-3">
           {/* Main row */}
           <div className="grid grid-cols-[auto_1fr_1fr_auto_auto] gap-2 items-center">
-            {/* Set number */}
-            <div className="w-6 text-center text-xs font-mono text-muted-foreground font-bold">
-              {index + 1}
+            {/* Set number with warm-up toggle */}
+            <div className="relative">
+              <button
+                onClick={onToggleWarmup}
+                className={clsx(
+                  "w-7 h-7 rounded-lg text-xs font-mono font-bold transition-all flex items-center justify-center",
+                  set.isWarmup 
+                    ? "bg-blue-500/30 text-blue-300 border border-blue-500/50" 
+                    : "text-muted-foreground hover:bg-white/5"
+                )}
+              >
+                {index + 1}
+              </button>
+              {set.isWarmup && (
+                <div className="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full" />
+              )}
             </div>
             
             {/* Weight input */}
@@ -155,84 +168,63 @@ const EnhancedSetRow = forwardRef<HTMLDivElement, EnhancedSetRowProps>(({
             </button>
           </div>
 
-          {/* RIR/RPE inputs (if enabled and not warmup) */}
+          {/* RIR/RPE selectors (compact, on one line) */}
           {!set.isWarmup && (showRIR || showRPE) && (
-            <div className="mt-3 pt-3 border-t border-white/5 grid grid-cols-2 gap-3">
+            <div className="mt-2 flex items-center gap-2">
               {showRIR && (
-                <div>
-                  <label className="text-[10px] text-zinc-500 font-semibold block mb-1.5 uppercase tracking-wide">
+                <div className="flex items-center gap-1.5 flex-1">
+                  <label className="text-[9px] text-zinc-500 font-semibold uppercase tracking-wide">
                     RIR
                   </label>
-                  <input
-                    type="number"
-                    inputMode="numeric"
-                    min="0"
-                    max="10"
+                  <select
                     value={set.rir ?? ''}
-                    placeholder="0-10"
                     onChange={(e) => onUpdate('rir', e.target.value ? Number(e.target.value) : undefined)}
                     disabled={set.completed}
                     className={clsx(
-                      "w-full text-center font-medium text-sm focus:outline-none px-2.5 py-1.5 rounded-lg transition-all",
-                      "placeholder:text-zinc-600",
+                      "flex-1 text-center font-medium text-xs focus:outline-none px-1.5 py-1 rounded-md transition-all",
                       set.completed
                         ? "bg-white/5 border border-white/5 text-zinc-500"
-                        : "bg-white/5 border border-white/10 focus:border-primary/40 focus:bg-white/10"
+                        : "bg-white/5 border border-white/10 focus:border-primary/40"
                     )}
-                  />
+                  >
+                    <option value="">-</option>
+                    {[0,1,2,3,4,5,6,7,8,9,10].map(n => <option key={n} value={n}>{n}</option>)}
+                  </select>
                 </div>
               )}
               {showRPE && (
-                <div>
-                  <label className="text-[10px] text-zinc-500 font-semibold block mb-1.5 uppercase tracking-wide">
+                <div className="flex items-center gap-1.5 flex-1">
+                  <label className="text-[9px] text-zinc-500 font-semibold uppercase tracking-wide">
                     RPE
                   </label>
-                  <input
-                    type="number"
-                    inputMode="numeric"
-                    min="1"
-                    max="10"
+                  <select
                     value={set.rpe ?? ''}
-                    placeholder="1-10"
                     onChange={(e) => onUpdate('rpe', e.target.value ? Number(e.target.value) : undefined)}
                     disabled={set.completed}
                     className={clsx(
-                      "w-full text-center font-medium text-sm focus:outline-none px-2.5 py-1.5 rounded-lg transition-all",
-                      "placeholder:text-zinc-600",
+                      "flex-1 text-center font-medium text-xs focus:outline-none px-1.5 py-1 rounded-md transition-all",
                       set.completed
                         ? "bg-white/5 border border-white/5 text-zinc-500"
-                        : "bg-white/5 border border-white/10 focus:border-primary/40 focus:bg-white/10"
+                        : "bg-white/5 border border-white/10 focus:border-primary/40"
                     )}
-                  />
+                  >
+                    <option value="">-</option>
+                    {[1,2,3,4,5,6,7,8,9,10].map(n => <option key={n} value={n}>{n}</option>)}
+                  </select>
                 </div>
               )}
             </div>
           )}
 
-          {/* Warm-up toggle */}
-          <div className="mt-2 pt-2 border-t border-white/5">
-            <button
-              onClick={onToggleWarmup}
-              className={clsx(
-                "text-xs px-2 py-1 rounded-md transition-all",
-                set.isWarmup 
-                  ? "bg-blue-500/20 text-blue-400 font-bold"
-                  : "bg-white/5 text-muted-foreground hover:bg-white/10"
-              )}
-            >
-              {set.isWarmup ? '🔥 Warm-up set' : 'Markeer als warm-up'}
-            </button>
-          </div>
-
           {/* Suggestion hint */}
           {suggestion && !set.completed && !set.isWarmup && (
-            <div className="mt-2 pt-2 border-t border-white/5">
+            <div className="mt-2">
               <button
                 onClick={() => onUpdate('weight', suggestion.weight)}
-                className="w-full text-xs bg-primary/10 text-primary px-2 py-1.5 rounded-md hover:bg-primary/20 transition-all flex items-center justify-center gap-1"
+                className="text-[10px] bg-green-500/10 text-green-400 px-2 py-1 rounded-md hover:bg-green-500/20 transition-all flex items-center gap-1"
               >
-                <Flame size={12} />
-                Suggestie: {suggestion.weight}kg ({suggestion.reason})
+                <TrendingUp size={11} />
+                {suggestion.weight}kg - {suggestion.reason === 'Upward trend in weight' ? 'Stijgende lijn' : suggestion.reason}
               </button>
             </div>
           )}

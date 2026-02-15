@@ -53,64 +53,64 @@ const ExerciseStats = ({
   const suggestion = generateOverloadSuggestion(exercise, progression);
 
   return (
-    <div className="px-4 pb-4 space-y-3">
-      {/* 1RM en Volume */}
-      <div className="grid grid-cols-2 gap-3">
-        <div className="bg-white/5 rounded-lg p-3">
-          <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold mb-1">
+    <div className="px-4 pb-3 space-y-2.5">
+      {/* 1RM en Volume - Compact */}
+      <div className="grid grid-cols-2 gap-2">
+        <div className="bg-white/5 rounded-lg p-2">
+          <div className="text-[9px] text-muted-foreground uppercase tracking-wider font-semibold mb-0.5">
             {t.workout.estimated1RM}
           </div>
-          <div className="flex items-baseline gap-1">
-            <span className="text-2xl font-black text-primary">
+          <div className="flex items-baseline gap-0.5">
+            <span className="text-xl font-black text-primary">
               {roundTo(best1RM.oneRM, 0.5)}
             </span>
-            <span className="text-xs text-muted-foreground font-bold">KG</span>
+            <span className="text-[10px] text-muted-foreground font-bold">KG</span>
           </div>
-          <div className="text-[10px] text-muted-foreground mt-1">
-            {best1RM.weight}kg × {best1RM.reps} reps
+          <div className="text-[9px] text-muted-foreground">
+            {best1RM.weight}kg × {best1RM.reps}
           </div>
         </div>
 
-        <div className="bg-white/5 rounded-lg p-3">
-          <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold mb-1">
+        <div className="bg-white/5 rounded-lg p-2">
+          <div className="text-[9px] text-muted-foreground uppercase tracking-wider font-semibold mb-0.5">
             {t.workout.totalVolume}
           </div>
-          <div className="flex items-baseline gap-1">
-            <span className="text-2xl font-black">
+          <div className="flex items-baseline gap-0.5">
+            <span className="text-xl font-black">
               {Math.round(volume)}
             </span>
-            <span className="text-xs text-muted-foreground font-bold">KG</span>
+            <span className="text-[10px] text-muted-foreground font-bold">KG</span>
           </div>
-          <div className="text-[10px] text-muted-foreground mt-1">
-            {exercise.sets.filter(s => s.completed).length} {t.workout.setsCompleted}
+          <div className="text-[9px] text-muted-foreground">
+            {exercise.sets.filter(s => s.completed).length} sets
           </div>
         </div>
       </div>
 
-      {/* Progressie vs Vorige */}
+      {/* Progressie vs Vorige - Compact */}
       {progression.previous1RM && (
         <div className={clsx(
-          "rounded-lg p-3 border",
+          "rounded-lg p-2 border text-xs",
           progression.status === 'improved' ? "bg-green-500/10 border-green-500/30" :
           progression.status === 'declined' ? "bg-red-500/10 border-red-500/30" :
           "bg-white/5 border-white/10"
         )}>
-          <div className="flex items-center justify-between mb-1">
-            <div className="text-[10px] uppercase tracking-wider font-bold flex items-center gap-1">
+          <div className="flex items-center justify-between">
+            <div className="text-[9px] uppercase tracking-wider font-semibold flex items-center gap-1">
               {progression.status === 'improved' ? (
                 <>
-                  <TrendingUp size={12} className="text-green-500" />
-                  <span className="text-green-500">{t.workout.improved}</span>
+                  <TrendingUp size={11} className="text-green-500" />
+                  <span className="text-green-500">Verbeterd</span>
                 </>
               ) : progression.status === 'declined' ? (
                 <>
-                  <TrendingDown size={12} className="text-red-500" />
-                  <span className="text-red-500">{t.workout.declined}</span>
+                  <TrendingDown size={11} className="text-red-500" />
+                  <span className="text-red-500">Achteruit</span>
                 </>
               ) : (
                 <>
-                  <Minus size={12} />
-                  <span>{t.workout.maintained}</span>
+                  <Minus size={11} />
+                  <span>Gelijk</span>
                 </>
               )}
             </div>
@@ -121,54 +121,18 @@ const ExerciseStats = ({
               "text-muted-foreground"
             )}>
               {progression.difference >= 0 ? '+' : ''}{roundTo(progression.difference, 0.5)}kg
-              {progression.percentageChange !== 0 && (
-                <span className="ml-1">
-                  ({progression.percentageChange >= 0 ? '+' : ''}{progression.percentageChange.toFixed(1)}%)
-                </span>
-              )}
             </div>
           </div>
           
-          {/* Rep Progression Indicator (when weight stayed the same) */}
-          {progression.sameWeight && progression.previousAverageReps && (
-            <div className="mt-2 pt-2 border-t border-white/10">
-              <div className="flex items-center justify-between">
-                <div className="text-[10px] text-muted-foreground uppercase tracking-wider">
-                  Rep Progressie (zelfde gewicht)
-                </div>
-                <div className={clsx(
-                  "text-xs font-bold",
-                  progression.repProgression > 0.5 ? "text-green-500" :
-                  progression.repProgression < -0.5 ? "text-red-500" :
-                  "text-muted-foreground"
-                )}>
-                  {progression.repProgression > 0 ? '+' : ''}{Math.round(progression.repProgression * 10) / 10} reps gemiddeld
-                </div>
-              </div>
-              <div className="text-xs text-muted-foreground mt-1">
-                {Math.round(progression.currentAverageReps * 10) / 10} reps nu • {Math.round(progression.previousAverageReps * 10) / 10} reps vorige keer
-              </div>
-            </div>
-          )}
-          
-          {/* Ready for weight increase indicator */}
+          {/* Ready for weight increase - Most important indicator */}
           {progression.readyForWeightIncrease && (
-            <div className="mt-2 pt-2 border-t border-green-500/30">
-              <div className="flex items-center gap-2 text-green-500">
-                <TrendingUp size={12} />
-                <div className="text-[10px] font-bold uppercase tracking-wider">
-                  🎯 Klaar voor gewichtsverhoging!
-                </div>
-              </div>
-              <div className="text-xs text-green-400/80 mt-1">
-                Alle sets haalden 12+ reps
+            <div className="mt-1.5 pt-1.5 border-t border-green-500/30 flex items-center gap-1.5 text-green-400">
+              <TrendingUp size={11} />
+              <div className="text-[9px] font-bold">
+                🎯 Klaar voor meer gewicht!
               </div>
             </div>
           )}
-          
-          <div className="text-xs text-muted-foreground mt-2">
-            {t.workout.previous}: {roundTo(progression.previous1RM, 0.5)}kg 1RM
-          </div>
         </div>
       )}
 
@@ -768,7 +732,7 @@ export default function WorkoutLogger() {
   const progress = totalSets > 0 ? (completedSets / totalSets) * 100 : 0;
 
   return (
-    <div className="min-h-screen bg-background pb-32">
+    <div className="min-h-screen bg-background pb-40">
       {/* Header */}
       <div className="sticky top-0 z-20 bg-background/90 backdrop-blur-md border-b border-white/5">
         <div className="p-4 flex items-center justify-between">
@@ -779,7 +743,7 @@ export default function WorkoutLogger() {
           <div className="flex flex-col items-center">
             <h1 className="font-bold text-sm uppercase tracking-wide">{workoutData.name}</h1>
             <div className="flex items-center gap-3">
-              <div className="font-mono text-xs text-primary font-bold flex items-center gap-1">
+              <div className="font-mono text-xs text-muted-foreground font-bold flex items-center gap-1">
                 <Clock size={10} /> {formatTime(elapsed)}
               </div>
               {restTimer?.active && (
@@ -808,8 +772,11 @@ export default function WorkoutLogger() {
             </button>
           </div>
 
-          <button onClick={handleCancel} className="p-2 -mr-2 text-muted-foreground hover:text-destructive">
-            <X size={24} />
+          <button 
+            onClick={handleCancel} 
+            className="px-3 py-1.5 text-xs font-bold text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+          >
+            Beëindig
           </button>
         </div>
 
@@ -921,44 +888,32 @@ export default function WorkoutLogger() {
                 </div>
               </div>
               
-              {/* 1RM Section - Only for strength exercises */}
+              {/* 1RM Section - Compact for strength exercises */}
               {exercise.type !== 'cardio' && (
-                <div className="px-4 py-3 bg-gradient-to-r from-white/5 to-transparent border-b border-white/5">
-                  <div className="flex items-start gap-3">
-                    <div className="flex-1">
-                      <label className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold mb-1.5 block">
-                        1RM
-                      </label>
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="number"
-                          step="0.5"
-                          min="0"
-                          value={exercise.oneRepMax || ''}
-                          onChange={(e) => updateExerciseOneRM(exerciseIndex, e.target.value ? parseFloat(e.target.value) : undefined)}
-                          placeholder="100"
-                          className="w-20 bg-white/10 border border-white/20 rounded-lg px-2.5 py-1.5 text-center text-lg font-black focus:outline-none focus:border-primary focus:bg-white/15 transition-colors"
-                        />
-                        <span className="text-xs text-muted-foreground font-bold">KG</span>
-                      </div>
-                    </div>
-                    {exercise.oneRepMax && validateOneRM(exercise.oneRepMax) && (
-                      <button
-                        onClick={() => regenerateSetsFromOneRM(exerciseIndex)}
-                        className="px-3 py-2 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/30 text-blue-400 rounded-lg font-bold text-[10px] transition-colors flex flex-col items-center gap-0.5 min-w-[70px] mt-5"
-                      >
-                        <RefreshCw size={14} />
-                        <span className="leading-none">Auto-fill</span>
-                      </button>
-                    )}
+                <div className="px-4 py-2 bg-white/5 border-b border-white/5 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <label className="text-[9px] text-muted-foreground uppercase tracking-wider font-semibold">
+                      1RM
+                    </label>
+                    <input
+                      type="number"
+                      step="0.5"
+                      min="0"
+                      value={exercise.oneRepMax || ''}
+                      onChange={(e) => updateExerciseOneRM(exerciseIndex, e.target.value ? parseFloat(e.target.value) : undefined)}
+                      placeholder="100"
+                      className="w-16 bg-white/10 border border-white/20 rounded-md px-2 py-1 text-center text-sm font-bold focus:outline-none focus:border-primary focus:bg-white/15 transition-colors"
+                    />
+                    <span className="text-[9px] text-muted-foreground font-semibold">KG</span>
                   </div>
                   {exercise.oneRepMax && validateOneRM(exercise.oneRepMax) && (
-                    <div className="mt-2 flex items-center gap-2 text-[10px] text-blue-300/90">
-                      <span className="inline-block w-1 h-1 rounded-full bg-blue-400"></span>
-                      <span>Warmup: <strong>{(exercise.oneRepMax * 0.5).toFixed(1)}kg</strong></span>
-                      <span className="text-blue-400/40">•</span>
-                      <span>Werk: <strong>{(exercise.oneRepMax * 0.75).toFixed(1)}kg</strong></span>
-                    </div>
+                    <button
+                      onClick={() => regenerateSetsFromOneRM(exerciseIndex)}
+                      className="px-2 py-1 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/30 text-blue-400 rounded-md font-bold text-[9px] transition-colors flex items-center gap-1"
+                    >
+                      <RefreshCw size={11} />
+                      Auto-fill
+                    </button>
                   )}
                 </div>
               )}
@@ -1192,7 +1147,7 @@ export default function WorkoutLogger() {
           </button>
         </div>
 
-        <div className="pt-8 px-4">
+        <div className="pt-8 px-4 pb-6">
           <button
             onClick={handleFinish}
             className="w-full py-4 bg-primary text-background font-black text-lg uppercase tracking-widest rounded-xl shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
