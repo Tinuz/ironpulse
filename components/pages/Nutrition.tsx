@@ -42,6 +42,11 @@ export default function Nutrition() {
   const [showCustomFoodModal, setShowCustomFoodModal] = useState(false);
   const [customFoodItems, setCustomFoodItems] = useState<CustomFoodItem[]>([]);
   
+  // Recent items state
+  const [recentItemsSearch, setRecentItemsSearch] = useState('');
+  const [recentItemsDisplayCount, setRecentItemsDisplayCount] = useState(10);
+  const recentItemsScrollRef = useRef<HTMLDivElement>(null);
+  
   // Nutrition search state
   const [searchResults, setSearchResults] = useState<NutritionSearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -525,17 +530,27 @@ export default function Nutrition() {
     }
   };
 
-  // Get recent unique items from all nutrition logs
+  // Get recent unique items from all nutrition logs (sorted by date, newest first)
   const getRecentItems = () => {
-    const allItems: NutritionItem[] = [];
+    // Sort logs by date (newest first)
+    const sortedLogs = [...nutritionLogs].sort((a, b) => 
+      new Date(b.date).getTime() - new Date(a.date).getTime()
+    );
     
-    // Collect all items from all dates
-    nutritionLogs.forEach(log => {
-      allItems.push(...log.items);
+    // Collect items in reverse order (newest additions first)
+    const allItems: (NutritionItem & { addedDate: string })[] = [];
+    
+    sortedLogs.forEach(log => {
+      // Reverse the items array to get most recently added items first
+      const itemsWithDate = [...log.items].reverse().map(item => ({
+        ...item,
+        addedDate: log.date
+      }));
+      allItems.push(...itemsWithDate);
     });
     
-    // Create unique items based on name + nutritional values
-    const uniqueItems = new Map<string, NutritionItem>();
+    // Create unique items based on name + nutritional values (keep first occurrence = most recent)
+    const uniqueItems = new Map<string, NutritionItem & { addedDate: string }>();
     
     allItems.forEach(item => {
       const key = `${item.name}-${item.calories}-${item.protein}-${item.carbs}-${item.fats}-${item.type}`;
@@ -544,11 +559,21 @@ export default function Nutrition() {
       }
     });
     
-    // Return last 10 unique items
-    return Array.from(uniqueItems.values()).slice(-10).reverse();
+    return Array.from(uniqueItems.values());
   };
 
-  const recentItems = getRecentItems();
+  const allRecentItems = getRecentItems();
+  
+  // Filter recent items based on search
+  const filteredRecentItems = recentItemsSearch.trim().length > 0
+    ? allRecentItems.filter(item => 
+        item.name.toLowerCase().includes(recentItemsSearch.toLowerCase())
+      )
+    : allRecentItems;
+  
+  // Apply display limit for infinite scroll
+  const recentItems = filteredRecentItems.slice(0, recentItemsDisplayCount);
+  const hasMoreRecentItems = filteredRecentItems.length > recentItemsDisplayCount;
 
   const handleAddRecentItem = (item: NutritionItem) => {
     addMeal(currentDateStr, {
@@ -1156,43 +1181,93 @@ export default function Nutrition() {
                 </div>
 
                 {/* Recent Items Section */}
-                {recentItems.length > 0 && (
+                {allRecentItems.length > 0 && (
                   <div className="mb-6">
-                    <h3 className="text-xs font-bold text-muted-foreground uppercase mb-3 flex items-center gap-2">
-                      <Clock size={14} className="text-primary" />
-                      {t.nutrition.recentlyAdded}
-                    </h3>
-                    <div className="max-h-48 overflow-y-auto space-y-2 pr-1 -mr-1">
-                      {recentItems.map((item, index) => (
-                        <motion.button
-                          key={`${item.name}-${index}`}
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: index * 0.03 }}
-                          onClick={() => handleAddRecentItem(item)}
-                          className="w-full bg-card border border-white/5 hover:border-primary/30 hover:bg-primary/5 p-3 rounded-xl transition-all text-left group"
-                        >
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3 flex-1 min-w-0">
-                              <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                                item.type === 'drink' ? 'bg-blue-500/20 text-blue-400' : 'bg-orange-500/20 text-orange-400'
-                              }`}>
-                                {item.type === 'drink' ? <Droplet size={14} /> : <Utensils size={14} />}
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="font-semibold text-sm truncate">{item.name}</div>
-                                <div className="text-xs text-muted-foreground flex gap-2">
-                                  <span className="font-mono">{item.calories} kcal</span>
-                                  {item.protein > 0 && <span>• {item.protein}g P</span>}
-                                  {item.carbs > 0 && <span>• {item.carbs}g C</span>}
-                                  {item.fats > 0 && <span>• {item.fats}g F</span>}
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-xs font-bold text-muted-foreground uppercase flex items-center gap-2">
+                        <Clock size={14} className="text-primary" />
+                        {t.nutrition.recentlyAdded}
+                      </h3>
+                      <div className="text-xs text-muted-foreground">
+                        {filteredRecentItems.length} {filteredRecentItems.length === 1 ? 'item' : 'items'}
+                      </div>
+                    </div>
+                    
+                    {/* Search bar for recent items */}
+                    <div className="mb-3">
+                      <div className="relative">
+                        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                        <input
+                          type="text"
+                          value={recentItemsSearch}
+                          onChange={(e) => {
+                            setRecentItemsSearch(e.target.value);
+                            setRecentItemsDisplayCount(10); // Reset display count on search
+                          }}
+                          placeholder={language === 'nl' ? 'Zoek in recent toegevoegd...' : 'Search recent items...'}
+                          className="w-full pl-9 pr-3 py-2 bg-card border border-white/10 rounded-lg text-sm focus:border-primary outline-none"
+                        />
+                      </div>
+                    </div>
+                    
+                    <div 
+                      ref={recentItemsScrollRef}
+                      className="max-h-80 overflow-y-auto space-y-2 pr-1 -mr-1"
+                    >
+                      {recentItems.length === 0 ? (
+                        <div className="text-center py-8 text-muted-foreground text-sm">
+                          {recentItemsSearch.trim().length > 0 
+                            ? (language === 'nl' ? 'Geen resultaten gevonden' : 'No results found')
+                            : (language === 'nl' ? 'Geen items gevonden' : 'No items found')
+                          }
+                        </div>
+                      ) : (
+                        <>
+                          {recentItems.map((item, index) => (
+                            <motion.button
+                              key={`${item.name}-${index}`}
+                              initial={{ opacity: 0, x: -20 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ delay: index * 0.03 }}
+                              onClick={() => handleAddRecentItem(item)}
+                              className="w-full bg-card border border-white/5 hover:border-primary/30 hover:bg-primary/5 p-3 rounded-xl transition-all text-left group"
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3 flex-1 min-w-0">
+                                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                                    item.type === 'drink' ? 'bg-blue-500/20 text-blue-400' : 'bg-orange-500/20 text-orange-400'
+                                  }`}>
+                                    {item.type === 'drink' ? <Droplet size={14} /> : <Utensils size={14} />}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="font-semibold text-sm truncate">{item.name}</div>
+                                    <div className="text-xs text-muted-foreground flex gap-2">
+                                      <span className="font-mono">{item.calories} kcal</span>
+                                      {item.protein > 0 && <span>• {item.protein}g P</span>}
+                                      {item.carbs > 0 && <span>• {item.carbs}g C</span>}
+                                      {item.fats > 0 && <span>• {item.fats}g F</span>}
+                                    </div>
+                                  </div>
                                 </div>
+                                <Plus size={16} className="text-primary/60 md:opacity-0 md:group-hover:opacity-100 hover:text-primary transition-opacity flex-shrink-0" />
                               </div>
-                            </div>
-                            <Plus size={16} className="text-primary/60 md:opacity-0 md:group-hover:opacity-100 hover:text-primary transition-opacity flex-shrink-0" />
-                          </div>
-                        </motion.button>
-                      ))}
+                            </motion.button>
+                          ))}
+                          
+                          {/* Load More Button */}
+                          {hasMoreRecentItems && (
+                            <button
+                              onClick={() => setRecentItemsDisplayCount(prev => prev + 10)}
+                              className="w-full py-2 text-sm text-primary hover:text-primary/80 transition-colors font-semibold"
+                            >
+                              {language === 'nl' 
+                                ? `Laad meer... (${recentItems.length} van ${filteredRecentItems.length})`
+                                : `Load more... (${recentItems.length} of ${filteredRecentItems.length})`
+                              }
+                            </button>
+                          )}
+                        </>
+                      )}
                     </div>
                     <div className="mt-3 pt-3 border-t border-white/5 flex items-center gap-2 text-xs text-muted-foreground">
                       <div className="h-px flex-1 bg-white/5" />
