@@ -75,9 +75,9 @@ const EnhancedSetRow = forwardRef<HTMLDivElement, EnhancedSetRowProps>(({
 
         <div className="p-3">
           {/* Main row */}
-          <div className="grid grid-cols-[auto_1fr_1fr_auto_auto] gap-2 items-center">
+          <div className="grid grid-cols-[auto_1fr_1fr_auto_auto] gap-2 items-start">
             {/* Set number + Warmup toggle */}
-            <div className="flex flex-col items-center gap-0.5">
+            <div className="flex flex-col items-center gap-0.5 pt-1">
               {/* Set number */}
               <div className="text-muted-foreground font-mono font-bold text-xs">
                 {index + 1}
@@ -98,7 +98,7 @@ const EnhancedSetRow = forwardRef<HTMLDivElement, EnhancedSetRowProps>(({
             </div>
             
             {/* Weight input */}
-            <div className="relative">
+            <div className="relative pt-1">
               <input
                 type="number"
                 inputMode="decimal"
@@ -121,7 +121,7 @@ const EnhancedSetRow = forwardRef<HTMLDivElement, EnhancedSetRowProps>(({
             </div>
 
             {/* Reps input */}
-            <div className="relative">
+            <div className="relative pt-1">
               <input
                 type="number"
                 inputMode="numeric"
@@ -147,7 +147,7 @@ const EnhancedSetRow = forwardRef<HTMLDivElement, EnhancedSetRowProps>(({
             <button
               onClick={onToggleComplete}
               className={clsx(
-                "h-8 w-8 rounded-lg flex items-center justify-center transition-all duration-200",
+                "h-8 w-8 rounded-lg flex items-center justify-center transition-all duration-200 mt-1",
                 set.completed 
                   ? "bg-primary text-background shadow-[0_0_15px_rgba(245,158,11,0.5)] scale-110" 
                   : "bg-white/10 text-muted-foreground hover:bg-white/20"
@@ -161,7 +161,7 @@ const EnhancedSetRow = forwardRef<HTMLDivElement, EnhancedSetRowProps>(({
               onClick={onRemove}
               disabled={!canRemove}
               className={clsx(
-                "h-8 w-8 rounded-lg flex items-center justify-center transition-all duration-200",
+                "h-8 w-8 rounded-lg flex items-center justify-center transition-all duration-200 mt-1",
                 canRemove 
                   ? "text-red-500/60 hover:bg-red-500/20 hover:text-red-600 md:invisible md:group-hover:visible" 
                   : "invisible cursor-not-allowed"
