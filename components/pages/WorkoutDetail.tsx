@@ -85,7 +85,8 @@ export default function WorkoutDetail() {
           startTime: data.start_time,
           endTime: data.end_time,
           exercises: data.exercises,
-          totalCalories: data.total_calories
+          totalCalories: data.total_calories,
+          isDeload: data.is_deload || false
         };
         setWorkout(fetchedWorkout);
         setIsOwnWorkout(user?.id === data.user_id);
@@ -210,7 +211,14 @@ export default function WorkoutDetail() {
           className="space-y-4"
         >
           <div>
-            <h2 className="text-3xl font-black italic tracking-tight text-primary">{workout.name}</h2>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h2 className="text-3xl font-black italic tracking-tight text-primary">{workout.name}</h2>
+              {workout.isDeload && (
+                <span className="px-2.5 py-1 bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-full text-xs font-bold uppercase tracking-wider">
+                  🔻 Deload Week
+                </span>
+              )}
+            </div>
             <p className="text-muted-foreground font-mono mt-1">
               {format(new Date(workout.date), 'EEEE, MMMM d, yyyy • h:mm a')}
             </p>

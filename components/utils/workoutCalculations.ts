@@ -68,6 +68,7 @@ export function roundTo(value: number, increment: number = 0.5): number {
 
 /**
  * Vind vorige workouts voor een specifieke exercise naam
+ * Excludes deload workouts from progressive overload tracking
  */
 export function getPreviousWorkoutsForExercise(
   exerciseName: string,
@@ -77,6 +78,7 @@ export function getPreviousWorkoutsForExercise(
   return allHistory
     .filter(w => {
       if (excludeWorkoutId && w.id === excludeWorkoutId) return false;
+      if (w.isDeload) return false; // Exclude deload workouts from progression tracking
       return w.exercises.some(ex => ex.name.toLowerCase() === exerciseName.toLowerCase());
     })
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());

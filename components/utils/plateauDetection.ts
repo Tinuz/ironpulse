@@ -16,26 +16,30 @@ export interface EnhancedPlateauDetection extends PlateauDetection {
 
 /**
  * Detect plateaus across all exercises
+ * Excludes deload workouts from plateau detection
  */
 export function detectAllPlateaus(
   workouts: WorkoutLog[],
   threshold: number = 3
 ): EnhancedPlateauDetection[] {
-  if (workouts.length < threshold) return [];
+  // Exclude deload workouts from plateau detection
+  const nonDeloadWorkouts = workouts.filter(w => !w.isDeload);
+  
+  if (nonDeloadWorkouts.length < threshold) return [];
   
   // Get unique exercises
   const exerciseNames = new Set<string>();
-  workouts.forEach(w => {
+  nonDeloadWorkouts.forEach(w => {
     w.exercises.forEach(ex => exerciseNames.add(ex.name));
   });
   
   const plateaus: EnhancedPlateauDetection[] = [];
   
   exerciseNames.forEach(exerciseName => {
-    const detection = detectPlateau(exerciseName, workouts, threshold);
+    const detection = detectPlateau(exerciseName, nonDeloadWorkouts, threshold);
     
     if (detection.isPlateaued) {
-      const relevantWorkouts = workouts
+      const relevantWorkouts = nonDeloadWorkouts
         .filter(w => w.exercises.some(ex => ex.name === exerciseName))
         .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
       

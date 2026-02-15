@@ -27,6 +27,7 @@ export interface ProgressionResult {
 
 /**
  * Find the most recent workout that contains a specific exercise
+ * Excludes deload workouts from progression tracking
  */
 export function findLastWorkoutWithExercise(
   history: WorkoutLog[],
@@ -41,6 +42,11 @@ export function findLastWorkoutWithExercise(
   for (const workout of sortedHistory) {
     // Skip if this is the current workout
     if (excludeWorkoutId && workout.id === excludeWorkoutId) {
+      continue;
+    }
+
+    // Skip deload workouts - they shouldn't affect progressive overload tracking
+    if (workout.isDeload) {
       continue;
     }
 

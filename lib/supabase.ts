@@ -79,6 +79,7 @@ export type Database = {
           start_time: number
           end_time: number | null
           exercises: any
+          is_deload: boolean
           created_at: string
         }
         Insert: {
@@ -90,6 +91,7 @@ export type Database = {
           start_time: number
           end_time?: number | null
           exercises: any
+          is_deload?: boolean
           created_at?: string
         }
         Update: {
@@ -101,6 +103,7 @@ export type Database = {
           start_time?: number
           end_time?: number | null
           exercises?: any
+          is_deload?: boolean
           created_at?: string
         }
       }

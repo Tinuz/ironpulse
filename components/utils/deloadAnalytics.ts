@@ -31,17 +31,21 @@ export interface DeloadProtocol {
 
 /**
  * Detect if deload week is needed
+ * Excludes existing deload workouts from analysis
  */
 export function detectDeloadNeed(
   workouts: WorkoutLog[],
   weeksToAnalyze: number = 6
 ): DeloadRecommendation {
+  // Exclude deload workouts from fatigue analysis
+  const nonDeloadWorkouts = workouts.filter(w => !w.isDeload);
+  
   const signals: DeloadSignal[] = [];
   
   // Get weekly summaries for trend analysis
   const weeklySummaries = [];
   for (let i = 0; i < weeksToAnalyze; i++) {
-    weeklySummaries.push(calculateWeeklySummary(workouts, [], -i));
+    weeklySummaries.push(calculateWeeklySummary(nonDeloadWorkouts, [], -i));
   }
   weeklySummaries.reverse(); // Oldest first
   
@@ -50,7 +54,7 @@ export function detectDeloadNeed(
   if (volumeDeclineSignal) signals.push(volumeDeclineSignal);
   
   // Signal 2: Performance decline (decreasing weights despite effort)
-  const performanceSignal = detectPerformanceDecline(workouts);
+  const performanceSignal = detectPerformanceDecline(nonDeloadWorkouts);
   if (performanceSignal) signals.push(performanceSignal);
   
   // Signal 3: Accumulated high volume (4+ weeks straight)
@@ -58,7 +62,7 @@ export function detectDeloadNeed(
   if (fatigueSignal) signals.push(fatigueSignal);
   
   // Signal 4: Multiple exercises plateaued simultaneously
-  const plateauSignal = detectMultiplePlateaus(workouts);
+  const plateauSignal = detectMultiplePlateaus(nonDeloadWorkouts);
   if (plateauSignal) signals.push(plateauSignal);
   
   // Signal 5: Overreaching (volume spike followed by drop)
@@ -66,7 +70,7 @@ export function detectDeloadNeed(
   if (overreachingSignal) signals.push(overreachingSignal);
   
   // Signal 6: Muscle group specific overload (NEW - uses granular muscle groups!)
-  const muscleGroupSignals = detectMuscleGroupOverload(workouts, weeksToAnalyze);
+  const muscleGroupSignals = detectMuscleGroupOverload(nonDeloadWorkouts, weeksToAnalyze);
   signals.push(...muscleGroupSignals);
   
   // Calculate urgency based on signals
@@ -80,7 +84,7 @@ export function detectDeloadNeed(
   
   // Generate deload protocol if needed
   const deloadProtocol = shouldDeload 
-    ? generateDeloadProtocol(urgency, weeksOfHighVolume, workouts)
+    ? generateDeloadProtocol(urgency, weeksOfHighVolume, nonDeloadWorkouts)
     : undefined;
   
   return {

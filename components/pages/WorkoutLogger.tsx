@@ -201,6 +201,7 @@ export default function WorkoutLogger() {
   const [workoutData, setWorkoutData] = useState<typeof activeWorkout>(null);
   const [isReady, setIsReady] = useState(false);
   const [showSummary, setShowSummary] = useState(false);
+  const [isDeload, setIsDeload] = useState(false); // Deload mode: reduces all weights by 20%
 
   // Auto-save workout every 30 seconds to prevent data loss
   useWorkoutAutoSave(workoutData, 30000);
@@ -683,6 +684,45 @@ export default function WorkoutLogger() {
     setExerciseIndexToSubstitute(null);
   };
 
+  const toggleDeloadMode = () => {
+    if (!workoutData) return;
+    
+    const newDeloadState = !isDeload;
+    
+    // Confirmation dialog when toggling
+    if (newDeloadState) {
+      if (!window.confirm('Deload mode zal alle gewichten met 20% verlagen voor herstel. Doorgaan?')) {
+        return;
+      }
+    } else {
+      if (!window.confirm('Deload mode uitschakelen? Gewichten worden teruggezet naar origineel.')) {
+        return;
+      }
+    }
+    
+    // Adjust all weights by 20% reduction (deload) or 25% increase (restore)
+    const multiplier = newDeloadState ? 0.8 : 1.25;
+    
+    const updatedExercises = workoutData.exercises.map(exercise => {
+      if (exercise.type === 'cardio') return exercise;
+      
+      return {
+        ...exercise,
+        sets: exercise.sets.map(set => ({
+          ...set,
+          weight: roundTo(set.weight * multiplier, 0.5)
+        })),
+        // Also update 1RM if present
+        oneRepMax: exercise.oneRepMax ? roundTo(exercise.oneRepMax * multiplier, 0.5) : undefined
+      };
+    });
+    
+    const updated = { ...workoutData, exercises: updatedExercises };
+    setWorkoutData(updated);
+    updateActiveWorkout(updated);
+    setIsDeload(newDeloadState);
+  };
+
   const handleFinish = () => {
     setShowSummary(true);
   };
@@ -695,11 +735,12 @@ export default function WorkoutLogger() {
       return sum + (exercise.estimatedCalories || 0);
     }, 0);
     
-    // Update workout with total calories before finishing
+    // Update workout with total calories and deload flag before finishing
     const finalWorkout = {
       ...workoutData,
       totalCalories: totalCalories > 0 ? totalCalories : undefined,
-      metValue: workoutData.metValue || 5
+      metValue: workoutData.metValue || 5,
+      isDeload: isDeload // Save deload state to exclude from progressive overload tracking
     };
     
     updateActiveWorkout(finalWorkout);
@@ -753,6 +794,18 @@ export default function WorkoutLogger() {
                 </>
               )}
             </div>
+            {/* Deload Mode Toggle */}
+            <button
+              onClick={toggleDeloadMode}
+              className={clsx(
+                "mt-1 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider transition-all flex items-center gap-1",
+                isDeload 
+                  ? "bg-amber-500/20 text-amber-400 border border-amber-500/30" 
+                  : "bg-white/5 text-muted-foreground border border-white/10 hover:border-white/20"
+              )}
+            >
+              {isDeload ? '🔻 Deload -20%' : '💪 Normal'}
+            </button>
           </div>
 
           <button onClick={handleCancel} className="p-2 -mr-2 text-muted-foreground hover:text-destructive">

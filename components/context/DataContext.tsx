@@ -81,6 +81,7 @@ export interface WorkoutLog {
   totalCalories?: number; // Total estimated calories burned
   metValue?: number; // MET value used for calculation (default: 5)
   completedAt?: string; // ISO timestamp when workout was completed
+  isDeload?: boolean; // Whether this is a deload/recovery week workout (excludes from progressive overload tracking)
   cardioSummary?: {
     totalDuration: number; // total cardio seconds
     totalDistance?: number; // total meters
@@ -323,7 +324,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           date: h.date,
           startTime: h.start_time,
           endTime: h.end_time,
-          exercises: h.exercises
+          exercises: h.exercises,
+          isDeload: h.is_deload || false
         })));
       }
 
@@ -707,7 +709,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           date: finishedWorkout.date,
           start_time: finishedWorkout.startTime,
           end_time: finishedWorkout.endTime,
-          exercises: finishedWorkout.exercises
+          exercises: finishedWorkout.exercises,
+          is_deload: finishedWorkout.isDeload || false
         })
         .select()
         .single();
@@ -721,7 +724,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           startTime: data.start_time,
           endTime: data.end_time,
           exercises: data.exercises,
-          completedAt: finishedWorkout.completedAt
+          completedAt: finishedWorkout.completedAt,
+          isDeload: data.is_deload || false
         };
         
         const updatedHistory = [newWorkout, ...history];
@@ -774,7 +778,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         date: updatedWorkout.date,
         start_time: updatedWorkout.startTime,
         end_time: updatedWorkout.endTime,
-        exercises: updatedWorkout.exercises
+        exercises: updatedWorkout.exercises,
+        is_deload: updatedWorkout.isDeload || false
       })
       .eq('id', id)
       .eq('user_id', USER_ID);

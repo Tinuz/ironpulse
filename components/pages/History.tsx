@@ -167,7 +167,14 @@ export default function History() {
                   >
                     <div className="flex justify-between items-start mb-4 pr-8">
                       <div>
-                        <h3 className="font-bold text-lg text-primary">{log.name}</h3>
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-bold text-lg text-primary">{log.name}</h3>
+                          {log.isDeload && (
+                            <span className="px-2 py-0.5 bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-full text-[10px] font-bold uppercase tracking-wider">
+                              🔻 Deload
+                            </span>
+                          )}
+                        </div>
                         <p className="text-sm text-muted-foreground font-mono mt-1">
                           {format(new Date(log.date), 'EEEE, MMM d • h:mm a')}
                         </p>
