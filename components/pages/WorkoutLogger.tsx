@@ -128,7 +128,45 @@ const ExerciseStats = ({
               )}
             </div>
           </div>
-          <div className="text-xs text-muted-foreground">
+          
+          {/* Rep Progression Indicator (when weight stayed the same) */}
+          {progression.sameWeight && progression.previousAverageReps && (
+            <div className="mt-2 pt-2 border-t border-white/10">
+              <div className="flex items-center justify-between">
+                <div className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                  Rep Progressie (zelfde gewicht)
+                </div>
+                <div className={clsx(
+                  "text-xs font-bold",
+                  progression.repProgression > 0.5 ? "text-green-500" :
+                  progression.repProgression < -0.5 ? "text-red-500" :
+                  "text-muted-foreground"
+                )}>
+                  {progression.repProgression > 0 ? '+' : ''}{Math.round(progression.repProgression * 10) / 10} reps gemiddeld
+                </div>
+              </div>
+              <div className="text-xs text-muted-foreground mt-1">
+                {Math.round(progression.currentAverageReps * 10) / 10} reps nu • {Math.round(progression.previousAverageReps * 10) / 10} reps vorige keer
+              </div>
+            </div>
+          )}
+          
+          {/* Ready for weight increase indicator */}
+          {progression.readyForWeightIncrease && (
+            <div className="mt-2 pt-2 border-t border-green-500/30">
+              <div className="flex items-center gap-2 text-green-500">
+                <TrendingUp size={12} />
+                <div className="text-[10px] font-bold uppercase tracking-wider">
+                  🎯 Klaar voor gewichtsverhoging!
+                </div>
+              </div>
+              <div className="text-xs text-green-400/80 mt-1">
+                Alle sets haalden 12+ reps
+              </div>
+            </div>
+          )}
+          
+          <div className="text-xs text-muted-foreground mt-2">
             {t.workout.previous}: {roundTo(progression.previous1RM, 0.5)}kg 1RM
           </div>
         </div>

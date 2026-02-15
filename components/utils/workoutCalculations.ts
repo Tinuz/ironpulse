@@ -105,6 +105,12 @@ export interface ProgressionData {
   volumeDifference: number;
   status: 'improved' | 'declined' | 'same' | 'first-time';
   daysSinceLast: number | null;
+  // Rep progression tracking
+  sameWeight: boolean;
+  repProgression: number; // Average rep increase at same weight
+  readyForWeightIncrease: boolean; // All sets hit target reps
+  currentAverageReps: number;
+  previousAverageReps: number | null;
 }
 
 export function calculateProgression(
@@ -113,6 +119,17 @@ export function calculateProgression(
 ): ProgressionData {
   const current1RM = getBest1RM(currentExercise);
   const currentVolume = calculateVolume(currentExercise);
+  
+  // Calculate average reps for current workout (completed sets only)
+  const currentCompletedSets = currentExercise.sets.filter(s => s.completed && s.reps > 0);
+  const currentAverageReps = currentCompletedSets.length > 0
+    ? currentCompletedSets.reduce((sum, s) => sum + s.reps, 0) / currentCompletedSets.length
+    : 0;
+  
+  // Check if all sets hit a target rep range (e.g., all sets >= 12 reps)
+  const targetReps = 12; // Can be made configurable
+  const readyForWeightIncrease = currentCompletedSets.length > 0 && 
+    currentCompletedSets.every(s => s.reps >= targetReps);
 
   if (previousExercises.length === 0 || !current1RM) {
     return {
@@ -124,7 +141,12 @@ export function calculateProgression(
       previousVolume: null,
       volumeDifference: 0,
       status: 'first-time',
-      daysSinceLast: null
+      daysSinceLast: null,
+      sameWeight: false,
+      repProgression: 0,
+      readyForWeightIncrease,
+      currentAverageReps,
+      previousAverageReps: null
     };
   }
 
@@ -132,6 +154,26 @@ export function calculateProgression(
   const previousExercise = previousExercises[0];
   const previous1RM = getBest1RM(previousExercise);
   const previousVolume = calculateVolume(previousExercise);
+  
+  // Calculate previous average reps
+  const previousCompletedSets = previousExercise.sets.filter(s => s.completed && s.reps > 0);
+  const previousAverageReps = previousCompletedSets.length > 0
+    ? previousCompletedSets.reduce((sum, s) => sum + s.reps, 0) / previousCompletedSets.length
+    : 0;
+  
+  // Check if weight stayed the same (within 0.5kg tolerance)
+  const currentAvgWeight = currentCompletedSets.length > 0
+    ? currentCompletedSets.reduce((sum, s) => sum + s.weight, 0) / currentCompletedSets.length
+    : 0;
+  const previousAvgWeight = previousCompletedSets.length > 0
+    ? previousCompletedSets.reduce((sum, s) => sum + s.weight, 0) / previousCompletedSets.length
+    : 0;
+  const sameWeight = Math.abs(currentAvgWeight - previousAvgWeight) < 0.5;
+  
+  // Calculate rep progression at same weight
+  const repProgression = sameWeight && previousAverageReps > 0
+    ? currentAverageReps - previousAverageReps
+    : 0;
 
   if (!previous1RM) {
     return {
@@ -143,7 +185,12 @@ export function calculateProgression(
       previousVolume,
       volumeDifference: currentVolume - previousVolume,
       status: 'first-time',
-      daysSinceLast: null
+      daysSinceLast: null,
+      sameWeight,
+      repProgression,
+      readyForWeightIncrease,
+      currentAverageReps,
+      previousAverageReps
     };
   }
 
@@ -151,12 +198,23 @@ export function calculateProgression(
   const percentageChange = (difference / previous1RM.oneRM) * 100;
   const volumeDifference = currentVolume - previousVolume;
 
+  // Improved status detection: consider both weight and rep progression
   let status: 'improved' | 'declined' | 'same' | 'first-time';
-  if (Math.abs(difference) < 0.5) {
+  
+  if (sameWeight && repProgression > 0.5) {
+    // Rep progression at same weight = improvement
+    status = 'improved';
+  } else if (sameWeight && repProgression < -0.5) {
+    // Fewer reps at same weight = decline
+    status = 'declined';
+  } else if (Math.abs(difference) < 0.5) {
+    // 1RM stayed the same
     status = 'same';
   } else if (difference > 0) {
+    // 1RM increased
     status = 'improved';
   } else {
+    // 1RM decreased
     status = 'declined';
   }
 
@@ -169,7 +227,12 @@ export function calculateProgression(
     previousVolume,
     volumeDifference,
     status,
-    daysSinceLast: null // TODO: calculate based on dates
+    daysSinceLast: null, // TODO: calculate based on dates
+    sameWeight,
+    repProgression,
+    readyForWeightIncrease,
+    currentAverageReps,
+    previousAverageReps
   };
 }
 
@@ -196,7 +259,28 @@ export function generateOverloadSuggestion(
     };
   }
 
-  // Check for new PR
+  // PRIORITY 1: Ready to increase weight (all sets hit target reps)
+  if (progression.readyForWeightIncrease) {
+    const suggestedIncrease = best.weight <= 20 ? 2.5 : 5;
+    const newWeight = roundTo(best.weight + suggestedIncrease, 2.5);
+    return {
+      type: 'increase-weight',
+      message: `💪 Alle sets op 12+ reps! Verhoog naar ${newWeight}kg volgende keer`,
+      suggestedWeight: newWeight
+    };
+  }
+  
+  // PRIORITY 2: Rep progression at same weight
+  if (progression.sameWeight && progression.repProgression > 0.5) {
+    const avgRepsGained = Math.round(progression.repProgression * 10) / 10;
+    return {
+      type: 'increase-reps',
+      message: `📈 +${avgRepsGained} reps gemiddeld! Blijf gewicht verhogen naar 12 reps per set`,
+      suggestedReps: Math.ceil(progression.currentAverageReps)
+    };
+  }
+
+  // PRIORITY 3: Check for new PR (significant 1RM increase)
   if (progression.status === 'improved' && progression.percentageChange >= 5) {
     return {
       type: 'new-pr',
@@ -204,43 +288,57 @@ export function generateOverloadSuggestion(
     };
   }
 
-  // High reps = suggest weight increase
-  if (best.reps >= 10) {
+  // High reps = suggest weight increase (only if not already at target)
+  if (best.reps >= 15) {
     const suggestedIncrease = best.weight <= 20 ? 2.5 : 5;
     return {
       type: 'increase-weight',
-      message: `Je deed ${best.reps} reps! Probeer volgend keer ${roundTo(best.weight + suggestedIncrease, 2.5)}kg voor 6-8 reps`,
+      message: `Je deed ${best.reps} reps! Verhoog gewicht naar ${roundTo(best.weight + suggestedIncrease, 2.5)}kg`,
       suggestedWeight: roundTo(best.weight + suggestedIncrease, 2.5)
     };
   }
 
   // Low reps with heavy weight = suggest more reps
-  if (best.reps <= 5 && progression.status === 'same') {
+  if (best.reps <= 6 && progression.status === 'same') {
     return {
       type: 'increase-reps',
-      message: `Probeer ${best.weight}kg voor ${best.reps + 2}-${best.reps + 3} reps te bereiken`,
-      suggestedReps: best.reps + 2
+      message: `Probeer ${best.weight}kg voor ${best.reps + 2}-${best.reps + 4} reps te bereiken`,
+      suggestedReps: best.reps + 3
     };
   }
 
-  // Good progression
+  // Good progression (including rep progression)
   if (progression.status === 'improved') {
+    const currentAvg = Math.round(progression.currentAverageReps);
+    if (currentAvg < 12) {
+      return {
+        type: 'maintain',
+        message: `✅ Goede progressie! Focus op 12 reps voor alle sets`
+      };
+    }
     return {
       type: 'maintain',
-      message: `✅ Goede progressie! Blijf dit gewicht gebruiken tot je 10+ reps haalt`
+      message: `✅ Goede progressie! Blijf dit gewicht gebruiken`
     };
   }
 
-  // Decline
+  // Decline in performance
   if (progression.status === 'declined') {
+    if (progression.sameWeight && progression.repProgression < -1) {
+      return {
+        type: 'maintain',
+        message: `⚠️ Minder reps dan vorige keer. Focus op herstel en slaap`,
+        suggestedWeight: best.weight
+      };
+    }
     return {
       type: 'maintain',
-      message: `Focus op herstel. Gebruik ${roundTo(best.weight * 0.9, 2.5)}kg voor volume-werk`,
+      message: `Focus op herstel. Overweeg ${roundTo(best.weight * 0.9, 2.5)}kg voor volume-werk`,
       suggestedWeight: roundTo(best.weight * 0.9, 2.5)
     };
   }
 
-  // Default
+  // Default: add volume
   return {
     type: 'add-set',
     message: `Probeer een extra set toe te voegen voor meer volume`
