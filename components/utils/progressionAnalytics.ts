@@ -125,9 +125,31 @@ export function calculateProgression(
   const weightDelta = currentBest.weight - previousBest.weight;
   const repsDelta = currentBest.reps - previousBest.reps;
   const volumeDelta = currentBest.volume - previousBest.volume;
+  
+  // Calculate average reps for better progression detection
+  const currentCompletedSets = currentExercise.sets.filter(s => s.completed && s.reps > 0);
+  const previousCompletedSets = previousExercise.sets.filter(s => s.completed && s.reps > 0);
+  
+  const currentAvgReps = currentCompletedSets.length > 0
+    ? currentCompletedSets.reduce((sum, s) => sum + s.reps, 0) / currentCompletedSets.length
+    : 0;
+  const previousAvgReps = previousCompletedSets.length > 0
+    ? previousCompletedSets.reduce((sum, s) => sum + s.reps, 0) / previousCompletedSets.length
+    : 0;
+  
+  const avgRepsDelta = currentAvgReps - previousAvgReps;
+  
+  // Check if weight stayed approximately the same (within 0.5kg tolerance)
+  const currentAvgWeight = currentCompletedSets.length > 0
+    ? currentCompletedSets.reduce((sum, s) => sum + s.weight, 0) / currentCompletedSets.length
+    : 0;
+  const previousAvgWeight = previousCompletedSets.length > 0
+    ? previousCompletedSets.reduce((sum, s) => sum + s.weight, 0) / previousCompletedSets.length
+    : 0;
+  const sameWeight = Math.abs(currentAvgWeight - previousAvgWeight) < 0.5;
 
   // Determine status based on improvements
-  // Priority: weight > reps > volume
+  // Priority: weight increase > rep progression at same weight > volume
   if (weightDelta > 0) {
     return {
       status: 'improved',
@@ -148,7 +170,28 @@ export function calculateProgression(
     };
   }
 
-  // Weight is the same, check reps
+  // Weight is the same - check average reps across all sets (better indicator than just best set)
+  if (sameWeight && avgRepsDelta > 0.5) {
+    return {
+      status: 'improved',
+      delta: avgRepsDelta,
+      metric: 'reps',
+      previousBest,
+      currentBest
+    };
+  }
+
+  if (sameWeight && avgRepsDelta < -0.5) {
+    return {
+      status: 'decreased',
+      delta: avgRepsDelta,
+      metric: 'reps',
+      previousBest,
+      currentBest
+    };
+  }
+  
+  // Fallback to best set comparison if weights are different
   if (repsDelta > 0) {
     return {
       status: 'improved',
