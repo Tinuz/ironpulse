@@ -2,7 +2,7 @@
 
 import React, { forwardRef } from 'react'
 import { motion } from 'framer-motion'
-import { Check, Trash2, TrendingUp } from 'lucide-react'
+import { Check, Trash2, TrendingUp, Flame } from 'lucide-react'
 import clsx from 'clsx'
 import { WorkoutSet } from '@/components/context/DataContext'
 
@@ -76,23 +76,25 @@ const EnhancedSetRow = forwardRef<HTMLDivElement, EnhancedSetRowProps>(({
         <div className="p-3">
           {/* Main row */}
           <div className="grid grid-cols-[auto_1fr_1fr_auto_auto] gap-2 items-center">
-            {/* Set number with warm-up toggle */}
-            <div className="relative">
+            {/* Set number + Warmup toggle */}
+            <div className="flex flex-col items-center gap-0.5">
+              {/* Set number */}
+              <div className="text-muted-foreground font-mono font-bold text-xs">
+                {index + 1}
+              </div>
+              {/* Warmup toggle button with flame icon */}
               <button
                 onClick={onToggleWarmup}
                 className={clsx(
-                  "w-9 h-9 rounded-lg text-sm font-mono font-bold transition-all flex items-center justify-center border",
+                  "w-7 h-7 rounded-lg transition-all flex items-center justify-center border",
                   set.isWarmup 
                     ? "bg-blue-500/40 text-blue-300 border-blue-500/60 shadow-[0_0_10px_rgba(59,130,246,0.3)]" 
-                    : "bg-white/5 text-muted-foreground border-white/10 hover:bg-blue-500/10 hover:border-blue-500/30"
+                    : "bg-white/5 text-zinc-600 border-white/10 hover:bg-blue-500/20 hover:text-blue-400 hover:border-blue-500/40"
                 )}
-                title={set.isWarmup ? "Warmup set (klik om uit te schakelen)" : "Klik om warmup te markeren"}
+                title={set.isWarmup ? "Warmup set - klik om uit te schakelen" : "Klik om als warmup te markeren"}
               >
-                {index + 1}
+                <Flame size={14} className={set.isWarmup ? "fill-blue-300" : ""} />
               </button>
-              {set.isWarmup && (
-                <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-blue-400 rounded-full animate-pulse" />
-              )}
             </div>
             
             {/* Weight input */}
