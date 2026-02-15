@@ -81,10 +81,10 @@ const EnhancedSetRow = forwardRef<HTMLDivElement, EnhancedSetRowProps>(({
               <button
                 onClick={onToggleWarmup}
                 className={clsx(
-                  "w-9 h-9 rounded-lg text-sm font-mono font-bold transition-all flex items-center justify-center",
+                  "w-9 h-9 rounded-lg text-sm font-mono font-bold transition-all flex items-center justify-center border",
                   set.isWarmup 
-                    ? "bg-blue-500/40 text-blue-300 border-2 border-blue-500/60 shadow-[0_0_10px_rgba(59,130,246,0.3)]" 
-                    : "text-muted-foreground hover:bg-blue-500/10 hover:border hover:border-blue-500/30"
+                    ? "bg-blue-500/40 text-blue-300 border-blue-500/60 shadow-[0_0_10px_rgba(59,130,246,0.3)]" 
+                    : "bg-white/5 text-muted-foreground border-white/10 hover:bg-blue-500/10 hover:border-blue-500/30"
                 )}
                 title={set.isWarmup ? "Warmup set (klik om uit te schakelen)" : "Klik om warmup te markeren"}
               >
@@ -173,8 +173,8 @@ const EnhancedSetRow = forwardRef<HTMLDivElement, EnhancedSetRowProps>(({
           {!set.isWarmup && (showRIR || showRPE) && (
             <div className="mt-2 flex items-center gap-2">
               {showRIR && (
-                <div className="flex items-center gap-1.5">
-                  <label className="text-[9px] text-zinc-500 font-semibold uppercase tracking-wide">
+                <div className="flex items-center gap-1.5 max-w-[70px]">
+                  <label className="text-[9px] text-zinc-500 font-semibold uppercase tracking-wide flex-shrink-0">
                     RIR
                   </label>
                   <select
@@ -194,8 +194,8 @@ const EnhancedSetRow = forwardRef<HTMLDivElement, EnhancedSetRowProps>(({
                 </div>
               )}
               {showRPE && (
-                <div className="flex items-center gap-1.5">
-                  <label className="text-[9px] text-zinc-500 font-semibold uppercase tracking-wide">
+                <div className="flex items-center gap-1.5 max-w-[70px]">
+                  <label className="text-[9px] text-zinc-500 font-semibold uppercase tracking-wide flex-shrink-0">
                     RPE
                   </label>
                   <select
