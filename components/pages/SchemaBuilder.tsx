@@ -326,33 +326,35 @@ export default function SchemaBuilder() {
                 value={ex}
                 className="bg-card border border-white/5 rounded-xl overflow-hidden"
               >
-                <div className="p-4 flex items-center justify-between group">
+                <div className="p-4 flex items-center gap-2 group">
                   {/* Drag Handle */}
                   <div
-                    className="cursor-grab active:cursor-grabbing p-2 -ml-2 mr-2 text-muted-foreground/40 hover:text-muted-foreground transition-colors"
+                    className="cursor-grab active:cursor-grabbing p-2 -ml-2 text-muted-foreground/40 hover:text-muted-foreground transition-colors flex-shrink-0"
                     title="Sleep om volgorde te wijzigen"
                   >
                     <GripVertical size={20} />
                   </div>
 
-                  <div className="flex items-center gap-4 flex-1">
-                    <div className={`h-10 w-10 rounded-full flex items-center justify-center text-sm font-bold ${
-                      ex.type === 'cardio' 
-                        ? 'bg-green-500/20 text-green-400' 
-                        : 'bg-white/5 text-muted-foreground'
-                    }`}>
-                      {ex.type === 'cardio' ? <Heart size={18} /> : i + 1}
+                  {/* Exercise Number/Icon */}
+                  <div className={`h-10 w-10 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 ${
+                    ex.type === 'cardio' 
+                      ? 'bg-green-500/20 text-green-400' 
+                      : 'bg-white/5 text-muted-foreground'
+                  }`}>
+                    {ex.type === 'cardio' ? <Heart size={18} /> : i + 1}
+                  </div>
+
+                  {/* Exercise Info */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <h4 className="font-bold text-lg leading-tight truncate">{ex.name}</h4>
+                      {ex.type === 'cardio' && (
+                        <span className="text-[9px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-green-500/20 text-green-400 flex-shrink-0">
+                          {t.schema.cardio}
+                        </span>
+                      )}
                     </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h4 className="font-bold text-lg leading-tight">{ex.name}</h4>
-                        {ex.type === 'cardio' && (
-                          <span className="text-[9px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-green-500/20 text-green-400">
-                            {t.schema.cardio}
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex gap-3 text-xs text-muted-foreground mt-1 font-mono">
+                    <div className="flex gap-2 sm:gap-3 text-xs text-muted-foreground mt-1 font-mono flex-wrap">
                         {ex.type === 'cardio' ? (
                           <>
                             {ex.cardioData && (
@@ -387,8 +389,9 @@ export default function SchemaBuilder() {
                         )}
                       </div>
                     </div>
-                  </div>
-                  <div className="flex gap-1 sm:gap-2 flex-shrink-0">
+
+                  {/* Action Buttons */}
+                  <div className="flex gap-1 flex-shrink-0">
                     <button 
                       onClick={() => openSubstitutionModal(ex)}
                       className="p-2 text-blue-400 sm:text-blue-400/40 hover:text-blue-400 transition-colors"
