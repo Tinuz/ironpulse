@@ -703,23 +703,47 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (activeWorkout) {
       const finishedWorkout = { ...activeWorkout, endTime: Date.now(), completedAt: new Date().toISOString() };
       
+      // Clean up exercises data - remove any fields that might cause serialization issues
+      const cleanedExercises = finishedWorkout.exercises.map(ex => ({
+        id: ex.id,
+        exerciseId: ex.exerciseId,
+        name: ex.name,
+        type: ex.type,
+        muscleGroup: ex.muscleGroup,
+        sets: ex.sets,
+        cardioData: ex.cardioData,
+        notes: ex.notes,
+        durationMinutes: ex.durationMinutes,
+        estimatedCalories: ex.estimatedCalories,
+        oneRepMax: ex.oneRepMax
+      }));
+      
+      const insertData = {
+        id: finishedWorkout.id,
+        user_id: USER_ID,
+        schema_id: finishedWorkout.schemaId,
+        name: finishedWorkout.name,
+        date: finishedWorkout.date,
+        start_time: finishedWorkout.startTime,
+        end_time: finishedWorkout.endTime,
+        exercises: cleanedExercises,
+        is_deload: finishedWorkout.isDeload || false,
+        total_calories: finishedWorkout.totalCalories || null,
+        met_value: finishedWorkout.metValue || 5.0
+      };
+      
+      console.log('Saving workout:', JSON.stringify(insertData, null, 2));
+      
       const { data, error } = await supabase
         .from('workout_history')
-        .insert({
-          id: finishedWorkout.id,
-          user_id: USER_ID,
-          schema_id: finishedWorkout.schemaId,
-          name: finishedWorkout.name,
-          date: finishedWorkout.date,
-          start_time: finishedWorkout.startTime,
-          end_time: finishedWorkout.endTime,
-          exercises: finishedWorkout.exercises,
-          is_deload: finishedWorkout.isDeload || false,
-          total_calories: finishedWorkout.totalCalories || null,
-          met_value: finishedWorkout.metValue || 5.0
-        })
+        .insert(insertData)
         .select()
         .single();
+      
+      if (error) {
+        console.error('Error saving workout:', error);
+        console.error('Error details:', JSON.stringify(error, null, 2));
+      }
 
       if (!error && data) {
         const newWorkout = {
