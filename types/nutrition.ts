@@ -72,6 +72,8 @@ export interface NutritionSearchResult {
     protein: number; // g
     carbs: number; // g
     fats: number; // g
+    saturatedFat?: number; // g (optional)
+    unsaturatedFat?: number; // g (optional)
     fiber?: number; // g (optional)
     sugars?: number; // g (optional)
     sodium?: number; // mg (optional)
@@ -127,6 +129,8 @@ export interface MealTemplateItem {
   proteinPer100g: number;
   carbsPer100g: number;
   fatsPer100g: number;
+  saturatedFatPer100g?: number;
+  unsaturatedFatPer100g?: number;
   
   // Quantity in template
   quantity: number; // e.g., 200 for 200g
@@ -200,6 +204,8 @@ export interface CustomFoodItem {
   protein: number;
   carbs: number;
   fats: number;
+  saturatedFat?: number; // g - saturated fat
+  unsaturatedFat?: number; // g - unsaturated fat (mono + poly)
   
   // Serving info
   servingSize: number; // e.g., 300 for a 300g meal
@@ -225,6 +231,8 @@ export interface CreateCustomFoodItemRequest {
   protein: number;
   carbs: number;
   fats: number;
+  saturatedFat?: number;
+  unsaturatedFat?: number;
   servingSize: number;
   servingUnit: string;
   category?: string;
@@ -238,6 +246,8 @@ export interface UpdateCustomFoodItemRequest {
   protein?: number;
   carbs?: number;
   fats?: number;
+  saturatedFat?: number;
+  unsaturatedFat?: number;
   servingSize?: number;
   servingUnit?: string;
   category?: string;

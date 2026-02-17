@@ -110,6 +110,8 @@ export interface NutritionItem {
   protein: number;
   carbs: number;
   fats: number;
+  saturatedFat?: number; // g - saturated fat
+  unsaturatedFat?: number; // g - unsaturated fat (mono + poly)
   type: 'food' | 'drink';
   volume?: number; // in ml for drinks
 }

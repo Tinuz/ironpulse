@@ -97,6 +97,8 @@ export default function Nutrition() {
     protein: '',
     carbs: '',
     fats: '',
+    saturatedFat: '',
+    unsaturatedFat: '',
     volume: '',
     amount: '100', // Default to 100g
     type: 'food' as 'food' | 'drink',
@@ -104,7 +106,9 @@ export default function Nutrition() {
     baseCalories: '',
     baseProtein: '',
     baseCarbs: '',
-    baseFats: ''
+    baseFats: '',
+    baseSaturatedFat: '',
+    baseUnsaturatedFat: ''
   });
 
   const totals = items.reduce((acc, item) => ({
@@ -112,7 +116,9 @@ export default function Nutrition() {
     protein: Math.round((acc.protein + item.protein) * 10) / 10,
     carbs: Math.round((acc.carbs + item.carbs) * 10) / 10,
     fats: Math.round((acc.fats + item.fats) * 10) / 10,
-  }), { calories: 0, protein: 0, carbs: 0, fats: 0 });
+    saturatedFat: Math.round((acc.saturatedFat + (item.saturatedFat || 0)) * 10) / 10,
+    unsaturatedFat: Math.round((acc.unsaturatedFat + (item.unsaturatedFat || 0)) * 10) / 10,
+  }), { calories: 0, protein: 0, carbs: 0, fats: 0, saturatedFat: 0, unsaturatedFat: 0 });
 
   // Calculate targets from user profile
   const getTargets = () => {
@@ -189,6 +195,69 @@ export default function Nutrition() {
 
   const nutritionStatus = getNutritionStatus();
 
+  // Analyze fat quality (saturated vs unsaturated)
+  const getFatQuality = () => {
+    const totalFat = totals.fats;
+    const saturated = totals.saturatedFat || 0;
+    const unsaturated = totals.unsaturatedFat || 0;
+    
+    if (totalFat === 0) return null;
+    
+    // Calculate percentages
+    const saturatedPercentage = (saturated / totalFat) * 100;
+    const unsaturatedPercentage = (unsaturated / totalFat) * 100;
+    const unknownPercentage = 100 - saturatedPercentage - unsaturatedPercentage;
+    
+    // Calculate saturated fat as % of total calories (for health recommendations)
+    const saturatedCalories = saturated * 9;
+    const saturatedPercentOfTotalCal = targets ? (saturatedCalories / targets.maintenance) * 100 : 0;
+    
+    // Determine quality score
+    // 🟢 >70% unsaturated = excellent
+    // 🟡 50-70% unsaturated = ok
+    // 🔴 <50% unsaturated = needs improvement
+    let quality: 'excellent' | 'good' | 'needs-improvement' = 'good';
+    let message = '';
+    
+    if (unsaturatedPercentage >= 70) {
+      quality = 'excellent';
+      message = language === 'nl' 
+        ? '70%+ van je vetinname is onverzadigd. Uitstekend voor je gezondheid!' 
+        : '70%+ of your fat intake is unsaturated. Excellent for your health!';
+    } else if (unsaturatedPercentage >= 50) {
+      quality = 'good';
+      message = language === 'nl'
+        ? '50-70% van je vetinname is onverzadigd. Goed, maar kan beter.'
+        : '50-70% of your fat intake is unsaturated. Good, but could be better.';
+    } else if (saturatedPercentage > 50) {
+      quality = 'needs-improvement';
+      message = language === 'nl'
+        ? 'Meer dan 50% van je vetten is verzadigd. Overweeg meer onverzadigde vetbronnen.'
+        : 'More than 50% of your fats are saturated. Consider more unsaturated fat sources.';
+    }
+    
+    // Check if saturated fat is too high relative to total calories
+    if (saturatedPercentOfTotalCal > 10 && targets) {
+      quality = 'needs-improvement';
+      message = language === 'nl'
+        ? `Verzadigd vet is ${saturatedPercentOfTotalCal.toFixed(0)}% van je totale calorieën (advies: max 10%). Probeer meer onverzadigde vetten te eten.`
+        : `Saturated fat is ${saturatedPercentOfTotalCal.toFixed(0)}% of total calories (recommended: max 10%). Try eating more unsaturated fats.`;
+    }
+    
+    return {
+      saturatedGrams: saturated,
+      unsaturatedGrams: unsaturated,
+      saturatedPercentage: Math.round(saturatedPercentage),
+      unsaturatedPercentage: Math.round(unsaturatedPercentage),
+      unknownPercentage: Math.round(unknownPercentage),
+      saturatedPercentOfTotalCal: Math.round(saturatedPercentOfTotalCal),
+      quality,
+      message
+    };
+  };
+
+  const fatQuality = getFatQuality();
+
   // Get data for week/month view
   const getHistoryData = () => {
     let dateRange: Date[] = [];
@@ -233,6 +302,8 @@ export default function Nutrition() {
       protein: Number(newItem.protein) || 0,
       carbs: Number(newItem.carbs) || 0,
       fats: Number(newItem.fats) || 0,
+      saturatedFat: newItem.saturatedFat ? Number(newItem.saturatedFat) : undefined,
+      unsaturatedFat: newItem.unsaturatedFat ? Number(newItem.unsaturatedFat) : undefined,
       type: newItem.type,
       volume: newItem.volume ? Number(newItem.volume) : undefined
     });
@@ -243,13 +314,17 @@ export default function Nutrition() {
       protein: '',
       carbs: '',
       fats: '',
+      saturatedFat: '',
+      unsaturatedFat: '',
       volume: '',
       amount: '100',
       type: 'food',
       baseCalories: '',
       baseProtein: '',
       baseCarbs: '',
-      baseFats: ''
+      baseFats: '',
+      baseSaturatedFat: '',
+      baseUnsaturatedFat: ''
     });
     setIsAdding(false);
   };
@@ -261,13 +336,17 @@ export default function Nutrition() {
       protein: product.protein.toString(),
       carbs: product.carbs.toString(),
       fats: product.fats.toString(),
+      saturatedFat: product.saturatedFat?.toString() || '',
+      unsaturatedFat: product.unsaturatedFat?.toString() || '',
       volume: '',
       amount: '100',
       type: 'food',
       baseCalories: product.calories.toString(),
       baseProtein: product.protein.toString(),
       baseCarbs: product.carbs.toString(),
-      baseFats: product.fats.toString()
+      baseFats: product.fats.toString(),
+      baseSaturatedFat: product.saturatedFat?.toString() || '',
+      baseUnsaturatedFat: product.unsaturatedFat?.toString() || ''
     });
     setIsScannerOpen(false);
     setIsAdding(true);
@@ -426,6 +505,8 @@ export default function Nutrition() {
       protein: result.nutrients.protein.toString(),
       carbs: result.nutrients.carbs.toString(),
       fats: result.nutrients.fats.toString(),
+      saturatedFat: result.nutrients.saturatedFat?.toString() || '',
+      unsaturatedFat: result.nutrients.unsaturatedFat?.toString() || '',
       volume: '',
       amount: '100',
       type: newItem.type,
@@ -433,7 +514,9 @@ export default function Nutrition() {
       baseCalories: result.nutrients.calories.toString(),
       baseProtein: result.nutrients.protein.toString(),
       baseCarbs: result.nutrients.carbs.toString(),
-      baseFats: result.nutrients.fats.toString()
+      baseFats: result.nutrients.fats.toString(),
+      baseSaturatedFat: result.nutrients.saturatedFat?.toString() || '',
+      baseUnsaturatedFat: result.nutrients.unsaturatedFat?.toString() || ''
     });
     setShowDropdown(false);
     setSearchResults([]);
@@ -449,6 +532,8 @@ export default function Nutrition() {
     const protein = Math.round(item.protein * per100gMultiplier * 10) / 10;
     const carbs = Math.round(item.carbs * per100gMultiplier * 10) / 10;
     const fats = Math.round(item.fats * per100gMultiplier * 10) / 10;
+    const saturatedFat = item.saturatedFat ? Math.round(item.saturatedFat * per100gMultiplier * 10) / 10 : 0;
+    const unsaturatedFat = item.unsaturatedFat ? Math.round(item.unsaturatedFat * per100gMultiplier * 10) / 10 : 0;
     
     setNewItem({
       name: selectedName,
@@ -456,6 +541,8 @@ export default function Nutrition() {
       protein: protein.toString(),
       carbs: carbs.toString(),
       fats: fats.toString(),
+      saturatedFat: saturatedFat ? saturatedFat.toString() : '',
+      unsaturatedFat: unsaturatedFat ? unsaturatedFat.toString() : '',
       volume: '',
       amount: item.servingSize.toString(), // Use original serving size
       type: newItem.type,
@@ -463,7 +550,9 @@ export default function Nutrition() {
       baseCalories: calories.toString(),
       baseProtein: protein.toString(),
       baseCarbs: carbs.toString(),
-      baseFats: fats.toString()
+      baseFats: fats.toString(),
+      baseSaturatedFat: saturatedFat ? saturatedFat.toString() : '',
+      baseUnsaturatedFat: unsaturatedFat ? unsaturatedFat.toString() : ''
     });
     
     // Increment usage count
@@ -523,7 +612,9 @@ export default function Nutrition() {
         calories: Math.round(parseFloat(newItem.baseCalories) * multiplier).toString(),
         protein: (Math.round(parseFloat(newItem.baseProtein) * multiplier * 10) / 10).toString(),
         carbs: (Math.round(parseFloat(newItem.baseCarbs) * multiplier * 10) / 10).toString(),
-        fats: (Math.round(parseFloat(newItem.baseFats) * multiplier * 10) / 10).toString()
+        fats: (Math.round(parseFloat(newItem.baseFats) * multiplier * 10) / 10).toString(),
+        saturatedFat: newItem.baseSaturatedFat ? (Math.round(parseFloat(newItem.baseSaturatedFat) * multiplier * 10) / 10).toString() : '',
+        unsaturatedFat: newItem.baseUnsaturatedFat ? (Math.round(parseFloat(newItem.baseUnsaturatedFat) * multiplier * 10) / 10).toString() : ''
       });
     } else {
       setNewItem({...newItem, amount: amount});
@@ -582,6 +673,8 @@ export default function Nutrition() {
       protein: item.protein,
       carbs: item.carbs,
       fats: item.fats,
+      saturatedFat: item.saturatedFat,
+      unsaturatedFat: item.unsaturatedFat,
       type: item.type
     });
     setIsAdding(false);
@@ -945,6 +1038,57 @@ export default function Nutrition() {
                 </div>
               </div>
             </div>
+
+            {/* Fat Quality Analysis */}
+            {fatQuality && fatQuality.saturatedGrams + fatQuality.unsaturatedGrams > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className={`p-4 rounded-xl border ${
+                  fatQuality.quality === 'excellent' ? 'bg-green-500/10 border-green-500/30' :
+                  fatQuality.quality === 'good' ? 'bg-blue-500/10 border-blue-500/30' :
+                  'bg-amber-500/10 border-amber-500/30'
+                }`}
+              >
+                <div className="flex items-start gap-3">
+                  <div className={`mt-0.5 text-2xl`}>
+                    {fatQuality.quality === 'excellent' ? '🟢' : fatQuality.quality === 'good' ? '🟡' : '🔴'}
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-bold text-sm mb-2">
+                      {language === 'nl' ? 'Vetkwaliteit' : 'Fat Quality'}
+                    </div>
+                    <div className="flex flex-wrap gap-2 mb-3">
+                      {fatQuality.saturatedGrams > 0 && (
+                        <div className="text-xs bg-red-500/20 text-red-300 px-2 py-1 rounded-md">
+                          Verzadigd: {fatQuality.saturatedGrams}g ({fatQuality.saturatedPercentage}%)
+                        </div>
+                      )}
+                      {fatQuality.unsaturatedGrams > 0 && (
+                        <div className="text-xs bg-green-500/20 text-green-300 px-2 py-1 rounded-md">
+                          Onverzadigd: {fatQuality.unsaturatedGrams}g ({fatQuality.unsaturatedPercentage}%)
+                        </div>
+                      )}
+                      {fatQuality.unknownPercentage > 0 && (
+                        <div className="text-xs bg-zinc-500/20 text-zinc-400 px-2 py-1 rounded-md">
+                          Onbekend: {fatQuality.unknownPercentage}%
+                        </div>
+                      )}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {fatQuality.message}
+                    </div>
+                    {fatQuality.unknownPercentage > 30 && (
+                      <div className="text-xs text-zinc-500 mt-2 italic">
+                        {language === 'nl' 
+                          ? 'Tip: Voeg verzadigd/onverzadigd vet toe aan je maaltijden voor betere inzichten.'
+                          : 'Tip: Add saturated/unsaturated fat data to your meals for better insights.'}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </motion.div>
+            )}
 
             {/* Warnings & Recommendations */}
             {nutritionStatus && (
@@ -1612,6 +1756,34 @@ export default function Nutrition() {
                       value={newItem.fats}
                       onChange={(e) => setNewItem({...newItem, fats: e.target.value})}
                       placeholder="5"
+                      className="w-full bg-card border border-white/10 rounded-xl p-3 focus:border-primary outline-none"
+                      disabled={!!newItem.baseCalories}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-muted-foreground uppercase mb-2 block">
+                      Verzadigd vet (g) <span className="text-[10px] text-zinc-600 font-normal ml-1">optioneel</span>
+                    </label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      value={newItem.saturatedFat}
+                      onChange={(e) => setNewItem({...newItem, saturatedFat: e.target.value})}
+                      placeholder="2"
+                      className="w-full bg-card border border-white/10 rounded-xl p-3 focus:border-primary outline-none"
+                      disabled={!!newItem.baseCalories}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-muted-foreground uppercase mb-2 block">
+                      Onverzadigd vet (g) <span className="text-[10px] text-zinc-600 font-normal ml-1">optioneel</span>
+                    </label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      value={newItem.unsaturatedFat}
+                      onChange={(e) => setNewItem({...newItem, unsaturatedFat: e.target.value})}
+                      placeholder="3"
                       className="w-full bg-card border border-white/10 rounded-xl p-3 focus:border-primary outline-none"
                       disabled={!!newItem.baseCalories}
                     />

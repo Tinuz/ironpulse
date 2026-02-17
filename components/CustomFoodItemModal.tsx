@@ -31,6 +31,8 @@ export default function CustomFoodItemModal({ isOpen, onClose, onItemCreated }: 
     protein: '',
     carbs: '',
     fats: '',
+    saturatedFat: '',
+    unsaturatedFat: '',
     servingSize: '100',
     servingUnit: 'g',
     category: 'meal',
@@ -49,6 +51,8 @@ export default function CustomFoodItemModal({ isOpen, onClose, onItemCreated }: 
         protein: '',
         carbs: '',
         fats: '',
+        saturatedFat: '',
+        unsaturatedFat: '',
         servingSize: '100',
         servingUnit: 'g',
         category: 'meal',
@@ -113,6 +117,8 @@ export default function CustomFoodItemModal({ isOpen, onClose, onItemCreated }: 
         protein: parseFloat(formData.protein),
         carbs: parseFloat(formData.carbs),
         fats: parseFloat(formData.fats),
+        saturatedFat: formData.saturatedFat ? parseFloat(formData.saturatedFat) : undefined,
+        unsaturatedFat: formData.unsaturatedFat ? parseFloat(formData.unsaturatedFat) : undefined,
         servingSize: parseFloat(formData.servingSize),
         servingUnit: formData.servingUnit,
         category: formData.category || undefined,
@@ -364,6 +370,36 @@ export default function CustomFoodItemModal({ isOpen, onClose, onItemCreated }: 
                   {validationErrors.fats && (
                     <p className="mt-1 text-sm text-red-400">{validationErrors.fats}</p>
                   )}
+                </div>
+
+                {/* Saturated Fat */}
+                <div>
+                  <label className="block text-sm font-medium text-zinc-300 mb-2">
+                    Verzadigd vet (g) <span className="text-zinc-500 text-xs ml-1">optioneel</span>
+                  </label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={formData.saturatedFat}
+                    onChange={(e) => setFormData({ ...formData, saturatedFat: e.target.value })}
+                    placeholder="0"
+                    className="w-full bg-zinc-800/50 border border-zinc-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                  />
+                </div>
+
+                {/* Unsaturated Fat */}
+                <div>
+                  <label className="block text-sm font-medium text-zinc-300 mb-2">
+                    Onverzadigd vet (g) <span className="text-zinc-500 text-xs ml-1">optioneel</span>
+                  </label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={formData.unsaturatedFat}
+                    onChange={(e) => setFormData({ ...formData, unsaturatedFat: e.target.value })}
+                    placeholder="0"
+                    className="w-full bg-zinc-800/50 border border-zinc-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                  />
                 </div>
               </div>
             </div>

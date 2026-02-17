@@ -24,6 +24,8 @@ function mapDbRowToCustomItem(row: any): CustomFoodItem {
     protein: parseFloat(row.protein),
     carbs: parseFloat(row.carbs),
     fats: parseFloat(row.fats),
+    saturatedFat: row.saturated_fat ? parseFloat(row.saturated_fat) : undefined,
+    unsaturatedFat: row.unsaturated_fat ? parseFloat(row.unsaturated_fat) : undefined,
     servingSize: parseFloat(row.serving_size),
     servingUnit: row.serving_unit,
     category: row.category,
@@ -157,6 +159,8 @@ export async function createCustomFoodItem(
         protein: request.protein,
         carbs: request.carbs,
         fats: request.fats,
+        saturated_fat: request.saturatedFat,
+        unsaturated_fat: request.unsaturatedFat,
         serving_size: request.servingSize,
         serving_unit: request.servingUnit,
         category: request.category,
@@ -195,6 +199,8 @@ export async function updateCustomFoodItem(
     if (updates.protein !== undefined) updateData.protein = updates.protein;
     if (updates.carbs !== undefined) updateData.carbs = updates.carbs;
     if (updates.fats !== undefined) updateData.fats = updates.fats;
+    if (updates.saturatedFat !== undefined) updateData.saturated_fat = updates.saturatedFat;
+    if (updates.unsaturatedFat !== undefined) updateData.unsaturated_fat = updates.unsaturatedFat;
     if (updates.servingSize !== undefined) updateData.serving_size = updates.servingSize;
     if (updates.servingUnit !== undefined) updateData.serving_unit = updates.servingUnit;
     if (updates.category !== undefined) updateData.category = updates.category;
