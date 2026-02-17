@@ -388,23 +388,23 @@ export default function SchemaBuilder() {
                       </div>
                     </div>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-1 sm:gap-2 flex-shrink-0">
                     <button 
                       onClick={() => openSubstitutionModal(ex)}
-                      className="p-2 text-blue-400/40 hover:text-blue-400 transition-colors"
+                      className="p-2 text-blue-400 sm:text-blue-400/40 hover:text-blue-400 transition-colors"
                       title={t.common.search}
                     >
                       <RefreshCw size={18} />
                     </button>
                     <button 
                       onClick={() => startEditExercise(ex)}
-                      className="p-2 text-muted-foreground/40 hover:text-muted-foreground transition-colors"
+                      className="p-2 text-muted-foreground sm:text-muted-foreground/40 hover:text-muted-foreground transition-colors"
                     >
                       <Edit2 size={18} />
                     </button>
                     <button 
                       onClick={() => removeExercise(ex.id)}
-                      className="p-2 text-red-500/40 hover:text-red-500 transition-colors"
+                      className="p-2 text-red-500 sm:text-red-500/40 hover:text-red-500 transition-colors"
                     >
                       <Trash2 size={18} />
                     </button>
