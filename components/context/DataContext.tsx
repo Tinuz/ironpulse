@@ -327,7 +327,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           startTime: h.start_time,
           endTime: h.end_time,
           exercises: h.exercises,
-          isDeload: h.is_deload || false
+          isDeload: h.is_deload || false,
+          totalCalories: h.total_calories || undefined,
+          metValue: h.met_value || undefined
         })));
       }
 
@@ -712,7 +714,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           start_time: finishedWorkout.startTime,
           end_time: finishedWorkout.endTime,
           exercises: finishedWorkout.exercises,
-          is_deload: finishedWorkout.isDeload || false
+          is_deload: finishedWorkout.isDeload || false,
+          total_calories: finishedWorkout.totalCalories || null,
+          met_value: finishedWorkout.metValue || 5.0
         })
         .select()
         .single();
@@ -727,7 +731,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           endTime: data.end_time,
           exercises: data.exercises,
           completedAt: finishedWorkout.completedAt,
-          isDeload: data.is_deload || false
+          isDeload: data.is_deload || false,
+          totalCalories: data.total_calories || undefined,
+          metValue: data.met_value || undefined
         };
         
         const updatedHistory = [newWorkout, ...history];
@@ -781,7 +787,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         start_time: updatedWorkout.startTime,
         end_time: updatedWorkout.endTime,
         exercises: updatedWorkout.exercises,
-        is_deload: updatedWorkout.isDeload || false
+        is_deload: updatedWorkout.isDeload || false,
+        total_calories: updatedWorkout.totalCalories || null,
+        met_value: updatedWorkout.metValue || null
       })
       .eq('id', id)
       .eq('user_id', USER_ID);
