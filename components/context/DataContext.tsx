@@ -718,32 +718,23 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         oneRepMax: ex.oneRepMax
       }));
       
-      const insertData = {
-        id: finishedWorkout.id,
-        user_id: USER_ID,
-        schema_id: finishedWorkout.schemaId,
-        name: finishedWorkout.name,
-        date: finishedWorkout.date,
-        start_time: finishedWorkout.startTime,
-        end_time: finishedWorkout.endTime,
-        exercises: cleanedExercises,
-        is_deload: finishedWorkout.isDeload || false,
-        total_calories: finishedWorkout.totalCalories || null,
-        met_value: finishedWorkout.metValue || 5.0
-      };
-      
-      console.log('Saving workout:', JSON.stringify(insertData, null, 2));
-      
       const { data, error } = await supabase
         .from('workout_history')
-        .insert(insertData)
+        .insert({
+          id: finishedWorkout.id,
+          user_id: USER_ID,
+          schema_id: finishedWorkout.schemaId,
+          name: finishedWorkout.name,
+          date: finishedWorkout.date,
+          start_time: finishedWorkout.startTime,
+          end_time: finishedWorkout.endTime,
+          exercises: cleanedExercises,
+          is_deload: finishedWorkout.isDeload || false,
+          total_calories: finishedWorkout.totalCalories || null,
+          met_value: finishedWorkout.metValue || 5.0
+        })
         .select()
         .single();
-      
-      if (error) {
-        console.error('Error saving workout:', error);
-        console.error('Error details:', JSON.stringify(error, null, 2));
-      }
 
       if (!error && data) {
         const newWorkout = {
