@@ -1,8 +1,8 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft, Plus, Trash2, GripHorizontal, RotateCcw, Edit2, Search, RefreshCw, Share2, Lightbulb, Heart, Dumbbell, Clock, Route } from 'lucide-react'
+import { motion, AnimatePresence, Reorder } from 'framer-motion'
+import { ArrowLeft, Plus, Trash2, GripVertical, RotateCcw, Edit2, Search, RefreshCw, Share2, Lightbulb, Heart, Dumbbell, Clock, Route } from 'lucide-react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useData, Schema, Exercise, ExerciseType } from '@/components/context/DataContext'
 import ExerciseSubstitutionModal from '@/components/ExerciseSubstitutionModal'
@@ -319,92 +319,100 @@ export default function SchemaBuilder() {
             <label className="text-xs uppercase tracking-widest text-muted-foreground font-bold pl-1">{t.workout.exercises} ({exercises.length})</label>
           </div>
 
-          <AnimatePresence mode="popLayout">
+          <Reorder.Group axis="y" values={exercises} onReorder={setExercises} className="space-y-3">
             {exercises.map((ex, i) => (
-              <motion.div
+              <Reorder.Item
                 key={ex.id}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, height: 0 }}
-                className="bg-card border border-white/5 rounded-xl p-4 flex items-center justify-between group"
+                value={ex}
+                className="bg-card border border-white/5 rounded-xl overflow-hidden"
               >
-                <div className="flex items-center gap-4">
-                  <div className={`h-10 w-10 rounded-full flex items-center justify-center text-sm font-bold ${
-                    ex.type === 'cardio' 
-                      ? 'bg-green-500/20 text-green-400' 
-                      : 'bg-white/5 text-muted-foreground'
-                  }`}>
-                    {ex.type === 'cardio' ? <Heart size={18} /> : i + 1}
+                <div className="p-4 flex items-center justify-between group">
+                  {/* Drag Handle */}
+                  <div
+                    className="cursor-grab active:cursor-grabbing p-2 -ml-2 mr-2 text-muted-foreground/40 hover:text-muted-foreground transition-colors"
+                    title="Sleep om volgorde te wijzigen"
+                  >
+                    <GripVertical size={20} />
                   </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h4 className="font-bold text-lg leading-tight">{ex.name}</h4>
-                      {ex.type === 'cardio' && (
-                        <span className="text-[9px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-green-500/20 text-green-400">
-                          {t.schema.cardio}
-                        </span>
-                      )}
+
+                  <div className="flex items-center gap-4 flex-1">
+                    <div className={`h-10 w-10 rounded-full flex items-center justify-center text-sm font-bold ${
+                      ex.type === 'cardio' 
+                        ? 'bg-green-500/20 text-green-400' 
+                        : 'bg-white/5 text-muted-foreground'
+                    }`}>
+                      {ex.type === 'cardio' ? <Heart size={18} /> : i + 1}
                     </div>
-                    <div className="flex gap-3 text-xs text-muted-foreground mt-1 font-mono">
-                      {ex.type === 'cardio' ? (
-                        <>
-                          {ex.cardioData && (
-                            <>
-                              <span className="flex items-center gap-1">
-                                <Clock size={12}/> {Math.floor(ex.cardioData.duration / 60)}:{(ex.cardioData.duration % 60).toString().padStart(2, '0')}
-                              </span>
-                              {ex.cardioData.distance && (
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-bold text-lg leading-tight">{ex.name}</h4>
+                        {ex.type === 'cardio' && (
+                          <span className="text-[9px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-green-500/20 text-green-400">
+                            {t.schema.cardio}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex gap-3 text-xs text-muted-foreground mt-1 font-mono">
+                        {ex.type === 'cardio' ? (
+                          <>
+                            {ex.cardioData && (
+                              <>
                                 <span className="flex items-center gap-1">
-                                  <Route size={12}/> {(ex.cardioData.distance / 1000).toFixed(1)}km
+                                  <Clock size={12}/> {Math.floor(ex.cardioData.duration / 60)}:{(ex.cardioData.duration % 60).toString().padStart(2, '0')}
                                 </span>
-                              )}
-                              {ex.cardioData.intensity && (
-                                <span className={`uppercase font-bold ${
-                                  ex.cardioData.intensity === 'high' ? 'text-red-400' :
-                                  ex.cardioData.intensity === 'moderate' ? 'text-yellow-400' :
-                                  'text-blue-400'
-                                }`}>
-                                  {ex.cardioData.intensity === 'high' ? t.schema.high :
-                                   ex.cardioData.intensity === 'moderate' ? t.schema.moderate : t.schema.low}
-                                </span>
-                              )}
-                            </>
-                          )}
-                        </>
-                      ) : (
-                        <>
-                          <span className="flex items-center gap-1"><GripHorizontal size={12}/> {ex.targetSets} {t.workout.sets}</span>
-                          <span className="flex items-center gap-1"><RotateCcw size={12}/> {ex.targetReps} {t.workout.reps}</span>
-                          {ex.startWeight && <span className="text-primary">@ {ex.startWeight}kg</span>}
-                        </>
-                      )}
+                                {ex.cardioData.distance && (
+                                  <span className="flex items-center gap-1">
+                                    <Route size={12}/> {(ex.cardioData.distance / 1000).toFixed(1)}km
+                                  </span>
+                                )}
+                                {ex.cardioData.intensity && (
+                                  <span className={`uppercase font-bold ${
+                                    ex.cardioData.intensity === 'high' ? 'text-red-400' :
+                                    ex.cardioData.intensity === 'moderate' ? 'text-yellow-400' :
+                                    'text-blue-400'
+                                  }`}>
+                                    {ex.cardioData.intensity === 'high' ? t.schema.high :
+                                     ex.cardioData.intensity === 'moderate' ? t.schema.moderate : t.schema.low}
+                                  </span>
+                                )}
+                              </>
+                            )}
+                          </>
+                        ) : (
+                          <>
+                            <span className="flex items-center gap-1"><RotateCcw size={12}/> {ex.targetSets} {t.workout.sets}</span>
+                            <span className="flex items-center gap-1"><RotateCcw size={12}/> {ex.targetReps} {t.workout.reps}</span>
+                            {ex.startWeight && <span className="text-primary">@ {ex.startWeight}kg</span>}
+                          </>
+                        )}
+                      </div>
                     </div>
                   </div>
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={() => openSubstitutionModal(ex)}
+                      className="p-2 text-blue-400/60 md:opacity-0 md:group-hover:opacity-100 hover:text-blue-400 transition-colors"
+                      title={t.common.search}
+                    >
+                      <RefreshCw size={18} />
+                    </button>
+                    <button 
+                      onClick={() => startEditExercise(ex)}
+                      className="p-2 text-muted-foreground/60 md:opacity-0 md:group-hover:opacity-100 hover:text-primary transition-colors"
+                    >
+                      <Edit2 size={18} />
+                    </button>
+                    <button 
+                      onClick={() => removeExercise(ex.id)}
+                      className="p-2 text-red-500/60 md:opacity-0 md:group-hover:opacity-100 hover:text-red-500 transition-colors"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  </div>
                 </div>
-                <div className="flex gap-2">
-                  <button 
-                    onClick={() => openSubstitutionModal(ex)}
-                    className="p-2 text-blue-400/60 md:opacity-0 md:group-hover:opacity-100 hover:text-blue-400 transition-colors"
-                    title={t.common.search}
-                  >
-                    <RefreshCw size={18} />
-                  </button>
-                  <button 
-                    onClick={() => startEditExercise(ex)}
-                    className="p-2 text-muted-foreground/60 md:opacity-0 md:group-hover:opacity-100 hover:text-primary transition-colors"
-                  >
-                    <Edit2 size={18} />
-                  </button>
-                  <button 
-                    onClick={() => removeExercise(ex.id)}
-                    className="p-2 text-red-500/60 md:opacity-0 md:group-hover:opacity-100 hover:text-red-500 transition-colors"
-                  >
-                    <Trash2 size={18} />
-                  </button>
-                </div>
-              </motion.div>
+              </Reorder.Item>
             ))}
-          </AnimatePresence>
+          </Reorder.Group>
 
           {/* Add/Edit Exercise Form */}
           {(isAddingEx || editingExercise) ? (
