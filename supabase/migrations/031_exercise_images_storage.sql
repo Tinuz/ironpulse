@@ -13,13 +13,19 @@ VALUES (
 )
 ON CONFLICT (id) DO NOTHING;
 
+-- Drop existing policies if they exist
+DROP POLICY IF EXISTS "Exercise images are publicly accessible" ON storage.objects;
+DROP POLICY IF EXISTS "Users can upload exercise images" ON storage.objects;
+DROP POLICY IF EXISTS "Users can update their own exercise images" ON storage.objects;
+DROP POLICY IF EXISTS "Users can delete their own exercise images" ON storage.objects;
+
 -- Policy: Anyone can view/download exercise images (public bucket)
-CREATE POLICY IF NOT EXISTS "Exercise images are publicly accessible"
+CREATE POLICY "Exercise images are publicly accessible"
 ON storage.objects FOR SELECT
 USING (bucket_id = 'ExerciseImages');
 
 -- Policy: Users can upload exercise images to their own folder
-CREATE POLICY IF NOT EXISTS "Users can upload exercise images"
+CREATE POLICY "Users can upload exercise images"
 ON storage.objects FOR INSERT
 WITH CHECK (
   bucket_id = 'ExerciseImages' 
@@ -34,7 +40,7 @@ WITH CHECK (
 );
 
 -- Policy: Users can update their own exercise images
-CREATE POLICY IF NOT EXISTS "Users can update their own exercise images"
+CREATE POLICY "Users can update their own exercise images"
 ON storage.objects FOR UPDATE
 USING (
   bucket_id = 'ExerciseImages' 
@@ -46,7 +52,7 @@ WITH CHECK (
 );
 
 -- Policy: Users can delete their own exercise images
-CREATE POLICY IF NOT EXISTS "Users can delete their own exercise images"
+CREATE POLICY "Users can delete their own exercise images"
 ON storage.objects FOR DELETE
 USING (
   bucket_id = 'ExerciseImages' 
