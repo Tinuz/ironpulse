@@ -13,16 +13,13 @@ VALUES (
 )
 ON CONFLICT (id) DO NOTHING;
 
--- Enable RLS on the storage bucket
-ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
-
 -- Policy: Anyone can view/download exercise images (public bucket)
-CREATE POLICY "Exercise images are publicly accessible"
+CREATE POLICY IF NOT EXISTS "Exercise images are publicly accessible"
 ON storage.objects FOR SELECT
 USING (bucket_id = 'ExerciseImages');
 
 -- Policy: Users can upload exercise images to their own folder
-CREATE POLICY "Users can upload exercise images"
+CREATE POLICY IF NOT EXISTS "Users can upload exercise images"
 ON storage.objects FOR INSERT
 WITH CHECK (
   bucket_id = 'ExerciseImages' 
@@ -37,7 +34,7 @@ WITH CHECK (
 );
 
 -- Policy: Users can update their own exercise images
-CREATE POLICY "Users can update their own exercise images"
+CREATE POLICY IF NOT EXISTS "Users can update their own exercise images"
 ON storage.objects FOR UPDATE
 USING (
   bucket_id = 'ExerciseImages' 
@@ -49,13 +46,9 @@ WITH CHECK (
 );
 
 -- Policy: Users can delete their own exercise images
-CREATE POLICY "Users can delete their own exercise images"
+CREATE POLICY IF NOT EXISTS "Users can delete their own exercise images"
 ON storage.objects FOR DELETE
 USING (
   bucket_id = 'ExerciseImages' 
   AND auth.uid()::text = (storage.foldername(name))[1]
 );
-
--- Grant permissions for storage operations
-GRANT ALL ON storage.objects TO authenticated;
-GRANT ALL ON storage.buckets TO authenticated;
