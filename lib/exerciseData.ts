@@ -158,3 +158,21 @@ export function getMuscleGroupsFromExercises(exerciseNames: string[]): string[] 
   
   return Array.from(groups)
 }
+
+/**
+ * Get exercise image data by name
+ */
+export function getExerciseImages(exerciseName: string): {
+  images: string[];
+  anatomyImage: string;
+  anatomyAlt: string;
+} | null {
+  const exercise = getExerciseByName(exerciseName)
+  if (!exercise) return null
+  
+  return {
+    images: exercise.images || [],
+    anatomyImage: exercise.anatomy?.image || '',
+    anatomyAlt: exercise.anatomy?.alt || exercise.name
+  }
+}

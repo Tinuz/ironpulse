@@ -9,6 +9,7 @@ import { checkIncompleteWorkout, clearIncompleteWorkout } from '@/components/uti
 import WorkoutRecoveryModal from '@/components/WorkoutRecoveryModal';
 import { useRouter } from 'next/navigation';
 import { generateSetsFromOneRM, validateOneRM } from '@/components/utils/oneRepMaxCalculations';
+import { getExerciseImages } from '@/lib/exerciseData';
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -68,6 +69,9 @@ export interface WorkoutExercise {
   durationMinutes?: number; // Duration of exercise in minutes (deprecated, use cardioData.duration)
   estimatedCalories?: number; // Calculated calories for this exercise
   oneRepMax?: number; // 1RM for automatic set weight calculation
+  images?: string[]; // Exercise demonstration images
+  anatomyImage?: string; // Muscle anatomy/diagram image
+  anatomyAlt?: string; // Alt text for anatomy image
 }
 
 export interface WorkoutLog {
@@ -673,6 +677,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
         }
         
+        // Get exercise images from library
+        const imageData = getExerciseImages(e.name);
+        
         return {
           id: crypto.randomUUID(),
           exerciseId: e.id,
@@ -681,7 +688,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           muscleGroup: e.muscleGroup,
           oneRepMax: e.oneRepMax,
           sets,
-          cardioData: e.cardioData
+          cardioData: e.cardioData,
+          images: imageData?.images,
+          anatomyImage: imageData?.anatomyImage,
+          anatomyAlt: imageData?.anatomyAlt,
         };
       }) : [])
     };
@@ -715,7 +725,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         notes: ex.notes,
         durationMinutes: ex.durationMinutes,
         estimatedCalories: ex.estimatedCalories,
-        oneRepMax: ex.oneRepMax
+        oneRepMax: ex.oneRepMax,
+        images: ex.images,
+        anatomyImage: ex.anatomyImage,
+        anatomyAlt: ex.anatomyAlt,
       }));
       
       const { data, error } = await supabase

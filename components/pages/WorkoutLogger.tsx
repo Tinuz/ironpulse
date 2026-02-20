@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft, Plus, Check, X, Clock, Play, Trash2, TrendingUp, TrendingDown, Minus, Award, Zap, StickyNote, Flame, RefreshCw, Heart, Dumbbell, Timer, SkipForward, PlusCircle } from 'lucide-react'
+import { ArrowLeft, Plus, Check, X, Clock, Play, Trash2, TrendingUp, TrendingDown, Minus, Award, Zap, StickyNote, Flame, RefreshCw, Heart, Dumbbell, Timer, SkipForward, PlusCircle, Image as ImageIcon, ChevronDown, ChevronUp } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import clsx from 'clsx'
 import { useData, WorkoutExercise } from '@/components/context/DataContext'
@@ -29,6 +29,7 @@ import { useWakeLock } from '@/components/utils/useWakeLock'
 import { useWorkoutAutoSave } from '@/components/utils/useWorkoutAutoSave'
 import { type MuscleGroup } from '@/components/utils/volumeAnalytics'
 import { generateSetsFromOneRM, validateOneRM } from '@/components/utils/oneRepMaxCalculations'
+import { getExerciseImages } from '@/lib/exerciseData'
 
 const ExerciseStats = ({ 
   exercise,
@@ -191,6 +192,9 @@ export default function WorkoutLogger() {
   const [newCardioDuration, setNewCardioDuration] = useState(1800); // 30 min
   const [newCardioDistance, setNewCardioDistance] = useState<number | undefined>(undefined);
   const [newCardioIntensity, setNewCardioIntensity] = useState<'low' | 'moderate' | 'high'>('moderate');
+
+  // Image view state - track which exercise has expanded image
+  const [expandedImageIndex, setExpandedImageIndex] = useState<number | null>(null);
 
   // Rest Timer state
   const [restTimer, setRestTimer] = useState<{
@@ -498,6 +502,9 @@ export default function WorkoutLogger() {
   const handleAddExercise = () => {
     if (!workoutData || !newExerciseName.trim()) return;
     
+    // Get exercise images from library
+    const imageData = getExerciseImages(newExerciseName.trim());
+    
     const newExercise: WorkoutExercise = {
       id: crypto.randomUUID(),
       exerciseId: crypto.randomUUID(),
@@ -510,7 +517,10 @@ export default function WorkoutLogger() {
         distance: newCardioDistance,
         intensity: newCardioIntensity
       } : undefined,
-      oneRepMax: newExerciseOneRM
+      oneRepMax: newExerciseOneRM,
+      images: imageData?.images,
+      anatomyImage: imageData?.anatomyImage,
+      anatomyAlt: imageData?.anatomyAlt,
     };
 
     // Generate sets based on 1RM or manually specified values
@@ -887,6 +897,53 @@ export default function WorkoutLogger() {
                   </button>
                 </div>
               </div>
+              
+              {/* Anatomy Image Section - Collapsible */}
+              {exercise.anatomyImage && (
+                <div className="border-b border-white/5">
+                  <button
+                    onClick={() => setExpandedImageIndex(expandedImageIndex === exerciseIndex ? null : exerciseIndex)}
+                    className="w-full px-4 py-2 bg-white/5 hover:bg-white/10 transition-colors flex items-center justify-between group"
+                  >
+                    <div className="flex items-center gap-2">
+                      <ImageIcon size={16} className="text-primary" />
+                      <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                        {t.workout.muscleDiagram || 'Muscle Diagram'}
+                      </span>
+                    </div>
+                    {expandedImageIndex === exerciseIndex ? (
+                      <ChevronUp size={16} className="text-muted-foreground" />
+                    ) : (
+                      <ChevronDown size={16} className="text-muted-foreground" />
+                    )}
+                  </button>
+                  <AnimatePresence>
+                    {expandedImageIndex === exerciseIndex && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="overflow-hidden"
+                      >
+                        <div className="p-4 bg-white/5">
+                          <img
+                            src={exercise.anatomyImage}
+                            alt={exercise.anatomyAlt || exercise.name}
+                            className="w-full max-w-md mx-auto rounded-xl border border-white/10 shadow-lg"
+                            loading="lazy"
+                          />
+                          {exercise.anatomyAlt && (
+                            <p className="text-xs text-muted-foreground text-center mt-2">
+                              {exercise.anatomyAlt}
+                            </p>
+                          )}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              )}
               
               {/* 1RM Section - Compact for strength exercises */}
               {exercise.type !== 'cardio' && (
