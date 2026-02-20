@@ -1,14 +1,17 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { motion } from 'framer-motion'
-import { ArrowLeft, Save, Plus, Trash2, Check } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { ArrowLeft, Save, Plus, Trash2, Check, Upload, Image as ImageIcon, ChevronDown, ChevronUp } from 'lucide-react'
 import { useRouter, usePathname } from 'next/navigation'
 import { format } from 'date-fns'
 import { useData, WorkoutLog, WorkoutExercise, WorkoutSet } from '@/components/context/DataContext'
+import { useAuth } from '@/components/context/AuthContext'
+import { uploadExerciseImage, deleteExerciseImage, compressImage } from '@/lib/exerciseImages'
 
 export default function WorkoutEditor() {
   const { history, updateWorkout } = useData()
+  const { user } = useAuth()
   const router = useRouter()
   const pathname = usePathname()
   
@@ -19,6 +22,9 @@ export default function WorkoutEditor() {
   
   const [workoutData, setWorkoutData] = useState<WorkoutLog | null>(null)
   const [isSaving, setIsSaving] = useState(false)
+  const [expandedImageIndex, setExpandedImageIndex] = useState<number | null>(null)
+  const [uploadingImageFor, setUploadingImageFor] = useState<string | null>(null)
+  const [imageUploadError, setImageUploadError] = useState<string | null>(null)
 
   useEffect(() => {
     if (originalWorkout) {
@@ -195,6 +201,75 @@ export default function WorkoutEditor() {
     })
   }
 
+  const handleImageUpload = async (exerciseId: string, file: File) => {
+    if (!workoutData || !user) return;
+    
+    setUploadingImageFor(exerciseId);
+    setImageUploadError(null);
+    
+    try {
+      const exercise = workoutData.exercises.find(ex => ex.id === exerciseId);
+      if (!exercise) return;
+      
+      const compressedFile = await compressImage(file);
+      const imageUrl = await uploadExerciseImage(user.id, compressedFile, exercise.name);
+      
+      if (!imageUrl) {
+        throw new Error('Failed to upload image');
+      }
+      
+      setWorkoutData(prev => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          exercises: prev.exercises.map(ex => 
+            ex.id === exerciseId 
+              ? { ...ex, anatomyImage: imageUrl, anatomyAlt: `${ex.name} muscle diagram` }
+              : ex
+          )
+        };
+      });
+      
+      const exerciseIndex = workoutData.exercises.findIndex(ex => ex.id === exerciseId);
+      setExpandedImageIndex(exerciseIndex);
+    } catch (error) {
+      console.error('Image upload error:', error);
+      setImageUploadError(error instanceof Error ? error.message : 'Failed to upload image');
+    } finally {
+      setUploadingImageFor(null);
+    }
+  };
+  
+  const handleImageDelete = async (exerciseId: string) => {
+    if (!workoutData) return;
+    
+    const exercise = workoutData.exercises.find(ex => ex.id === exerciseId);
+    if (!exercise?.anatomyImage) return;
+    
+    if (!window.confirm('Delete this image?')) return;
+    
+    try {
+      await deleteExerciseImage(exercise.anatomyImage);
+      
+      setWorkoutData(prev => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          exercises: prev.exercises.map(ex => 
+            ex.id === exerciseId 
+              ? { ...ex, anatomyImage: undefined, anatomyAlt: undefined }
+              : ex
+          )
+        };
+      });
+      
+      setExpandedImageIndex(null);
+    } catch (error) {
+      console.error('Image delete error:', error);
+      alert('Failed to delete image. Please try again.');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-bg-primary pb-24">
       {/* Header */}
@@ -265,6 +340,100 @@ export default function WorkoutEditor() {
                 >
                   <Trash2 size={20} />
                 </button>
+              </div>
+
+              {/* Image Upload Section */}
+              <div className="border-b border-border-default pb-4">
+                <button
+                  onClick={() => {
+                    const exerciseIndex = workoutData.exercises.findIndex(ex => ex.id === exercise.id);
+                    setExpandedImageIndex(expandedImageIndex === exerciseIndex ? null : exerciseIndex);
+                  }}
+                  className="w-full px-3 py-2 bg-bg-tertiary hover:bg-bg-primary transition-colors flex items-center justify-between group rounded-professional"
+                >
+                  <div className="flex items-center gap-2">
+                    <ImageIcon size={14} className="text-accent-primary" />
+                    <span className="text-xs font-semibold text-txt-secondary uppercase tracking-wider">
+                      {exercise.anatomyImage ? 'Muscle Diagram' : 'Upload Image'}
+                    </span>
+                  </div>
+                  {expandedImageIndex === workoutData.exercises.findIndex(ex => ex.id === exercise.id) ? (
+                    <ChevronUp size={14} className="text-txt-tertiary" />
+                  ) : (
+                    <ChevronDown size={14} className="text-txt-tertiary" />
+                  )}
+                </button>
+                <AnimatePresence>
+                  {expandedImageIndex === workoutData.exercises.findIndex(ex => ex.id === exercise.id) && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="p-3 bg-bg-primary space-y-3 mt-2 rounded-professional">
+                        {exercise.anatomyImage ? (
+                          <>
+                            <img
+                              src={exercise.anatomyImage}
+                              alt={exercise.anatomyAlt || exercise.name}
+                              className="w-full max-w-md mx-auto rounded-professional border border-border-default shadow-card"
+                              loading="lazy"
+                            />
+                            {exercise.anatomyAlt && (
+                              <p className="text-xs text-txt-tertiary text-center">
+                                {exercise.anatomyAlt}
+                              </p>
+                            )}
+                            <button
+                              onClick={() => handleImageDelete(exercise.id)}
+                              className="w-full px-3 py-2 bg-accent-primary/10 hover:bg-accent-primary/20 border border-accent-primary/30 text-accent-primary rounded-professional text-xs font-bold transition-colors flex items-center justify-center gap-2"
+                            >
+                              <Trash2 size={14} />
+                              Delete Image
+                            </button>
+                          </>
+                        ) : (
+                          <div className="space-y-2">
+                            <label className="block">
+                              <input
+                                type="file"
+                                accept="image/*"
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0];
+                                  if (file) handleImageUpload(exercise.id, file);
+                                }}
+                                className="hidden"
+                                id={`image-upload-${exercise.id}`}
+                              />
+                              <div
+                                onClick={() => document.getElementById(`image-upload-${exercise.id}`)?.click()}
+                                className="w-full px-4 py-6 bg-bg-secondary hover:bg-bg-tertiary border-2 border-dashed border-border-default hover:border-accent-primary/50 rounded-professional cursor-pointer transition-all flex flex-col items-center justify-center gap-2"
+                              >
+                                {uploadingImageFor === exercise.id ? (
+                                  <>
+                                    <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-accent-primary"></div>
+                                    <p className="text-xs text-txt-tertiary">Uploading...</p>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Upload size={20} className="text-accent-primary" />
+                                    <p className="text-sm font-bold text-accent-primary">Upload Image</p>
+                                    <p className="text-xs text-txt-tertiary">Click to select (max 5MB)</p>
+                                  </>
+                                )}
+                              </div>
+                            </label>
+                            {imageUploadError && (
+                              <p className="text-xs text-accent-primary text-center">{imageUploadError}</p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
 
               {/* Muscle Group Selector */}
