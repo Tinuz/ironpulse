@@ -959,8 +959,8 @@ export default function WorkoutLogger() {
               
               {/* 1RM Section - Compact for strength exercises */}
               {exercise.type !== 'cardio' && (
-                <div className="px-4 py-2 bg-white/5 border-b border-white/5 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
+                <div className="px-4 py-2 bg-white/5 border-b border-white/5 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2 flex-shrink-0">
                     <label className="text-[9px] text-muted-foreground uppercase tracking-wider font-semibold">
                       1RM
                     </label>
@@ -975,15 +975,49 @@ export default function WorkoutLogger() {
                     />
                     <span className="text-[9px] text-muted-foreground font-semibold">KG</span>
                   </div>
-                  {exercise.oneRepMax && validateOneRM(exercise.oneRepMax) && (
-                    <button
-                      onClick={() => regenerateSetsFromOneRM(exerciseIndex)}
-                      className="px-2 py-1 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/30 text-blue-400 rounded-md font-bold text-[9px] transition-colors flex items-center gap-1"
-                    >
-                      <RefreshCw size={11} />
-                      Auto-fill
-                    </button>
-                  )}
+                  
+                  <div className="flex items-center gap-2 flex-shrink-0 ml-auto">
+                    {exercise.muscleGroup && (
+                      <div className="px-2.5 py-1 bg-primary/20 border border-primary/30 rounded-md">
+                        <span className="text-[9px] text-primary uppercase tracking-wider font-bold">
+                          {(() => {
+                            const muscleGroupLabels: Record<string, string> = {
+                              'chest': 'Borst',
+                              'back': 'Rug',
+                              'lats': 'Lats',
+                              'traps': 'Traps',
+                              'middle-back': 'Midden Rug',
+                              'lower-back': 'Onderrug',
+                              'shoulders': 'Schouders',
+                              'biceps': 'Biceps',
+                              'triceps': 'Triceps',
+                              'forearms': 'Onderarmen',
+                              'legs': 'Benen',
+                              'quads': 'Quads',
+                              'hamstrings': 'Hamstrings',
+                              'glutes': 'Billen',
+                              'calves': 'Kuiten',
+                              'abs': 'Buik',
+                              'obliques': 'Obliques',
+                              'core': 'Core',
+                              'full-body': 'Full Body',
+                              'cardio': 'Cardio'
+                            };
+                            return muscleGroupLabels[exercise.muscleGroup] || exercise.muscleGroup;
+                          })()}
+                        </span>
+                      </div>
+                    )}
+                    {exercise.oneRepMax && validateOneRM(exercise.oneRepMax) && (
+                      <button
+                        onClick={() => regenerateSetsFromOneRM(exerciseIndex)}
+                        className="px-2 py-1 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/30 text-blue-400 rounded-md font-bold text-[9px] transition-colors flex items-center gap-1"
+                      >
+                        <RefreshCw size={11} />
+                        Auto-fill
+                      </button>
+                    )}
+                  </div>
                 </div>
               )}
               
