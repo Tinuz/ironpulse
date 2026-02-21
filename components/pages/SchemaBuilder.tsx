@@ -2,9 +2,11 @@
 
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence, Reorder } from 'framer-motion'
-import { ArrowLeft, Plus, Trash2, GripVertical, RotateCcw, Edit2, Search, RefreshCw, Share2, Lightbulb, Heart, Dumbbell, Clock, Route } from 'lucide-react'
+import { ArrowLeft, Plus, Trash2, GripVertical, RotateCcw, Edit2, Search, RefreshCw, Share2, Lightbulb, Heart, Dumbbell, Clock, Route, Upload, Image as ImageIcon, ChevronDown, ChevronUp } from 'lucide-react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useData, Schema, Exercise, ExerciseType } from '@/components/context/DataContext'
+import { useAuth } from '@/components/context/AuthContext'
+import { uploadExerciseImage, deleteExerciseImage, compressImage } from '@/lib/exerciseImages'
 import ExerciseSubstitutionModal from '@/components/ExerciseSubstitutionModal'
 import TemplateShareModal from '@/components/TemplateShareModal'
 import { suggestStartingWeight, StartingWeightSuggestion } from '@/components/utils/startingWeightSuggestions'
@@ -13,6 +15,7 @@ import { useLanguage } from '@/components/context/LanguageContext'
 export default function SchemaBuilder() {
   const { t } = useLanguage();
   const { addSchema, schemas, updateSchema, history, userProfile } = useData();
+  const { user } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const editId = searchParams.get('edit');
@@ -48,6 +51,13 @@ export default function SchemaBuilder() {
 
   // Share Modal State
   const [shareModalOpen, setShareModalOpen] = useState(false);
+  
+  // Image Upload State
+  const [uploadingImageFor, setUploadingImageFor] = useState<string | null>(null);
+  const [imageUploadError, setImageUploadError] = useState<string | null>(null);
+  const [newExAnatomyImage, setNewExAnatomyImage] = useState<string | undefined>(undefined);
+  const [newExAnatomyAlt, setNewExAnatomyAlt] = useState<string | undefined>(undefined);
+  const [showImageUpload, setShowImageUpload] = useState(false);
 
   // Load schema for editing
   useEffect(() => {
@@ -113,6 +123,8 @@ export default function SchemaBuilder() {
       targetReps: exerciseType === 'strength' ? newExReps : 0,
       startWeight: exerciseType === 'strength' ? newExStartWeight : undefined,
       oneRepMax: exerciseType === 'strength' ? newExOneRM : undefined,
+      anatomyImage: newExAnatomyImage,
+      anatomyAlt: newExAnatomyAlt,
       cardioData: exerciseType === 'cardio' ? {
         duration: cardioDuration,
         distance: cardioDistance,
@@ -129,6 +141,9 @@ export default function SchemaBuilder() {
     setNewExStartWeight(undefined);
     setNewExMuscleGroup(undefined);
     setNewExOneRM(undefined);
+    setNewExAnatomyImage(undefined);
+    setNewExAnatomyAlt(undefined);
+    setShowImageUpload(false);
     setCardioDuration(1800);
     setCardioDistance(undefined);
     setCardioHeartRate(undefined);
@@ -186,6 +201,9 @@ export default function SchemaBuilder() {
     setNewExStartWeight(exercise.startWeight);
     setNewExMuscleGroup(exercise.muscleGroup);
     setNewExOneRM(exercise.oneRepMax);
+    setNewExAnatomyImage(exercise.anatomyImage);
+    setNewExAnatomyAlt(exercise.anatomyAlt);
+    setShowImageUpload(!!exercise.anatomyImage);
     
     // Load cardio data if exists
     if (exercise.cardioData) {
@@ -212,6 +230,8 @@ export default function SchemaBuilder() {
             targetReps: exerciseType === 'strength' ? newExReps : 0, 
             startWeight: exerciseType === 'strength' ? newExStartWeight : undefined,
             oneRepMax: exerciseType === 'strength' ? newExOneRM : undefined,
+            anatomyImage: newExAnatomyImage,
+            anatomyAlt: newExAnatomyAlt,
             cardioData: exerciseType === 'cardio' ? {
               duration: cardioDuration,
               distance: cardioDistance,
@@ -230,6 +250,9 @@ export default function SchemaBuilder() {
     setNewExStartWeight(undefined);
     setNewExMuscleGroup(undefined);
     setNewExOneRM(undefined);
+    setNewExAnatomyImage(undefined);
+    setNewExAnatomyAlt(undefined);
+    setShowImageUpload(false);
     setCardioDuration(1800);
     setCardioDistance(undefined);
     setCardioHeartRate(undefined);
@@ -245,6 +268,9 @@ export default function SchemaBuilder() {
     setNewExStartWeight(undefined);
     setNewExMuscleGroup(undefined);
     setNewExOneRM(undefined);
+    setNewExAnatomyImage(undefined);
+    setNewExAnatomyAlt(undefined);
+    setShowImageUpload(false);
     setCardioDuration(1800);
     setCardioDistance(undefined);
     setCardioHeartRate(undefined);
@@ -252,6 +278,48 @@ export default function SchemaBuilder() {
     setIsAddingEx(false);
     setWeightSuggestion(null);
     setShowSuggestion(false);
+    setImageUploadError(null);
+  };
+
+  const handleImageUpload = async (file: File) => {
+    if (!user) return;
+    
+    setUploadingImageFor('new-exercise');
+    setImageUploadError(null);
+    
+    try {
+      const compressedFile = await compressImage(file);
+      const imageUrl = await uploadExerciseImage(user.id, compressedFile, newExName || 'Exercise');
+      
+      if (!imageUrl) {
+        throw new Error('Failed to upload image');
+      }
+      
+      setNewExAnatomyImage(imageUrl);
+      setNewExAnatomyAlt(`${newExName || 'Exercise'} muscle diagram`);
+      setShowImageUpload(true);
+    } catch (error) {
+      console.error('Image upload error:', error);
+      setImageUploadError(error instanceof Error ? error.message : 'Failed to upload image');
+    } finally {
+      setUploadingImageFor(null);
+    }
+  };
+  
+  const handleImageDelete = async () => {
+    if (!newExAnatomyImage) return;
+    
+    if (!window.confirm('Delete this image?')) return;
+    
+    try {
+      await deleteExerciseImage(newExAnatomyImage);
+      setNewExAnatomyImage(undefined);
+      setNewExAnatomyAlt(undefined);
+      setShowImageUpload(false);
+    } catch (error) {
+      console.error('Image delete error:', error);
+      alert('Failed to delete image. Please try again.');
+    }
   };
 
   const openSubstitutionModal = (exercise: Exercise) => {
@@ -531,6 +599,99 @@ export default function SchemaBuilder() {
                     <option value="core" className="bg-[#1a1a1a] text-white">Core (algemeen)</option>
                   </optgroup>
                 </select>
+              </div>
+
+              {/* Image Upload Section */}
+              <div>
+                <button
+                  type="button"
+                  onClick={() => setShowImageUpload(!showImageUpload)}
+                  className="w-full px-3 py-2 bg-white/5 hover:bg-white/10 transition-colors flex items-center justify-between group rounded-lg"
+                >
+                  <div className="flex items-center gap-2">
+                    <ImageIcon size={14} className="text-primary" />
+                    <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                      {newExAnatomyImage ? 'Afbeelding' : 'Upload Afbeelding'}
+                    </span>
+                  </div>
+                  {showImageUpload ? (
+                    <ChevronUp size={14} className="text-muted-foreground" />
+                  ) : (
+                    <ChevronDown size={14} className="text-muted-foreground" />
+                  )}
+                </button>
+                <AnimatePresence>
+                  {showImageUpload && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="p-3 bg-background/50 space-y-3 mt-2 rounded-lg border border-white/5">
+                        {newExAnatomyImage ? (
+                          <>
+                            <img
+                              src={newExAnatomyImage}
+                              alt={newExAnatomyAlt || newExName}
+                              className="w-full max-w-md mx-auto rounded-lg border border-white/10 shadow-lg"
+                              loading="lazy"
+                            />
+                            {newExAnatomyAlt && (
+                              <p className="text-xs text-muted-foreground text-center">
+                                {newExAnatomyAlt}
+                              </p>
+                            )}
+                            <button
+                              type="button"
+                              onClick={handleImageDelete}
+                              className="w-full px-3 py-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-500 rounded-lg text-xs font-bold transition-colors flex items-center justify-center gap-2"
+                            >
+                              <Trash2 size={14} />
+                              Afbeelding Verwijderen
+                            </button>
+                          </>
+                        ) : (
+                          <div className="space-y-2">
+                            <label className="block">
+                              <input
+                                type="file"
+                                accept="image/*"
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0];
+                                  if (file) handleImageUpload(file);
+                                }}
+                                className="hidden"
+                                id="image-upload-new"
+                              />
+                              <div
+                                onClick={() => document.getElementById('image-upload-new')?.click()}
+                                className="w-full px-4 py-6 bg-white/5 hover:bg-white/10 border-2 border-dashed border-white/10 hover:border-primary/50 rounded-lg cursor-pointer transition-all flex flex-col items-center justify-center gap-2"
+                              >
+                                {uploadingImageFor === 'new-exercise' ? (
+                                  <>
+                                    <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-primary"></div>
+                                    <p className="text-xs text-muted-foreground">Uploaden...</p>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Upload size={20} className="text-primary" />
+                                    <p className="text-sm font-bold text-primary">Upload Afbeelding</p>
+                                    <p className="text-xs text-muted-foreground">Klik om te selecteren (max 5MB)</p>
+                                  </>
+                                )}
+                              </div>
+                            </label>
+                            {imageUploadError && (
+                              <p className="text-xs text-red-500 text-center">{imageUploadError}</p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
               
               {/* Strength-specific fields */}

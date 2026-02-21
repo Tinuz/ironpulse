@@ -38,6 +38,9 @@ export interface Exercise {
   oneRepMax?: number; // 1RM for automatic set weight calculation
   // Cardio fields
   cardioData?: CardioData;
+  // Image fields
+  anatomyImage?: string; // Muscle anatomy/diagram image
+  anatomyAlt?: string; // Alt text for anatomy image
 }
 
 export interface Schema {
