@@ -680,8 +680,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
         }
         
-        // Get exercise images from library
-        const imageData = getExerciseImages(e.name);
+        // Get exercise images from library (only if not already set in schema)
+        const imageData = !e.anatomyImage ? getExerciseImages(e.name) : null;
         
         return {
           id: crypto.randomUUID(),
@@ -693,8 +693,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           sets,
           cardioData: e.cardioData,
           images: imageData?.images,
-          anatomyImage: imageData?.anatomyImage,
-          anatomyAlt: imageData?.anatomyAlt,
+          anatomyImage: e.anatomyImage || imageData?.anatomyImage,
+          anatomyAlt: e.anatomyAlt || imageData?.anatomyAlt,
         };
       }) : [])
     };
