@@ -2,11 +2,10 @@
 
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft, Plus, Check, X, Clock, Play, Trash2, TrendingUp, TrendingDown, Minus, Award, Zap, StickyNote, Flame, RefreshCw, Heart, Dumbbell, Timer, SkipForward, PlusCircle, Image as ImageIcon, ChevronDown, ChevronUp, Upload } from 'lucide-react'
+import { ArrowLeft, Plus, Check, X, Clock, Play, Trash2, TrendingUp, TrendingDown, Minus, Award, Zap, StickyNote, Flame, RefreshCw, Heart, Dumbbell, Timer, SkipForward, PlusCircle, Image as ImageIcon, ChevronDown, ChevronUp } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import clsx from 'clsx'
 import { useData, WorkoutExercise } from '@/components/context/DataContext'
-import { useAuth } from '@/components/context/AuthContext'
 import { 
   getBest1RM, 
   calculateVolume, 
@@ -31,7 +30,6 @@ import { useWorkoutAutoSave } from '@/components/utils/useWorkoutAutoSave'
 import { type MuscleGroup } from '@/components/utils/volumeAnalytics'
 import { generateSetsFromOneRM, validateOneRM } from '@/components/utils/oneRepMaxCalculations'
 import { getExerciseImages } from '@/lib/exerciseData'
-import { uploadExerciseImage, deleteExerciseImage, compressImage } from '@/lib/exerciseImages'
 
 const ExerciseStats = ({ 
   exercise,
@@ -160,7 +158,6 @@ const ExerciseStats = ({
 
 export default function WorkoutLogger() {
   const { activeWorkout, updateActiveWorkout, finishWorkout, cancelWorkout, history, bodyStats, userProfile } = useData();
-  const { user } = useAuth();
   const router = useRouter();
   const workoutPreferences = useWorkoutPreferences();
   const { t } = useLanguage();
@@ -198,10 +195,6 @@ export default function WorkoutLogger() {
 
   // Image view state - track which exercise has expanded image
   const [expandedImageIndex, setExpandedImageIndex] = useState<number | null>(null);
-  
-  // Image upload state
-  const [uploadingImageFor, setUploadingImageFor] = useState<number | null>(null);
-  const [imageUploadError, setImageUploadError] = useState<string | null>(null);
 
   // Rest Timer state
   const [restTimer, setRestTimer] = useState<{
@@ -651,74 +644,7 @@ export default function WorkoutLogger() {
     setSubstitutionModalOpen(true);
   };
 
-  const handleImageUpload = async (exerciseIndex: number, file: File) => {
-    if (!workoutData || !user) return;
-    
-    setUploadingImageFor(exerciseIndex);
-    setImageUploadError(null);
-    
-    try {
-      // Compress image before upload
-      const compressedFile = await compressImage(file);
-      
-      // Upload to Supabase
-      const imageUrl = await uploadExerciseImage(
-        user.id,
-        compressedFile,
-        workoutData.exercises[exerciseIndex].name
-      );
-      
-      if (!imageUrl) {
-        throw new Error('Failed to upload image');
-      }
-      
-      // Update exercise with new image
-      const newExercises = [...workoutData.exercises];
-      newExercises[exerciseIndex].anatomyImage = imageUrl;
-      newExercises[exerciseIndex].anatomyAlt = `${newExercises[exerciseIndex].name} muscle diagram`;
-      
-      const updated = { ...workoutData, exercises: newExercises };
-      setWorkoutData(updated);
-      updateActiveWorkout(updated);
-      
-      // Auto-expand the image to show it was uploaded successfully
-      setExpandedImageIndex(exerciseIndex);
-    } catch (error) {
-      console.error('Image upload error:', error);
-      setImageUploadError(error instanceof Error ? error.message : 'Failed to upload image');
-    } finally {
-      setUploadingImageFor(null);
-    }
-  };
-  
-  const handleImageDelete = async (exerciseIndex: number) => {
-    if (!workoutData) return;
-    
-    const exercise = workoutData.exercises[exerciseIndex];
-    if (!exercise.anatomyImage) return;
-    
-    if (!window.confirm('Delete this image?')) return;
-    
-    try {
-      // Delete from Supabase Storage
-      await deleteExerciseImage(exercise.anatomyImage);
-      
-      // Update exercise to remove image
-      const newExercises = [...workoutData.exercises];
-      newExercises[exerciseIndex].anatomyImage = undefined;
-      newExercises[exerciseIndex].anatomyAlt = undefined;
-      
-      const updated = { ...workoutData, exercises: newExercises };
-      setWorkoutData(updated);
-      updateActiveWorkout(updated);
-      
-      // Collapse the image section
-      setExpandedImageIndex(null);
-    } catch (error) {
-      console.error('Image delete error:', error);
-      alert('Failed to delete image. Please try again.');
-    }
-  };
+
 
   const handleSubstituteExercise = (newExerciseName: string) => {
     if (!workoutData || exerciseIndexToSubstitute === null) return;
@@ -983,7 +909,7 @@ export default function WorkoutLogger() {
                   <div className="flex items-center gap-2">
                     <ImageIcon size={16} className="text-primary" />
                     <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                      {exercise.anatomyImage ? (t.workout.muscleDiagram || 'Muscle Diagram') : 'Upload Image'}
+                      {exercise.anatomyImage ? (t.workout.muscleDiagram || 'Spiergroep Diagram') : 'Geen afbeelding'}
                     </span>
                   </div>
                   {expandedImageIndex === exerciseIndex ? (
@@ -1015,48 +941,14 @@ export default function WorkoutLogger() {
                                 {exercise.anatomyAlt}
                               </p>
                             )}
-                            <button
-                              onClick={() => handleImageDelete(exerciseIndex)}
-                              className="w-full px-3 py-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 rounded-lg text-xs font-bold transition-colors flex items-center justify-center gap-2"
-                            >
-                              <Trash2 size={14} />
-                              Delete Image
-                            </button>
                           </>
                         ) : (
-                          <div className="space-y-2">
-                            <label className="block">
-                              <input
-                                type="file"
-                                accept="image/*"
-                                onChange={(e) => {
-                                  const file = e.target.files?.[0];
-                                  if (file) handleImageUpload(exerciseIndex, file);
-                                }}
-                                className="hidden"
-                                id={`image-upload-${exerciseIndex}`}
-                              />
-                              <div
-                                onClick={() => document.getElementById(`image-upload-${exerciseIndex}`)?.click()}
-                                className="w-full px-4 py-8 bg-white/5 hover:bg-white/10 border-2 border-dashed border-white/20 hover:border-primary/50 rounded-xl cursor-pointer transition-all flex flex-col items-center justify-center gap-2"
-                              >
-                                {uploadingImageFor === exerciseIndex ? (
-                                  <>
-                                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
-                                    <p className="text-xs text-muted-foreground">Uploading...</p>
-                                  </>
-                                ) : (
-                                  <>
-                                    <Upload size={24} className="text-primary" />
-                                    <p className="text-sm font-bold text-primary">Upload Image</p>
-                                    <p className="text-xs text-muted-foreground">Click to select (max 5MB)</p>
-                                  </>
-                                )}
-                              </div>
-                            </label>
-                            {imageUploadError && (
-                              <p className="text-xs text-red-400 text-center">{imageUploadError}</p>
-                            )}
+                          <div className="py-8 px-4 text-center">
+                            <ImageIcon size={32} className="mx-auto mb-3 text-muted-foreground/40" />
+                            <p className="text-sm text-muted-foreground mb-1">Geen afbeelding beschikbaar</p>
+                            <p className="text-xs text-muted-foreground/60">
+                              Voeg een afbeelding toe via de routine editor of workout editor
+                            </p>
                           </div>
                         )}
                       </div>
