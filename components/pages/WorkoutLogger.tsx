@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ArrowLeft, Plus, Check, X, Clock, Play, Trash2, TrendingUp, TrendingDown, Minus, Award, Zap, StickyNote, Flame, RefreshCw, Heart, Dumbbell, Timer, SkipForward, PlusCircle, Image as ImageIcon, ChevronDown, ChevronUp } from 'lucide-react'
 import { useRouter } from 'next/navigation'
@@ -275,6 +275,8 @@ export default function WorkoutLogger() {
   }, [workoutData, showSummary]);
 
   // Rest timer effect
+  const restIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   useEffect(() => {
     if (!restTimer?.active) {
       setRestTimeLeft(0);
@@ -288,7 +290,10 @@ export default function WorkoutLogger() {
 
       // Auto-stop when timer reaches 0
       if (timeLeft === 0) {
-        // Play sound/vibration here if desired
+        if (restIntervalRef.current !== null) {
+          clearInterval(restIntervalRef.current);
+          restIntervalRef.current = null;
+        }
         if ('vibrate' in navigator) {
           navigator.vibrate([200, 100, 200]);
         }
@@ -296,9 +301,14 @@ export default function WorkoutLogger() {
     };
 
     updateRestTimer();
-    const interval = setInterval(updateRestTimer, 1000); // Reduced from 100ms to 1000ms for battery savings
+    restIntervalRef.current = setInterval(updateRestTimer, 1000);
 
-    return () => clearInterval(interval);
+    return () => {
+      if (restIntervalRef.current !== null) {
+        clearInterval(restIntervalRef.current);
+        restIntervalRef.current = null;
+      }
+    };
   }, [restTimer]);
 
   // Show loading while checking
@@ -762,7 +772,7 @@ export default function WorkoutLogger() {
                 <>
                   <div className="w-px h-3 bg-white/20" />
                   <div className={`font-mono text-xs font-bold flex items-center gap-1 ${
-                    restTimeLeft === 0 ? 'text-green-500 animate-pulse' : 
+                    restTimeLeft === 0 ? 'text-green-500' : 
                     restTimeLeft < 10 ? 'text-amber-500' : 'text-blue-400'
                   }`}>
                     <Timer size={10} /> {formatTime(restTimeLeft)}
