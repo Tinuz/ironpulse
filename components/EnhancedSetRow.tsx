@@ -33,7 +33,7 @@ const EnhancedSetRowBase = forwardRef<HTMLDivElement, EnhancedSetRowProps>(({
   previousBest,
   suggestion
 }, ref) => {
-  const isNewPR = previousBest && set.weight > 0 && set.reps > 0 &&
+  const isNewPR = !set.isWarmup && previousBest && set.weight > 0 && set.reps > 0 &&
     (set.weight > previousBest.weight || 
      (set.weight === previousBest.weight && set.reps > previousBest.reps))
 

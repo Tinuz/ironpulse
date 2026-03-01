@@ -23,7 +23,7 @@ export function getBest1RM(exercise: WorkoutExercise): {
   weight: number;
   reps: number;
 } | null {
-  const completedSets = exercise.sets.filter(s => s.completed && s.reps > 0 && s.weight > 0);
+  const completedSets = exercise.sets.filter(s => s.completed && !s.isWarmup && s.reps > 0 && s.weight > 0);
   
   if (completedSets.length === 0) return null;
 
