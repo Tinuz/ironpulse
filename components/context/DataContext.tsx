@@ -308,12 +308,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .order('created_at', { ascending: false });
 
       if (schemasData && schemasData.length > 0) {
-        setSchemas(schemasData.map(s => ({
-          id: s.id,
-          name: s.name,
-          exercises: s.exercises,
-          color: s.color || undefined
-        })));
+      setSchemas(schemasData.map(s => {
+          const { exercises, mode, circuitConfig } = unpackExercises(s.exercises);
+          return { id: s.id, name: s.name, exercises, color: s.color || undefined, mode, circuitConfig };
+        }));
       } else {
         // Insert mock data if empty
         const { data: inserted } = await supabase
@@ -326,12 +324,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           })))
           .select();
         if (inserted) {
-          setSchemas(inserted.map(s => ({
-            id: s.id,
-            name: s.name,
-            exercises: s.exercises,
-            color: s.color || undefined
-          })));
+          setSchemas(inserted.map(s => {
+            const { exercises, mode, circuitConfig } = unpackExercises(s.exercises);
+            return { id: s.id, name: s.name, exercises, color: s.color || undefined, mode, circuitConfig };
+          }));
         }
       }
 
@@ -592,6 +588,21 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Don't remove from localStorage when activeWorkout is null during loading
     // Only the cancelWorkout and finishWorkout functions should remove it
   }, [activeWorkout]);
+  // Helpers to pack/unpack mode+circuitConfig inside the exercises JSONB column
+  const packExercises = (schema: Schema): unknown => {
+    if (schema.mode === 'circuit') {
+      return { _v: 2, _mode: 'circuit', _circuitConfig: schema.circuitConfig, items: schema.exercises };
+    }
+    return schema.exercises;
+  };
+
+  const unpackExercises = (raw: unknown): { exercises: Exercise[]; mode?: 'standard' | 'circuit'; circuitConfig?: CircuitConfig } => {
+    if (raw && typeof raw === 'object' && !Array.isArray(raw) && (raw as Record<string,unknown>)._v === 2) {
+      const r = raw as Record<string, unknown>;
+      return { exercises: (r.items as Exercise[]) ?? [], mode: r._mode as 'circuit', circuitConfig: r._circuitConfig as CircuitConfig };
+    }
+    return { exercises: (raw as Exercise[]) ?? [] };
+  };
 
   const addSchema = async (schema: Schema) => {
     console.log('🔧 Adding schema to database:', schema.name)
@@ -602,7 +613,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         id: schema.id,
         user_id: USER_ID,
         name: schema.name,
-        exercises: schema.exercises,
+        exercises: packExercises(schema),
         color: schema.color
       })
       .select()
@@ -615,11 +626,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     if (data) {
       console.log('✅ Schema added successfully:', data.id)
+      const { exercises, mode, circuitConfig } = unpackExercises(data.exercises);
       setSchemas(prev => [...prev, {
         id: data.id,
         name: data.name,
-        exercises: data.exercises,
-        color: data.color || undefined
+        exercises,
+        color: data.color || undefined,
+        mode,
+        circuitConfig,
       }]);
     }
   };
@@ -629,7 +643,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       .from('schemas')
       .update({
         name: schema.name,
-        exercises: schema.exercises,
+        exercises: packExercises(schema),
         color: schema.color
       })
       .eq('id', id)
@@ -638,11 +652,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       .single();
 
     if (!error && data) {
+      const { exercises, mode, circuitConfig } = unpackExercises(data.exercises);
       setSchemas(prev => prev.map(s => s.id === id ? {
         id: data.id,
         name: data.name,
-        exercises: data.exercises,
-        color: data.color || undefined
+        exercises,
+        color: data.color || undefined,
+        mode,
+        circuitConfig,
       } : s));
     }
   };
