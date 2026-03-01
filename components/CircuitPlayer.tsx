@@ -142,12 +142,12 @@ export default function CircuitPlayer({ workout, circuitConfig, onFinish, onCanc
     }
   }
 
-  // ── single stable interval — only paused/started/done gate it ─────────────
+  // ── tick: just count down, never call advance from inside the updater ───────
   useEffect(() => {
     if (!started || paused || phase === 'done') return
     const id = setInterval(() => {
       setTimeLeft(prev => {
-        if (prev <= 1) { advanceRef.current(); return 0 }
+        if (prev <= 1) return 0
         if (prev === 4 && !beeped3.current && audioRef.current) {
           beeped3.current = true
           audioFns.current.beepCountdown()
@@ -158,6 +158,13 @@ export default function CircuitPlayer({ workout, circuitConfig, onFinish, onCanc
     return () => clearInterval(id)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [started, paused, phase])
+
+  // ── when timeLeft hits 0, advance to next phase (separate effect = safe) ───
+  useEffect(() => {
+    if (!started || paused || phase === 'done') return
+    if (timeLeft === 0) advanceRef.current()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [timeLeft])
 
   useEffect(() => {
     if (phase === 'done') onFinish(weights, round)
