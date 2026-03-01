@@ -833,7 +833,7 @@ export default function WorkoutLogger() {
         <CircuitPlayer
           workout={workoutData}
           circuitConfig={workoutData.circuitConfig}
-          onFinish={(weights, roundsCompleted) => {
+          onFinish={(weights: Record<string, number>, roundsCompleted: number) => {
             const syntheticSets = (exId: string) =>
               Array.from({ length: roundsCompleted }, () => ({
                 id: crypto.randomUUID(),
