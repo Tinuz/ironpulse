@@ -2,25 +2,22 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Pause, Play, SkipForward, Check, Zap, Volume2, VolumeX, ChevronRight } from 'lucide-react'
+import { Pause, Play, SkipForward, Check, Zap, Volume2, VolumeX, ChevronRight, Timer } from 'lucide-react'
 import { WorkoutLog, CircuitConfig } from '@/components/context/DataContext'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Audio
 // ─────────────────────────────────────────────────────────────────────────────
-function useAudioBeeps(enabled: boolean) {
-  const ctxRef = useRef<AudioContext | null>(null)
-
-  const getCtx = useCallback((): AudioContext | null => {
-    if (!enabled) return null
+function makeAudio() {
+  let ctx: AudioContext | null = null
+  const getCtx = (): AudioContext | null => {
     try {
-      if (!ctxRef.current)
-        ctxRef.current = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)()
-      return ctxRef.current
+      if (!ctx)
+        ctx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)()
+      return ctx
     } catch { return null }
-  }, [enabled])
-
-  const tone = useCallback((freq: number, dur: number, delay = 0) => {
+  }
+  const tone = (freq: number, dur: number, delay = 0) => {
     const c = getCtx(); if (!c) return
     try {
       const o = c.createOscillator(), g = c.createGain()
@@ -30,13 +27,12 @@ function useAudioBeeps(enabled: boolean) {
       g.gain.exponentialRampToValueAtTime(0.001, c.currentTime + delay + dur)
       o.start(c.currentTime + delay); o.stop(c.currentTime + delay + dur + 0.05)
     } catch { /* ignore */ }
-  }, [getCtx])
-
-  const beepCountdown = useCallback(() => { tone(880, 0.1, 0); tone(880, 0.1, 0.2); tone(880, 0.1, 0.4) }, [tone])
-  const beepGo        = useCallback(() => { tone(1047, 0.3, 0) }, [tone])
-  const beepRest      = useCallback(() => { tone(659, 0.15, 0); tone(523, 0.15, 0.25) }, [tone])
-
-  return { beepCountdown, beepGo, beepRest }
+  }
+  return {
+    beepCountdown: () => { tone(880, 0.1, 0); tone(880, 0.1, 0.2); tone(880, 0.1, 0.4) },
+    beepGo:        () => { tone(1047, 0.3, 0) },
+    beepRest:      () => { tone(659, 0.15, 0); tone(523, 0.15, 0.25) },
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -56,7 +52,7 @@ const PHASE_COLOR: Record<Phase, string> = {
 }
 
 const PHASE_LABEL: Record<Phase, string> = {
-  prepare:     'KLAAR',
+  prepare:     'VOORBEREIDING',
   work:        'WERK',
   superset:    'SUPERSET',
   rest:        'RUST',
@@ -72,7 +68,7 @@ interface Props {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// CircuitPlayer — HIIT-style
+// CircuitPlayer — HIIT-style with explicit start
 // ─────────────────────────────────────────────────────────────────────────────
 export default function CircuitPlayer({ workout, circuitConfig, onFinish, onCancel }: Props) {
   const allExercises = workout.exercises
@@ -85,6 +81,7 @@ export default function CircuitPlayer({ workout, circuitConfig, onFinish, onCanc
     : allExercises
 
   // ── state ──────────────────────────────────────────────────────────────────
+  const [started,  setStarted]  = useState(false)   // gated start screen
   const [round,    setRound]    = useState(1)
   const [exIdx,    setExIdx]    = useState(0)
   const [phase,    setPhase]    = useState<Phase>('prepare')
@@ -97,10 +94,15 @@ export default function CircuitPlayer({ workout, circuitConfig, onFinish, onCanc
     return m
   })
 
-  const beeped3 = useRef(false)
-  const { beepCountdown, beepGo, beepRest } = useAudioBeeps(audio)
+  // stable refs so the interval never goes stale
+  const audioRef   = useRef(audio)
+  const stateRef   = useRef({ phase, exIdx, round })
+  useEffect(() => { audioRef.current = audio }, [audio])
+  useEffect(() => { stateRef.current = { phase, exIdx, round } }, [phase, exIdx, round])
 
-  const phaseDur = useCallback((p: Phase): number => {
+  const beeped3    = useRef(false)
+  const audioFns   = useRef(makeAudio())
+  const phaseDurFn = useCallback((p: Phase): number => {
     switch (p) {
       case 'prepare':    return PREPARE
       case 'work':       return circuitConfig.workDuration
@@ -111,44 +113,51 @@ export default function CircuitPlayer({ workout, circuitConfig, onFinish, onCanc
     }
   }, [circuitConfig])
 
-  // ── advance ────────────────────────────────────────────────────────────────
-  const advance = useCallback(() => {
+  // ── advance (uses refs → never stale inside interval) ─────────────────────
+  const advanceRef = useRef<() => void>(() => {})
+  advanceRef.current = () => {
     beeped3.current = false
-    const lastEx    = exIdx >= mainExs.length - 1
-    const lastRound = round >= circuitConfig.rounds
+    const { phase: p, exIdx: ei, round: ro } = stateRef.current
+    const lastEx    = ei >= mainExs.length - 1
+    const lastRound = ro >= circuitConfig.rounds
+    const af        = audioRef.current ? audioFns.current : { beepGo: () => {}, beepRest: () => {} }
 
-    if (phase === 'prepare')    { beepGo(); setPhase('work'); setTimeLeft(circuitConfig.workDuration); return }
-    if (phase === 'work') {
-      if (supersetEx)           { beepGo(); setPhase('superset'); setTimeLeft(circuitConfig.supersetDuration); return }
-      if (lastEx && lastRound)  { setPhase('done'); return }
-      beepRest(); setPhase('rest'); setTimeLeft(circuitConfig.restDuration); return
+    if (p === 'prepare')   { af.beepGo(); setPhase('work'); setTimeLeft(circuitConfig.workDuration); return }
+    if (p === 'work') {
+      if (supersetEx)        { af.beepGo(); setPhase('superset'); setTimeLeft(circuitConfig.supersetDuration); return }
+      if (lastEx && lastRound) { setPhase('done'); return }
+      af.beepRest(); setPhase('rest'); setTimeLeft(circuitConfig.restDuration); return
     }
-    if (phase === 'superset') {
-      if (lastEx && lastRound)  { setPhase('done'); return }
-      beepRest(); setPhase('rest'); setTimeLeft(circuitConfig.restDuration); return
+    if (p === 'superset') {
+      if (lastEx && lastRound) { setPhase('done'); return }
+      af.beepRest(); setPhase('rest'); setTimeLeft(circuitConfig.restDuration); return
     }
-    if (phase === 'rest') {
-      if (!lastEx) { setExIdx(i => i + 1); beepGo(); setPhase('work'); setTimeLeft(circuitConfig.workDuration); return }
-      if (!lastRound) { beepRest(); setPhase('round-rest'); setTimeLeft(circuitConfig.roundRestDuration); return }
+    if (p === 'rest') {
+      if (!lastEx)   { setExIdx(i => i + 1); af.beepGo(); setPhase('work'); setTimeLeft(circuitConfig.workDuration); return }
+      if (!lastRound) { af.beepRest(); setPhase('round-rest'); setTimeLeft(circuitConfig.roundRestDuration); return }
       setPhase('done'); return
     }
-    if (phase === 'round-rest') {
-      setRound(r => r + 1); setExIdx(0); beepGo(); setPhase('work'); setTimeLeft(circuitConfig.workDuration); return
+    if (p === 'round-rest') {
+      setRound(r => r + 1); setExIdx(0); af.beepGo(); setPhase('work'); setTimeLeft(circuitConfig.workDuration); return
     }
-  }, [phase, exIdx, round, circuitConfig, mainExs.length, supersetEx, beepGo, beepRest])
+  }
 
-  // ── tick ───────────────────────────────────────────────────────────────────
+  // ── single stable interval — only paused/started/done gate it ─────────────
   useEffect(() => {
-    if (paused || phase === 'done') return
+    if (!started || paused || phase === 'done') return
     const id = setInterval(() => {
       setTimeLeft(prev => {
-        if (prev <= 1) { advance(); return 0 }
-        if (prev === 4 && !beeped3.current) { beeped3.current = true; beepCountdown() }
+        if (prev <= 1) { advanceRef.current(); return 0 }
+        if (prev === 4 && !beeped3.current && audioRef.current) {
+          beeped3.current = true
+          audioFns.current.beepCountdown()
+        }
         return prev - 1
       })
     }, 1000)
     return () => clearInterval(id)
-  }, [paused, phase, advance, beepCountdown])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [started, paused, phase])
 
   useEffect(() => {
     if (phase === 'done') onFinish(weights, round)
@@ -157,7 +166,7 @@ export default function CircuitPlayer({ workout, circuitConfig, onFinish, onCanc
 
   // ── derived ────────────────────────────────────────────────────────────────
   const color    = PHASE_COLOR[phase]
-  const total    = phaseDur(phase)
+  const total    = phaseDurFn(phase)
   const pct      = total > 0 ? timeLeft / total : 0
   const activeEx = phase === 'superset' ? supersetEx : mainExs[exIdx]
 
@@ -171,6 +180,77 @@ export default function CircuitPlayer({ workout, circuitConfig, onFinish, onCanc
   const currentQueueIdx = supersetEx
     ? exIdx * 2 + (phase === 'superset' ? 1 : 0)
     : exIdx
+
+  // ── start splash ──────────────────────────────────────────────────────────
+  if (!started) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col">
+        <div className="flex items-center justify-between px-4 py-4 border-b border-white/5">
+          <button onClick={onCancel} className="text-sm font-bold text-red-400 hover:bg-red-500/10 px-3 py-1.5 rounded-lg">
+            Annuleer
+          </button>
+          <span className="font-black text-sm">{workout.name ?? 'Circuit'}</span>
+          <div className="w-16" />
+        </div>
+
+        <div className="flex-1 flex flex-col items-center justify-center px-6 gap-6 text-center">
+          <div className="h-20 w-20 rounded-full bg-green-500/15 flex items-center justify-center">
+            <Timer size={38} className="text-green-400" />
+          </div>
+          <div>
+            <h2 className="font-black text-3xl mb-1">{circuitConfig.rounds} ronde{circuitConfig.rounds !== 1 ? 's' : ''}</h2>
+            <p className="text-muted-foreground text-sm">{mainExs.length} oefeningen{supersetEx ? ` + superset` : ''}</p>
+          </div>
+
+          {/* timing overview */}
+          <div className="w-full max-w-xs grid grid-cols-2 gap-2 text-sm">
+            <div className="bg-green-500/10 border border-green-500/20 rounded-xl px-4 py-3">
+              <div className="font-black text-2xl text-green-400">{circuitConfig.workDuration}s</div>
+              <div className="text-xs text-muted-foreground font-bold uppercase tracking-wider mt-0.5">Werk</div>
+            </div>
+            <div className="bg-indigo-500/10 border border-indigo-500/20 rounded-xl px-4 py-3">
+              <div className="font-black text-2xl text-indigo-400">{circuitConfig.restDuration}s</div>
+              <div className="text-xs text-muted-foreground font-bold uppercase tracking-wider mt-0.5">Rust</div>
+            </div>
+            {supersetEx && (
+              <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl px-4 py-3">
+                <div className="font-black text-2xl text-amber-400">{circuitConfig.supersetDuration}s</div>
+                <div className="text-xs text-muted-foreground font-bold uppercase tracking-wider mt-0.5">Superset</div>
+              </div>
+            )}
+            <div className="bg-violet-500/10 border border-violet-500/20 rounded-xl px-4 py-3">
+              <div className="font-black text-2xl text-violet-400">{circuitConfig.roundRestDuration}s</div>
+              <div className="text-xs text-muted-foreground font-bold uppercase tracking-wider mt-0.5">Ronde rust</div>
+            </div>
+          </div>
+
+          {/* exercise list preview */}
+          <div className="w-full max-w-xs space-y-1.5">
+            {mainExs.map((ex, i) => (
+              <div key={ex.id} className="flex items-center gap-3 px-3 py-2 rounded-lg bg-white/4 text-sm text-left">
+                <span className="text-muted-foreground font-bold w-5 text-center shrink-0">{i + 1}</span>
+                <span className="flex-1 font-bold truncate">{ex.name}</span>
+                {supersetEx && <span className="text-[10px] text-amber-400 font-black shrink-0">+⚡</span>}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* big start button */}
+        <div className="px-6 pb-10">
+          <button
+            onClick={() => { setStarted(true); audioFns.current.beepGo() }}
+            className="w-full py-5 rounded-2xl font-black text-xl bg-green-500 hover:bg-green-400 active:scale-95 transition-all text-black"
+          >
+            Start circuit
+          </button>
+          <p className="text-center text-xs text-muted-foreground/50 mt-3">
+            Je krijgt eerst {PREPARE} seconden voorbereiding
+          </p>
+        </div>
+      </div>
+    )
+  }
 
   // ── done screen ────────────────────────────────────────────────────────────
   if (phase === 'done') {
@@ -251,7 +331,7 @@ export default function CircuitPlayer({ workout, circuitConfig, onFinish, onCanc
                 <AnimatePresence mode="wait">
                   <motion.span
                     key={timeLeft}
-                    initial={{ scale: 1.3, opacity: 0.5 }}
+                    initial={{ scale: 1.25, opacity: 0.6 }}
                     animate={{ scale: 1, opacity: 1 }}
                     className="font-black tabular-nums block leading-none"
                     style={{ fontSize: 60, color }}
@@ -263,7 +343,7 @@ export default function CircuitPlayer({ workout, circuitConfig, onFinish, onCanc
               </div>
             </div>
 
-            {/* timer bar */}
+            {/* timer bar — animates every second */}
             <div className="mx-5 my-4 h-3 rounded-full bg-white/10 overflow-hidden">
               <motion.div
                 className="h-full rounded-full"
@@ -301,7 +381,7 @@ export default function CircuitPlayer({ workout, circuitConfig, onFinish, onCanc
             {paused ? <Play size={18} /> : <Pause size={18} />}
             {paused ? 'Hervat' : 'Pauze'}
           </button>
-          <button onClick={advance}
+          <button onClick={() => advanceRef.current()}
             className="flex items-center justify-center gap-2 py-4 rounded-xl font-bold text-sm transition-colors"
             style={{ backgroundColor: color + '1c', color }}>
             <SkipForward size={18} /> Sla over
@@ -317,7 +397,7 @@ export default function CircuitPlayer({ workout, circuitConfig, onFinish, onCanc
 
         {queue.map((item, qi) => {
           const isDone    = qi < currentQueueIdx
-          const isCurrent = qi === currentQueueIdx && phase !== 'rest' && phase !== 'round-rest'
+          const isCurrent = qi === currentQueueIdx && phase !== 'rest' && phase !== 'round-rest' && phase !== 'prepare'
           const isNext    = !isCurrent && !isDone && qi === currentQueueIdx + 1
 
           return (
@@ -331,31 +411,21 @@ export default function CircuitPlayer({ workout, circuitConfig, onFinish, onCanc
                 'border-transparent'
               }`}
             >
-              {/* icon */}
-              <div className="h-8 w-8 rounded-full flex items-center justify-center shrink-0 text-xs font-black"
+              <div className="h-8 w-8 rounded-full flex items-center justify-center shrink-0"
                 style={{
                   backgroundColor: isDone ? 'transparent' : item.isSuperset ? '#f59e0b18' : 'rgba(255,255,255,0.06)',
                   color: isDone ? '#22c55e' : item.isSuperset ? '#f59e0b' : 'rgba(255,255,255,0.5)',
                 }}>
-                {isDone
-                  ? <Check size={14} />
-                  : item.isSuperset
-                    ? <Zap size={14} />
-                    : <ChevronRight size={14} />
-                }
+                {isDone ? <Check size={14} /> : item.isSuperset ? <Zap size={14} /> : <ChevronRight size={14} />}
               </div>
-
-              {/* name */}
               <span className={`flex-1 min-w-0 text-sm font-bold truncate ${
-                isCurrent ? 'text-foreground' : isDone ? 'text-muted-foreground' : isNext ? 'text-muted-foreground' : 'text-muted-foreground/60'
+                isCurrent ? 'text-foreground' : 'text-muted-foreground'
               }`}>
                 {item.label}
                 {item.isSuperset && (
                   <span className="ml-2 text-[9px] font-black uppercase tracking-wider text-amber-400/70">superset</span>
                 )}
               </span>
-
-              {/* duration */}
               <span className="text-[11px] font-mono text-muted-foreground/50 shrink-0">{item.dur}s</span>
             </motion.div>
           )
@@ -364,3 +434,4 @@ export default function CircuitPlayer({ workout, circuitConfig, onFinish, onCanc
     </div>
   )
 }
+
