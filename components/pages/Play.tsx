@@ -339,7 +339,15 @@ export default function PlayPage() {
                         </div>
                         <div className="flex-1">
                           <h4 className="font-bold text-lg leading-tight">{schema.name}</h4>
-                          <p className="text-xs text-muted-foreground">{schema.exercises.length} {t.schema.exerciseCount}</p>
+                          <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                            {schema.mode === 'circuit' && (
+                              <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-400">⚡ Circuit</span>
+                            )}
+                            {schema.exercises.length} {t.schema.exerciseCount}
+                            {schema.mode === 'circuit' && schema.circuitConfig && (
+                              <span className="text-muted-foreground/60">· {schema.circuitConfig.rounds}×</span>
+                            )}
+                          </p>
                         </div>
                       </div>
                       

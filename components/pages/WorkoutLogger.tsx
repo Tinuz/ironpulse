@@ -28,6 +28,7 @@ import { useLanguage } from '@/components/context/LanguageContext'
 import { useWakeLock } from '@/components/utils/useWakeLock'
 import { useWorkoutAutoSave } from '@/components/utils/useWorkoutAutoSave'
 import { type MuscleGroup } from '@/components/utils/volumeAnalytics'
+import CircuitPlayer from '@/components/CircuitPlayer'
 import { generateSetsFromOneRM, validateOneRM } from '@/components/utils/oneRepMaxCalculations'
 import { getExerciseImages } from '@/lib/exerciseData'
 
@@ -824,6 +825,47 @@ export default function WorkoutLogger() {
   const totalSets = workoutData.exercises.reduce((acc, ex) => acc + (ex.sets?.length || 0), 0);
   const completedSets = workoutData.exercises.reduce((acc, ex) => acc + (ex.sets?.filter(s => s.completed)?.length || 0), 0);
   const progress = totalSets > 0 ? (completedSets / totalSets) * 100 : 0;
+
+  // ── Circuit mode ────────────────────────────────────────────────────────────
+  if (workoutData.circuitConfig) {
+    return (
+      <div className="min-h-screen bg-background">
+        <CircuitPlayer
+          workout={workoutData}
+          circuitConfig={workoutData.circuitConfig}
+          onFinish={(weights, roundsCompleted) => {
+            const syntheticSets = (exId: string) =>
+              Array.from({ length: roundsCompleted }, () => ({
+                id: crypto.randomUUID(),
+                weight: weights[exId] ?? 0,
+                reps: 0,
+                completed: true,
+              }));
+            const finalWorkout = {
+              ...workoutData,
+              endTime: Date.now(),
+              circuitWeights: weights,
+              circuitRoundsCompleted: roundsCompleted,
+              exercises: workoutData.exercises.map(ex => ({
+                ...ex,
+                sets: syntheticSets(ex.id),
+              })),
+            };
+            finishWorkout(finalWorkout);
+            releaseWakeLock();
+            router.push('/history');
+          }}
+          onCancel={() => {
+            if (window.confirm(t.workout.cancelWorkoutConfirm)) {
+              releaseWakeLock();
+              cancelWorkout();
+              router.push('/');
+            }
+          }}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background pb-40">

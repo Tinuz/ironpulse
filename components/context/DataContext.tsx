@@ -26,6 +26,15 @@ export interface CardioData {
   estimatedCalories?: number;
 }
 
+export interface CircuitConfig {
+  workDuration: number;        // seconds per exercise (default 30)
+  supersetDuration: number;    // seconds for superset exercise between each exercise (default 30)
+  restDuration: number;        // rest between exercises in seconds (default 30)
+  roundRestDuration: number;   // rest between rounds (default 60)
+  rounds: number;              // number of full circuit rounds (default 3)
+  supersetExerciseId?: string; // exerciseId of the superset exercise (e.g. kettlebell swing)
+}
+
 export interface Exercise {
   id: string;
   name: string;
@@ -49,6 +58,8 @@ export interface Schema {
   name: string;
   exercises: Exercise[];
   color?: string;
+  mode?: 'standard' | 'circuit';
+  circuitConfig?: CircuitConfig;
 }
 
 export interface WorkoutSet {
@@ -92,6 +103,9 @@ export interface WorkoutLog {
   metValue?: number; // MET value used for calculation (default: 5)
   completedAt?: string; // ISO timestamp when workout was completed
   isDeload?: boolean; // Whether this is a deload/recovery week workout (excludes from progressive overload tracking)
+  circuitConfig?: CircuitConfig;       // Present when this log is a circuit workout
+  circuitWeights?: Record<string, number>; // exerciseId → weight used
+  circuitRoundsCompleted?: number;     // rounds actually completed
   cardioSummary?: {
     totalDuration: number; // total cardio seconds
     totalDistance?: number; // total meters
@@ -180,7 +194,7 @@ interface DataContextType {
   deleteSchema: (id: string) => void;
   startWorkout: (schema?: Schema, exercises?: WorkoutExercise[], customName?: string) => WorkoutLog;
   updateActiveWorkout: (workout: WorkoutLog) => void;
-  finishWorkout: () => void;
+  finishWorkout: (workoutOverride?: WorkoutLog) => void;
   cancelWorkout: () => void;
   updateWorkout: (id: string, workout: Partial<WorkoutLog>) => Promise<void>;
   deleteWorkout: (id: string) => Promise<void>;
@@ -657,6 +671,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       date: new Date().toISOString(),
       startTime: Date.now(),
       endTime: null,
+      circuitConfig: schema?.circuitConfig,
       exercises: exercises ? exercises : (schema ? schema.exercises.map(e => {
         let sets: WorkoutSet[] = [];
         
@@ -717,9 +732,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem('ft_active', JSON.stringify(workout));
   };
 
-  const finishWorkout = async () => {
-    if (activeWorkout) {
-      const finishedWorkout = { ...activeWorkout, endTime: Date.now(), completedAt: new Date().toISOString() };
+  const finishWorkout = async (workoutOverride?: WorkoutLog) => {
+    const base = workoutOverride || activeWorkout;
+    if (base) {
+      const finishedWorkout = { ...base, endTime: Date.now(), completedAt: new Date().toISOString() };
       
       // Clean up exercises data - remove any fields that might cause serialization issues
       const cleanedExercises = finishedWorkout.exercises.map(ex => ({

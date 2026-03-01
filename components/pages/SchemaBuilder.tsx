@@ -2,9 +2,9 @@
 
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence, Reorder } from 'framer-motion'
-import { ArrowLeft, Plus, Trash2, GripVertical, RotateCcw, Edit2, Search, RefreshCw, Share2, Lightbulb, Heart, Dumbbell, Clock, Route, Upload, Image as ImageIcon, ChevronDown, ChevronUp } from 'lucide-react'
+import { ArrowLeft, Plus, Trash2, GripVertical, RotateCcw, Edit2, Search, RefreshCw, Share2, Lightbulb, Heart, Dumbbell, Clock, Route, Upload, Image as ImageIcon, ChevronDown, ChevronUp, Zap, Timer } from 'lucide-react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useData, Schema, Exercise, ExerciseType } from '@/components/context/DataContext'
+import { useData, Schema, Exercise, ExerciseType, CircuitConfig } from '@/components/context/DataContext'
 import { useAuth } from '@/components/context/AuthContext'
 import { uploadExerciseImage, deleteExerciseImage, compressImage } from '@/lib/exerciseImages'
 import ExerciseSubstitutionModal from '@/components/ExerciseSubstitutionModal'
@@ -60,6 +60,15 @@ export default function SchemaBuilder() {
   const [newExAnatomyAlt, setNewExAnatomyAlt] = useState<string | undefined>(undefined);
   const [showImageUpload, setShowImageUpload] = useState(false);
 
+  // Circuit mode state
+  const [circuitMode, setCircuitMode] = useState(false);
+  const [circuitWorkDuration, setCircuitWorkDuration] = useState(30);
+  const [circuitSupersetDuration, setCircuitSupersetDuration] = useState(30);
+  const [circuitRestDuration, setCircuitRestDuration] = useState(30);
+  const [circuitRoundRestDuration, setCircuitRoundRestDuration] = useState(60);
+  const [circuitRounds, setCircuitRounds] = useState(3);
+  const [circuitSupersetExId, setCircuitSupersetExId] = useState<string | undefined>(undefined);
+
   // Load schema for editing
   useEffect(() => {
     if (editId) {
@@ -68,6 +77,15 @@ export default function SchemaBuilder() {
         setName(schemaToEdit.name);
         setExercises([...schemaToEdit.exercises]);
         setIsEditMode(true);
+        if (schemaToEdit.mode === 'circuit' && schemaToEdit.circuitConfig) {
+          setCircuitMode(true);
+          setCircuitWorkDuration(schemaToEdit.circuitConfig.workDuration);
+          setCircuitSupersetDuration(schemaToEdit.circuitConfig.supersetDuration);
+          setCircuitRestDuration(schemaToEdit.circuitConfig.restDuration);
+          setCircuitRoundRestDuration(schemaToEdit.circuitConfig.roundRestDuration);
+          setCircuitRounds(schemaToEdit.circuitConfig.rounds);
+          setCircuitSupersetExId(schemaToEdit.circuitConfig.supersetExerciseId);
+        }
       }
     }
   }, [editId, schemas]);
@@ -120,11 +138,11 @@ export default function SchemaBuilder() {
       name: newExName,
       type: exerciseType,
       muscleGroup: newExMuscleGroup,
-      targetSets: exerciseType === 'strength' ? newExSets : 0,
-      targetReps: exerciseType === 'strength' ? newExReps : 0,
-      minReps: exerciseType === 'strength' && newExMinReps < newExReps ? newExMinReps : undefined,
+      targetSets: !circuitMode && exerciseType === 'strength' ? newExSets : 0,
+      targetReps: !circuitMode && exerciseType === 'strength' ? newExReps : 0,
+      minReps: !circuitMode && exerciseType === 'strength' && newExMinReps < newExReps ? newExMinReps : undefined,
       startWeight: exerciseType === 'strength' ? newExStartWeight : undefined,
-      oneRepMax: exerciseType === 'strength' ? newExOneRM : undefined,
+      oneRepMax: !circuitMode && exerciseType === 'strength' ? newExOneRM : undefined,
       anatomyImage: newExAnatomyImage,
       anatomyAlt: newExAnatomyAlt,
       cardioData: exerciseType === 'cardio' ? {
@@ -160,11 +178,21 @@ export default function SchemaBuilder() {
     if (isEditMode && editId) {
       // Update existing schema
       const schemaToEdit = schemas.find(s => s.id === editId);
+      const circuitCfg: CircuitConfig | undefined = circuitMode ? {
+        workDuration: circuitWorkDuration,
+        supersetDuration: circuitSupersetDuration,
+        restDuration: circuitRestDuration,
+        roundRestDuration: circuitRoundRestDuration,
+        rounds: circuitRounds,
+        supersetExerciseId: circuitSupersetExId,
+      } : undefined;
       const updatedSchema: Schema = {
         id: editId,
         name,
         exercises,
-        color: schemaToEdit?.color || 'from-orange-500 to-red-500'
+        color: schemaToEdit?.color || 'from-orange-500 to-red-500',
+        mode: circuitMode ? 'circuit' : 'standard',
+        circuitConfig: circuitCfg,
       };
       await updateSchema(editId, updatedSchema);
     } else {
@@ -177,12 +205,21 @@ export default function SchemaBuilder() {
       ];
       
       const randomColor = colors[Math.floor(Math.random() * colors.length)];
-      
+      const circuitCfg2: CircuitConfig | undefined = circuitMode ? {
+        workDuration: circuitWorkDuration,
+        supersetDuration: circuitSupersetDuration,
+        restDuration: circuitRestDuration,
+        roundRestDuration: circuitRoundRestDuration,
+        rounds: circuitRounds,
+        supersetExerciseId: circuitSupersetExId,
+      } : undefined;
       const newSchema: Schema = {
         id: crypto.randomUUID(),
         name,
         exercises,
-        color: randomColor
+        color: randomColor,
+        mode: circuitMode ? 'circuit' : 'standard',
+        circuitConfig: circuitCfg2,
       };
       
       addSchema(newSchema);
@@ -230,11 +267,11 @@ export default function SchemaBuilder() {
             name: newExName, 
             type: exerciseType,
             muscleGroup: newExMuscleGroup,
-            targetSets: exerciseType === 'strength' ? newExSets : 0,
-            targetReps: exerciseType === 'strength' ? newExReps : 0,
-            minReps: exerciseType === 'strength' && newExMinReps < newExReps ? newExMinReps : undefined,
+            targetSets: !circuitMode && exerciseType === 'strength' ? newExSets : 0,
+            targetReps: !circuitMode && exerciseType === 'strength' ? newExReps : 0,
+            minReps: !circuitMode && exerciseType === 'strength' && newExMinReps < newExReps ? newExMinReps : undefined,
             startWeight: exerciseType === 'strength' ? newExStartWeight : undefined,
-            oneRepMax: exerciseType === 'strength' ? newExOneRM : undefined,
+            oneRepMax: !circuitMode && exerciseType === 'strength' ? newExOneRM : undefined,
             anatomyImage: newExAnatomyImage,
             anatomyAlt: newExAnatomyAlt,
             cardioData: exerciseType === 'cardio' ? {
@@ -388,6 +425,94 @@ export default function SchemaBuilder() {
           />
         </div>
 
+        {/* Workout Mode Toggle */}
+        <div className="flex items-center bg-white/5 rounded-xl p-1 gap-1">
+          <button
+            onClick={() => setCircuitMode(false)}
+            className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-bold transition-all ${
+              !circuitMode ? 'bg-primary text-background shadow-lg' : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <Dumbbell size={14} /> Standaard
+          </button>
+          <button
+            onClick={() => setCircuitMode(true)}
+            className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-bold transition-all ${
+              circuitMode ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/20' : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <Zap size={14} /> Circuit
+          </button>
+        </div>
+
+        {/* Circuit Config Panel */}
+        <AnimatePresence>
+          {circuitMode && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
+              className="overflow-hidden"
+            >
+              <div className="bg-orange-500/10 border border-orange-500/20 rounded-xl p-4 space-y-4">
+                <div className="flex items-center gap-2 text-orange-400">
+                  <Timer size={16} />
+                  <span className="text-sm font-black uppercase tracking-wider">Circuit Instellingen</span>
+                </div>
+
+                {/* Timing grid */}
+                <div className="grid grid-cols-2 gap-3">
+                  {[
+                    { label: 'Werk (s)', value: circuitWorkDuration, set: setCircuitWorkDuration, step: 5, min: 5 },
+                    { label: 'Rust (s)', value: circuitRestDuration, set: setCircuitRestDuration, step: 5, min: 5 },
+                    { label: 'Ronde rust (s)', value: circuitRoundRestDuration, set: setCircuitRoundRestDuration, step: 5, min: 10 },
+                    { label: 'Rondes', value: circuitRounds, set: setCircuitRounds, step: 1, min: 1 },
+                  ].map(({ label, value, set, step, min }) => (
+                    <div key={label}>
+                      <label className="text-[10px] uppercase font-bold text-muted-foreground">{label}</label>
+                      <div className="flex items-center mt-1 bg-black/20 rounded-lg overflow-hidden border border-orange-500/10">
+                        <button onClick={() => set((v: number) => Math.max(min, v - step))} className="p-2 hover:bg-white/10 text-orange-400 font-bold">−</button>
+                        <div className="flex-1 text-center font-mono font-black text-orange-400">{value}</div>
+                        <button onClick={() => set((v: number) => v + step)} className="p-2 hover:bg-white/10 text-orange-400 font-bold">+</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Superset duration — only if superset is chosen */}
+                {circuitSupersetExId && (
+                  <div>
+                    <label className="text-[10px] uppercase font-bold text-muted-foreground">Superset duur (s)</label>
+                    <div className="flex items-center mt-1 bg-black/20 rounded-lg overflow-hidden border border-orange-500/10">
+                      <button onClick={() => setCircuitSupersetDuration(v => Math.max(5, v - 5))} className="p-2 hover:bg-white/10 text-orange-400 font-bold">−</button>
+                      <div className="flex-1 text-center font-mono font-black text-orange-400">{circuitSupersetDuration}</div>
+                      <button onClick={() => setCircuitSupersetDuration(v => v + 5)} className="p-2 hover:bg-white/10 text-orange-400 font-bold">+</button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Superset exercise selector */}
+                {exercises.length > 0 && (
+                  <div>
+                    <label className="text-[10px] uppercase font-bold text-muted-foreground flex items-center gap-1">
+                      <Zap size={10} /> Superset oefening (optioneel)
+                    </label>
+                    <p className="text-[10px] text-muted-foreground/60 mb-1.5">Wordt tussen elke oefening uitgevoerd (bijv. Kettlebell Swing)</p>
+                    <select
+                      value={circuitSupersetExId ?? ''}
+                      onChange={e => setCircuitSupersetExId(e.target.value || undefined)}
+                      className="w-full bg-black/20 border border-orange-500/20 rounded-lg px-3 py-2 text-sm font-bold focus:outline-none focus:border-orange-500/50"
+                    >
+                      <option value="">— Geen superset —</option>
+                      {exercises.map(ex => (
+                        <option key={ex.id} value={ex.id}>{ex.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* Exercises List */}
         <div className="space-y-4">
           <div className="flex justify-between items-center">
@@ -454,8 +579,12 @@ export default function SchemaBuilder() {
                                 )}
                               </>
                             )}
-                          </>
-                        ) : (
+                          </>                        ) : circuitMode ? (
+                          <>
+                            <span className="flex items-center gap-1 text-orange-400"><Zap size={12}/> Circuit</span>
+                            {ex.id === circuitSupersetExId && <span className="flex items-center gap-1 text-yellow-400"><Zap size={10}/> Superset</span>}
+                            {ex.startWeight ? <span className="text-primary">@ {ex.startWeight}kg</span> : null}
+                          </>                        ) : (
                           <>
                             <span className="flex items-center gap-1"><RotateCcw size={12}/> {ex.targetSets} {t.workout.sets}</span>
                             <span className="flex items-center gap-1"><RotateCcw size={12}/> {ex.minReps ? `${ex.minReps}–${ex.targetReps}` : ex.targetReps} {t.workout.reps}</span>
@@ -704,7 +833,7 @@ export default function SchemaBuilder() {
               {/* Strength-specific fields */}
               {exerciseType === 'strength' && (
                 <>
-                  <div className="grid grid-cols-3 gap-3">
+                  {!circuitMode && <div className="grid grid-cols-3 gap-3">
                     <div>
                       <label className="text-[10px] uppercase font-bold text-muted-foreground">{t.workout.sets}</label>
                       <div className="flex items-center mt-1 bg-white/5 rounded-lg overflow-hidden">
@@ -729,7 +858,7 @@ export default function SchemaBuilder() {
                         <button onClick={() => setNewExReps(r => r + 1)} className="p-2 hover:bg-white/10">+</button>
                       </div>
                     </div>
-                  </div>
+                  </div>}
                   <div>
                 <div className="flex items-center justify-between mb-1">
                   <label className="text-[10px] uppercase font-bold text-muted-foreground">{t.schema.startWeight} (kg)</label>
@@ -803,7 +932,7 @@ export default function SchemaBuilder() {
               </div>
 
               {/* 1RM Input Field */}
-              <div>
+              {!circuitMode && <div>
                 <label className="text-[10px] uppercase font-bold text-muted-foreground flex items-center gap-2">
                   1RM (kg)
                   <span className="text-[9px] font-normal text-muted-foreground/60 normal-case italic">{t.common.optional || 'Optioneel'}</span>
@@ -827,7 +956,7 @@ export default function SchemaBuilder() {
                   </div>
                 )}
                 <p className="text-[9px] text-muted-foreground mt-1 px-1">Bij starten workout worden sets automatisch ingevuld op basis van 1RM</p>
-              </div>
+              </div>}
                 </>
               )}
               
