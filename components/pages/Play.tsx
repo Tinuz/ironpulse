@@ -209,16 +209,24 @@ export default function PlayPage() {
     const workout = history.find(w => w.id === workoutId)
     if (!workout) return
 
-    const clonedExercises = workout.exercises.map(ex => ({
-      ...ex,
-      id: crypto.randomUUID(),
-      sets: ex.sets.map(set => ({
+    // Look up the originating schema so we can restore rep range even for old history entries
+    const schema = schemas.find(s => s.id === workout.schemaId)
+
+    const clonedExercises = workout.exercises.map(ex => {
+      const schemaEx = schema?.exercises.find(se => se.id === ex.exerciseId)
+      return {
+        ...ex,
         id: crypto.randomUUID(),
-        reps: set.reps,
-        weight: set.weight,
-        completed: false
-      }))
-    }))
+        targetMinReps: ex.targetMinReps ?? schemaEx?.minReps,
+        targetMaxReps: ex.targetMaxReps ?? (schemaEx && schemaEx.targetReps > 0 ? schemaEx.targetReps : undefined),
+        sets: ex.sets.map(set => ({
+          id: crypto.randomUUID(),
+          reps: set.reps,
+          weight: set.weight,
+          completed: false
+        }))
+      }
+    })
 
     startWorkout(undefined, clonedExercises, workout.name)
     router.push('/workout')
