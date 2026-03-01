@@ -348,26 +348,33 @@ export default function WorkoutDetail() {
                       <div 
                         key={set.id}
                         className={`grid grid-cols-[auto_1fr_1fr_auto] gap-3 items-center py-2 px-1 rounded-lg ${
-                          set.completed ? 'bg-primary/10' : 'bg-white/5'
+                          set.isWarmup
+                            ? 'bg-blue-500/10 border border-blue-500/20'
+                            : set.completed ? 'bg-primary/10' : 'bg-white/5'
                         }`}
                       >
-                        <div className="w-6 text-center text-xs font-mono font-bold text-muted-foreground">
-                          {idx + 1}
+                        <div className="w-6 flex flex-col items-center gap-0.5">
+                          <span className="text-xs font-mono font-bold text-muted-foreground">{idx + 1}</span>
+                          {set.isWarmup && (
+                            <Flame size={10} className="text-blue-400 fill-blue-400" />
+                          )}
                         </div>
-                        <div className="text-center font-black text-lg">
-                          {set.weight} <span className="text-xs text-muted-foreground">kg</span>
+                        <div className={`text-center font-black text-lg ${set.isWarmup ? 'text-blue-300' : ''}`}>
+                          {set.weight} <span className="text-xs text-muted-foreground font-normal">kg</span>
                         </div>
-                        <div className="text-center font-black text-lg">
-                          {set.reps} <span className="text-xs text-muted-foreground">reps</span>
+                        <div className={`text-center font-black text-lg ${set.isWarmup ? 'text-blue-300' : ''}`}>
+                          {set.reps} <span className="text-xs text-muted-foreground font-normal">reps</span>
                         </div>
                         <div className="w-6 flex justify-center">
-                          {set.completed && (
+                          {set.isWarmup ? (
+                            <span className="text-[9px] font-bold text-blue-400 uppercase tracking-wide">WU</span>
+                          ) : set.completed ? (
                             <div className="w-5 h-5 rounded-full bg-primary/20 border-2 border-primary flex items-center justify-center">
                               <svg className="w-3 h-3 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                               </svg>
                             </div>
-                          )}
+                          ) : null}
                         </div>
                       </div>
                     ))}
