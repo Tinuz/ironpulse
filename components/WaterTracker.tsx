@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Droplet, Plus } from 'lucide-react'
 import clsx from 'clsx'
@@ -18,6 +18,13 @@ export default function WaterTracker({
 }: WaterTrackerProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [customAmount, setCustomAmount] = useState('');
+  const [pageVisible, setPageVisible] = useState(true);
+
+  useEffect(() => {
+    const handleVisibility = () => setPageVisible(document.visibilityState === 'visible');
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, []);
 
   const quickAmounts = [250, 500, 750];
   const percentage = Math.min((currentIntake / targetIntake) * 100, 100);
@@ -79,11 +86,9 @@ export default function WaterTracker({
                 {/* Wave effect */}
                 <motion.div
                   className="absolute top-0 left-0 right-0 h-8 bg-blue-300/30"
-                  animate={{
-                    y: [-4, 4, -4],
-                  }}
+                  animate={pageVisible ? { y: [-4, 4, -4] } : { y: 0 }}
                   transition={{
-                    repeat: Infinity,
+                    repeat: pageVisible ? Infinity : 0,
                     duration: 2,
                     ease: 'easeInOut'
                   }}
@@ -101,12 +106,9 @@ export default function WaterTracker({
                       left: `${20 + i * 30}%`,
                       bottom: '10%'
                     }}
-                    animate={{
-                      y: [-100, 20],
-                      opacity: [0, 1, 0]
-                    }}
+                    animate={pageVisible ? { y: [-100, 20], opacity: [0, 1, 0] } : { y: 0, opacity: 0 }}
                     transition={{
-                      repeat: Infinity,
+                      repeat: pageVisible ? Infinity : 0,
                       duration: 3,
                       delay: i * 0.7,
                       ease: 'easeOut'

@@ -21,7 +21,16 @@ export default function Navigation() {
 
     loadUnreadCount()
 
-    // Subscribe to new reactions
+    const batterySaverMode = localStorage.getItem('battery_saver_mode') === 'true'
+
+    if (batterySaverMode) {
+      // Battery saver: refresh on window focus instead of keeping a WebSocket alive
+      const handleFocus = () => loadUnreadCount()
+      window.addEventListener('focus', handleFocus)
+      return () => window.removeEventListener('focus', handleFocus)
+    }
+
+    // Normal mode: real-time Supabase subscription
     const channel = supabase
       .channel('reaction-notifications')
       .on('postgres_changes', {

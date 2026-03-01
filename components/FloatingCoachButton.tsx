@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import { Bot, Sparkles } from 'lucide-react'
 import { useRouter, usePathname } from 'next/navigation'
 
@@ -9,6 +9,9 @@ export default function FloatingCoachButton() {
   const router = useRouter()
   const pathname = usePathname()
   const [isHovered, setIsHovered] = useState(false)
+  const prefersReduced = useReducedMotion()
+  const batterySaver = typeof window !== 'undefined' && localStorage.getItem('battery_saver_mode') === 'true'
+  const disableInfiniteAnim = prefersReduced || batterySaver
 
   // Don't show on trainer page itself
   if (pathname === '/trainer') {
@@ -43,11 +46,11 @@ export default function FloatingCoachButton() {
         {/* Sparkle animation */}
         <motion.div
           className="absolute -top-1 -right-1"
-          animate={{
+          animate={disableInfiniteAnim ? { scale: 1, rotate: 0 } : {
             scale: [1, 1.2, 1],
             rotate: [0, 180, 360]
           }}
-          transition={{
+          transition={disableInfiniteAnim ? {} : {
             duration: 2,
             repeat: Infinity,
             ease: "easeInOut"
@@ -76,18 +79,20 @@ export default function FloatingCoachButton() {
       </AnimatePresence>
 
       {/* Pulse ring */}
-      <motion.div
-        className="absolute inset-0 rounded-full border-2 border-purple-400"
-        animate={{
-          scale: [1, 1.4, 1],
-          opacity: [0.5, 0, 0.5]
-        }}
-        transition={{
-          duration: 2,
-          repeat: Infinity,
-          ease: "easeOut"
-        }}
-      />
+      {!disableInfiniteAnim && (
+        <motion.div
+          className="absolute inset-0 rounded-full border-2 border-purple-400"
+          animate={{
+            scale: [1, 1.4, 1],
+            opacity: [0.5, 0, 0.5]
+          }}
+          transition={{
+            duration: 2,
+            repeat: Infinity,
+            ease: "easeOut"
+          }}
+        />
+      )}
     </motion.button>
   )
 }

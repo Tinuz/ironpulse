@@ -20,7 +20,7 @@ interface EnhancedSetRowProps {
   suggestion?: { weight: number; reason: string } | null
 }
 
-const EnhancedSetRow = forwardRef<HTMLDivElement, EnhancedSetRowProps>(({
+const EnhancedSetRowBase = forwardRef<HTMLDivElement, EnhancedSetRowProps>(({
   set,
   index,
   onUpdate,
@@ -228,6 +228,6 @@ const EnhancedSetRow = forwardRef<HTMLDivElement, EnhancedSetRowProps>(({
   )
 })
 
-EnhancedSetRow.displayName = 'EnhancedSetRow'
-
+EnhancedSetRowBase.displayName = 'EnhancedSetRow'
+const EnhancedSetRow = React.memo(EnhancedSetRowBase)
 export default EnhancedSetRow

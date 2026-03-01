@@ -156,13 +156,135 @@ const ExerciseStats = ({
   );
 };
 
+// ─── Battery-friendly isolated timer components ───────────────────────────────
+
+/** Shared formatTime utility (module-level) */
+const formatTime = (seconds: number) => {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
+};
+
+/**
+ * WorkoutTimerDisplay — self-contained elapsed counter.
+ * Only this tiny component re-renders every second, keeping WorkoutLogger static.
+ */
+const WorkoutTimerDisplay = React.memo(({ startTime, isPaused }: { startTime: number; isPaused: boolean }) => {
+  const [elapsed, setElapsed] = useState(Math.floor((Date.now() - startTime) / 1000));
+  useEffect(() => {
+    if (isPaused) return;
+    const batterySaverMode = localStorage.getItem('battery_saver_mode') === 'true';
+    const updateInterval = batterySaverMode ? 5000 : 1000;
+    const interval = setInterval(() => {
+      setElapsed(Math.floor((Date.now() - startTime) / 1000));
+    }, updateInterval);
+    return () => clearInterval(interval);
+  }, [startTime, isPaused]);
+  return (
+    <div className="font-mono text-xs text-muted-foreground font-bold flex items-center gap-1">
+      <Clock size={10} /> {formatTime(elapsed)}
+    </div>
+  );
+});
+WorkoutTimerDisplay.displayName = 'WorkoutTimerDisplay';
+
+/**
+ * RestTimerInlineDisplay — isolated countdown shown in the header.
+ * Manages its own interval; vibrates on completion.
+ */
+const RestTimerInlineDisplay = React.memo(({ restTimer }: {
+  restTimer: { startTime: number; duration: number };
+}) => {
+  const [timeLeft, setTimeLeft] = useState(Math.max(0, restTimer.duration - Math.floor((Date.now() - restTimer.startTime) / 1000)));
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  useEffect(() => {
+    const update = () => {
+      const tl = Math.max(0, restTimer.duration - Math.floor((Date.now() - restTimer.startTime) / 1000));
+      setTimeLeft(tl);
+      if (tl === 0 && intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+        if ('vibrate' in navigator) navigator.vibrate([200, 100, 200]);
+      }
+    };
+    update();
+    intervalRef.current = setInterval(update, 1000);
+    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
+  }, [restTimer.startTime, restTimer.duration]);
+  return (
+    <>
+      <div className="w-px h-3 bg-white/20" />
+      <div className={`font-mono text-xs font-bold flex items-center gap-1 ${
+        timeLeft === 0 ? 'text-green-500' : timeLeft < 10 ? 'text-amber-500' : 'text-blue-400'
+      }`}>
+        <Timer size={10} /> {formatTime(timeLeft)}
+      </div>
+    </>
+  );
+});
+RestTimerInlineDisplay.displayName = 'RestTimerInlineDisplay';
+
+/**
+ * RestTimerBar — isolated progress bar + controls.
+ * Keeps its own countdown; parent only stores the restTimer config object.
+ */
+const RestTimerBar = React.memo(({ restTimer, onAddTime, onStop }: {
+  restTimer: { startTime: number; duration: number };
+  onAddTime: (seconds: number) => void;
+  onStop: () => void;
+}) => {
+  const [timeLeft, setTimeLeft] = useState(Math.max(0, restTimer.duration - Math.floor((Date.now() - restTimer.startTime) / 1000)));
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  useEffect(() => {
+    const update = () => {
+      const tl = Math.max(0, restTimer.duration - Math.floor((Date.now() - restTimer.startTime) / 1000));
+      setTimeLeft(tl);
+      if (tl === 0 && intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    };
+    update();
+    intervalRef.current = setInterval(update, 1000);
+    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
+  }, [restTimer.startTime, restTimer.duration]);
+  return (
+    <div className="px-4 pb-3 flex items-center gap-2">
+      <div className="flex-1 h-2 bg-white/5 rounded-full overflow-hidden">
+        <motion.div
+          className={`h-full ${timeLeft === 0 ? 'bg-green-500' : timeLeft < 10 ? 'bg-amber-500' : 'bg-blue-500'}`}
+          initial={{ width: '100%' }}
+          animate={{ width: `${(timeLeft / restTimer.duration) * 100}%` }}
+          transition={{ duration: 0.1 }}
+        />
+      </div>
+      <div className="flex gap-1">
+        <button
+          onClick={() => onAddTime(30)}
+          className="p-1 bg-white/5 hover:bg-white/10 rounded-lg transition-colors"
+          title="Add 30s"
+        >
+          <PlusCircle size={16} className="text-blue-400" />
+        </button>
+        <button
+          onClick={onStop}
+          className="p-1 bg-white/5 hover:bg-white/10 rounded-lg transition-colors"
+          title="Skip rest"
+        >
+          <SkipForward size={16} className="text-muted-foreground" />
+        </button>
+      </div>
+    </div>
+  );
+});
+RestTimerBar.displayName = 'RestTimerBar';
+
 export default function WorkoutLogger() {
   const { activeWorkout, updateActiveWorkout, finishWorkout, cancelWorkout, history, bodyStats, userProfile } = useData();
   const router = useRouter();
   const workoutPreferences = useWorkoutPreferences();
   const { t } = useLanguage();
   const { requestWakeLock, releaseWakeLock } = useWakeLock();
-  const [elapsed, setElapsed] = useState(0);
   const [workoutData, setWorkoutData] = useState<typeof activeWorkout>(null);
   const [isReady, setIsReady] = useState(false);
   const [showSummary, setShowSummary] = useState(false);
@@ -204,7 +326,6 @@ export default function WorkoutLogger() {
     exerciseIndex: number;
     setIndex: number;
   } | null>(null);
-  const [restTimeLeft, setRestTimeLeft] = useState(0);
 
   // Default rest times based on exercise type (in seconds)
   const getDefaultRestTime = (exerciseName: string) => {
@@ -257,59 +378,7 @@ export default function WorkoutLogger() {
     }
   }, [activeWorkout]);
 
-  // Timer effect - pause when summary is shown
-  useEffect(() => {
-    if (!workoutData || showSummary) return;
-    
-    setElapsed(Math.floor((Date.now() - workoutData.startTime) / 1000));
 
-    // Use longer interval in battery saver mode
-    const batterySaverMode = localStorage.getItem('battery_saver_mode') === 'true'
-    const updateInterval = batterySaverMode ? 5000 : 1000 // 5s vs 1s
-
-    const interval = setInterval(() => {
-      setElapsed(Math.floor((Date.now() - workoutData.startTime) / 1000));
-    }, updateInterval);
-
-    return () => clearInterval(interval);
-  }, [workoutData, showSummary]);
-
-  // Rest timer effect
-  const restIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  useEffect(() => {
-    if (!restTimer?.active) {
-      setRestTimeLeft(0);
-      return;
-    }
-
-    const updateRestTimer = () => {
-      const elapsed = Math.floor((Date.now() - restTimer.startTime) / 1000);
-      const timeLeft = Math.max(0, restTimer.duration - elapsed);
-      setRestTimeLeft(timeLeft);
-
-      // Auto-stop when timer reaches 0
-      if (timeLeft === 0) {
-        if (restIntervalRef.current !== null) {
-          clearInterval(restIntervalRef.current);
-          restIntervalRef.current = null;
-        }
-        if ('vibrate' in navigator) {
-          navigator.vibrate([200, 100, 200]);
-        }
-      }
-    };
-
-    updateRestTimer();
-    restIntervalRef.current = setInterval(updateRestTimer, 1000);
-
-    return () => {
-      if (restIntervalRef.current !== null) {
-        clearInterval(restIntervalRef.current);
-        restIntervalRef.current = null;
-      }
-    };
-  }, [restTimer]);
 
   // Show loading while checking
   if (!isReady) {
@@ -343,12 +412,6 @@ export default function WorkoutLogger() {
       </div>
     );
   }
-
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
 
   const updateSet = (exerciseIndex: number, setIndex: number, field: 'weight' | 'reps' | 'rir' | 'rpe', value: number | undefined) => {
     if (!workoutData) return;
@@ -398,7 +461,6 @@ export default function WorkoutLogger() {
 
   const stopRestTimer = () => {
     setRestTimer(null);
-    setRestTimeLeft(0);
   };
 
   const addRestTime = (seconds: number) => {
@@ -775,20 +837,8 @@ export default function WorkoutLogger() {
           <div className="flex flex-col items-center">
             <h1 className="font-bold text-sm uppercase tracking-wide">{workoutData.name}</h1>
             <div className="flex items-center gap-3">
-              <div className="font-mono text-xs text-muted-foreground font-bold flex items-center gap-1">
-                <Clock size={10} /> {formatTime(elapsed)}
-              </div>
-              {restTimer?.active && (
-                <>
-                  <div className="w-px h-3 bg-white/20" />
-                  <div className={`font-mono text-xs font-bold flex items-center gap-1 ${
-                    restTimeLeft === 0 ? 'text-green-500' : 
-                    restTimeLeft < 10 ? 'text-amber-500' : 'text-blue-400'
-                  }`}>
-                    <Timer size={10} /> {formatTime(restTimeLeft)}
-                  </div>
-                </>
-              )}
+              <WorkoutTimerDisplay startTime={workoutData.startTime} isPaused={showSummary} />
+              {restTimer?.active && <RestTimerInlineDisplay restTimer={restTimer} />}
             </div>
             {/* Deload Mode Toggle */}
             <button
@@ -814,35 +864,7 @@ export default function WorkoutLogger() {
 
         {/* Rest Timer Bar */}
         {restTimer?.active && (
-          <div className="px-4 pb-3 flex items-center gap-2">
-            <div className="flex-1 h-2 bg-white/5 rounded-full overflow-hidden">
-              <motion.div 
-                className={`h-full ${
-                  restTimeLeft === 0 ? 'bg-green-500' : 
-                  restTimeLeft < 10 ? 'bg-amber-500' : 'bg-blue-500'
-                }`}
-                initial={{ width: '100%' }}
-                animate={{ width: `${(restTimeLeft / restTimer.duration) * 100}%` }}
-                transition={{ duration: 0.1 }}
-              />
-            </div>
-            <div className="flex gap-1">
-              <button
-                onClick={() => addRestTime(30)}
-                className="p-1 bg-white/5 hover:bg-white/10 rounded-lg transition-colors"
-                title="Add 30s"
-              >
-                <PlusCircle size={16} className="text-blue-400" />
-              </button>
-              <button
-                onClick={stopRestTimer}
-                className="p-1 bg-white/5 hover:bg-white/10 rounded-lg transition-colors"
-                title="Skip rest"
-              >
-                <SkipForward size={16} className="text-muted-foreground" />
-              </button>
-            </div>
-          </div>
+          <RestTimerBar restTimer={restTimer} onAddTime={addRestTime} onStop={stopRestTimer} />
         )}
 
         {/* Progress Bar */}
@@ -1314,7 +1336,7 @@ export default function WorkoutLogger() {
                       {t.workout.duration}
                     </div>
                     <div className="text-2xl font-black text-foreground">
-                      {formatTime(elapsed)}
+                      {formatTime(Math.floor((Date.now() - workoutData.startTime) / 1000))}
                     </div>
                   </div>
 
