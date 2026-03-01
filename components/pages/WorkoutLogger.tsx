@@ -906,45 +906,51 @@ export default function WorkoutLogger() {
               transition={{ delay: exerciseIndex * 0.1 }}
               className="bg-card border border-white/5 rounded-2xl overflow-hidden"
             >
-              <div className="p-4 bg-white/5 border-b border-white/5 flex justify-between items-center gap-3">
-                <div className="flex-1 flex items-center gap-2">
-                  {exercise.type === 'cardio' && <Heart size={18} className="text-green-500" />}
+              <div className="p-4 bg-white/5 border-b border-white/5">
+                {/* Row 1: name + action buttons — always on one line */}
+                <div className="flex items-center gap-2">
+                  {exercise.type === 'cardio' && <Heart size={18} className="text-green-500 shrink-0" />}
                   <input
                     type="text"
                     value={exercise.name}
                     onChange={(e) => updateExerciseName(exerciseIndex, e.target.value)}
-                    className="flex-1 bg-transparent font-bold text-lg focus:outline-none focus:bg-white/5 px-2 py-1 rounded transition-colors"
+                    className="flex-1 min-w-0 bg-transparent font-bold text-lg focus:outline-none focus:bg-white/5 px-2 py-1 rounded transition-colors"
                   />
-                  {exercise.type !== 'cardio' && exercise.targetMinReps && exercise.targetMaxReps && (
-                    <span className="text-[10px] font-bold text-muted-foreground bg-white/10 px-1.5 py-0.5 rounded shrink-0 whitespace-nowrap">
-                      {exercise.targetMinReps}–{exercise.targetMaxReps} reps
-                    </span>
-                  )}
-                  {progression.previousBest && exercise.type !== 'cardio' && (
-                    <ProgressionBadge 
-                      status={progression.status}
-                      delta={formatProgressionDelta(progression)}
-                      size="sm"
-                    />
-                  )}
-                </div>
-                <div className="flex gap-2">
-                  {exercise.type !== 'cardio' && (
+                  <div className="flex gap-1 shrink-0">
+                    {exercise.type !== 'cardio' && (
+                      <button 
+                        onClick={() => openSubstitutionModal(exerciseIndex)}
+                        className="text-blue-400 hover:bg-blue-400/10 p-2 rounded-lg transition-colors"
+                        title="Can't do this exercise?"
+                      >
+                        <RefreshCw size={18} />
+                      </button>
+                    )}
                     <button 
-                      onClick={() => openSubstitutionModal(exerciseIndex)}
-                      className="text-blue-400 hover:bg-blue-400/10 p-2 rounded-lg transition-colors"
-                      title="Can't do this exercise?"
+                      onClick={() => removeExercise(exerciseIndex)}
+                      className="text-red-500 hover:bg-red-500/10 p-2 rounded-lg transition-colors"
                     >
-                      <RefreshCw size={18} />
+                      <Trash2 size={18} />
                     </button>
-                  )}
-                  <button 
-                    onClick={() => removeExercise(exerciseIndex)}
-                    className="text-red-500 hover:bg-red-500/10 p-2 rounded-lg transition-colors"
-                  >
-                    <Trash2 size={18} />
-                  </button>
+                  </div>
                 </div>
+                {/* Row 2: rep range + progression badges */}
+                {(exercise.type !== 'cardio' && (exercise.targetMinReps && exercise.targetMaxReps) || (progression.previousBest && exercise.type !== 'cardio')) && (
+                  <div className="flex items-center gap-2 mt-1.5 px-2">
+                    {exercise.targetMinReps && exercise.targetMaxReps && (
+                      <span className="text-[10px] font-bold text-muted-foreground bg-white/10 px-1.5 py-0.5 rounded whitespace-nowrap">
+                        {exercise.targetMinReps}–{exercise.targetMaxReps} reps
+                      </span>
+                    )}
+                    {progression.previousBest && (
+                      <ProgressionBadge 
+                        status={progression.status}
+                        delta={formatProgressionDelta(progression)}
+                        size="sm"
+                      />
+                    )}
+                  </div>
+                )}
               </div>
               
               {/* Anatomy Image Section - Collapsible */}
