@@ -52,7 +52,7 @@ export default function ExerciseProgress() {
           oneRM: best ? roundTo(best.oneRM, 0.5) : 0,
           volume: Math.round(volume),
           workoutName: workout.name,
-          sets: exercise.sets.filter(s => s.completed).length
+          sets: exercise.sets.filter(s => s.completed && !s.isWarmup).length
         };
       })
       .filter((d): d is NonNullable<typeof d> => d !== null && d.oneRM > 0)

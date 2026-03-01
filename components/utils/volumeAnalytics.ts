@@ -148,7 +148,7 @@ export function calculateMuscleGroupVolume(
       const data = volumeMap.get(muscleGroup)!;
       
       ex.sets.forEach(set => {
-        if (set.completed) {
+        if (set.completed && !set.isWarmup) {
           data.sets += 1;
           data.reps += set.reps;
           data.volume += set.weight * set.reps;

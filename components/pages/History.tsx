@@ -77,9 +77,9 @@ export default function History() {
           <div className="space-y-4">
             {history.map((log, i) => {
               const duration = log.endTime ? Math.round((log.endTime - log.startTime) / 1000 / 60) : 0;
-              const totalSets = log.exercises.reduce((acc, ex) => acc + ex.sets.filter(s => s.completed).length, 0);
+              const totalSets = log.exercises.reduce((acc, ex) => acc + ex.sets.filter(s => s.completed && !s.isWarmup).length, 0);
               const volume = log.exercises.reduce((acc, ex) => 
-                acc + ex.sets.filter(s => s.completed).reduce((sAcc, s) => sAcc + (s.weight * s.reps), 0)
+                acc + ex.sets.filter(s => s.completed && !s.isWarmup).reduce((sAcc, s) => sAcc + (s.weight * s.reps), 0)
               , 0);
 
               return (
@@ -231,7 +231,7 @@ export default function History() {
                                 </span>
                               )}
                               <span className="text-muted-foreground font-mono text-xs">
-                                {ex.sets.filter(s => s.completed).length} {t.history.sets.toLowerCase()}
+                                {ex.sets.filter(s => s.completed && !s.isWarmup).length} {t.history.sets.toLowerCase()}
                               </span>
                             </div>
                           </div>
@@ -266,9 +266,9 @@ export default function History() {
 
               <div className="space-y-3">
                 {selectedDateWorkouts.map((workout) => {
-                  const totalSets = workout.exercises.reduce((acc, ex) => acc + ex.sets.filter(s => s.completed).length, 0)
+                  const totalSets = workout.exercises.reduce((acc, ex) => acc + ex.sets.filter(s => s.completed && !s.isWarmup).length, 0)
                   const volume = workout.exercises.reduce((acc, ex) => 
-                    acc + ex.sets.filter(s => s.completed).reduce((sAcc, s) => sAcc + (s.weight * s.reps), 0)
+                    acc + ex.sets.filter(s => s.completed && !s.isWarmup).reduce((sAcc, s) => sAcc + (s.weight * s.reps), 0)
                   , 0)
 
                   return (

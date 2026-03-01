@@ -55,7 +55,7 @@ export function getBest1RM(exercise: WorkoutExercise): {
  */
 export function calculateVolume(exercise: WorkoutExercise): number {
   return exercise.sets
-    .filter(s => s.completed)
+    .filter(s => s.completed && !s.isWarmup)
     .reduce((total, set) => total + (set.weight * set.reps), 0);
 }
 

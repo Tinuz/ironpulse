@@ -352,8 +352,13 @@ export default function WorkoutLogger() {
 
   const updateSet = (exerciseIndex: number, setIndex: number, field: 'weight' | 'reps' | 'rir' | 'rpe', value: number | undefined) => {
     if (!workoutData) return;
-    const newExercises = [...workoutData.exercises];
-    newExercises[exerciseIndex].sets[setIndex][field] = value as any;
+    const newExercises = workoutData.exercises.map((ex, eIdx) => {
+      if (eIdx !== exerciseIndex) return ex;
+      return {
+        ...ex,
+        sets: ex.sets.map((s, sIdx) => sIdx === setIndex ? { ...s, [field]: value } : s)
+      };
+    });
     const updated = { ...workoutData, exercises: newExercises };
     setWorkoutData(updated);
     updateActiveWorkout(updated);
@@ -361,9 +366,14 @@ export default function WorkoutLogger() {
 
   const toggleSet = (exerciseIndex: number, setIndex: number) => {
     if (!workoutData) return;
-    const newExercises = [...workoutData.exercises];
-    const wasCompleted = newExercises[exerciseIndex].sets[setIndex].completed;
-    newExercises[exerciseIndex].sets[setIndex].completed = !wasCompleted;
+    const wasCompleted = workoutData.exercises[exerciseIndex].sets[setIndex].completed;
+    const newExercises = workoutData.exercises.map((ex, eIdx) => {
+      if (eIdx !== exerciseIndex) return ex;
+      return {
+        ...ex,
+        sets: ex.sets.map((s, sIdx) => sIdx === setIndex ? { ...s, completed: !s.completed } : s)
+      };
+    });
     const updated = { ...workoutData, exercises: newExercises };
     setWorkoutData(updated);
     updateActiveWorkout(updated);
@@ -1112,19 +1122,19 @@ export default function WorkoutLogger() {
                         onToggleComplete={() => toggleSet(exerciseIndex, setIndex)}
                         onToggleWarmup={() => {
                           // Toggle isWarmup field
-                          const updatedExercises = [...(workoutData?.exercises || [])]
-                          if (updatedExercises[exerciseIndex]) {
-                            const updatedSets = [...updatedExercises[exerciseIndex].sets]
-                            updatedSets[setIndex] = {
-                              ...updatedSets[setIndex],
-                              isWarmup: !updatedSets[setIndex].isWarmup
-                            }
-                            updatedExercises[exerciseIndex] = {
-                              ...updatedExercises[exerciseIndex],
-                              sets: updatedSets
-                            }
-                            setWorkoutData(prev => prev ? { ...prev, exercises: updatedExercises } : null)
-                          }
+                          if (!workoutData) return;
+                          const updatedExercises = workoutData.exercises.map((ex, eIdx) => {
+                            if (eIdx !== exerciseIndex) return ex;
+                            return {
+                              ...ex,
+                              sets: ex.sets.map((s, sIdx) =>
+                                sIdx === setIndex ? { ...s, isWarmup: !s.isWarmup } : s
+                              )
+                            };
+                          });
+                          const updated = { ...workoutData, exercises: updatedExercises };
+                          setWorkoutData(updated);
+                          updateActiveWorkout(updated);
                         }}
                         onRemove={() => removeSet(exerciseIndex, setIndex)}
                         canRemove={exercise.sets.length > 1}

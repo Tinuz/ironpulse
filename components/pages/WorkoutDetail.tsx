@@ -164,9 +164,9 @@ export default function WorkoutDetail() {
   }
 
   const duration = workout.endTime ? Math.round((workout.endTime - workout.startTime) / 1000 / 60) : 0
-  const totalSets = workout.exercises.reduce((acc, ex) => acc + ex.sets.filter(s => s.completed).length, 0)
+  const totalSets = workout.exercises.reduce((acc, ex) => acc + ex.sets.filter(s => s.completed && !s.isWarmup).length, 0)
   const volume = workout.exercises.reduce((acc, ex) => 
-    acc + ex.sets.filter(s => s.completed).reduce((sAcc, s) => sAcc + (s.weight * s.reps), 0)
+    acc + ex.sets.filter(s => s.completed && !s.isWarmup).reduce((sAcc, s) => sAcc + (s.weight * s.reps), 0)
   , 0)
 
   return (
@@ -277,7 +277,7 @@ export default function WorkoutDetail() {
           </div>
           {workout.exercises.map((exercise, i) => {
             const best1RM = getBest1RM(exercise);
-            const exerciseVolume = exercise.sets.filter(s => s.completed).reduce((acc, s) => acc + (s.weight * s.reps), 0);
+            const exerciseVolume = exercise.sets.filter(s => s.completed && !s.isWarmup).reduce((acc, s) => acc + (s.weight * s.reps), 0);
             const pr = getPersonalRecord(exercise.name, history);
             const isPR = pr && best1RM && Math.abs(best1RM.oneRM - pr.oneRM) < 0.5 && workout.date === pr.date;
 
@@ -384,7 +384,7 @@ export default function WorkoutDetail() {
                     <div>
                       <span className="text-muted-foreground">Completed:</span>
                       <span className="ml-2 font-bold">
-                        {exercise.sets.filter(s => s.completed).length}/{exercise.sets.length} sets
+                        {exercise.sets.filter(s => s.completed && !s.isWarmup).length}/{exercise.sets.filter(s => !s.isWarmup).length} sets
                       </span>
                     </div>
                     {exercise.durationMinutes && exercise.durationMinutes > 0 && (
