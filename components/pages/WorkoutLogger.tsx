@@ -915,6 +915,11 @@ export default function WorkoutLogger() {
                     onChange={(e) => updateExerciseName(exerciseIndex, e.target.value)}
                     className="flex-1 bg-transparent font-bold text-lg focus:outline-none focus:bg-white/5 px-2 py-1 rounded transition-colors"
                   />
+                  {exercise.type !== 'cardio' && exercise.targetMinReps && exercise.targetMaxReps && (
+                    <span className="text-[10px] font-bold text-muted-foreground bg-white/10 px-1.5 py-0.5 rounded shrink-0 whitespace-nowrap">
+                      {exercise.targetMinReps}–{exercise.targetMaxReps} reps
+                    </span>
+                  )}
                   {progression.previousBest && exercise.type !== 'cardio' && (
                     <ProgressionBadge 
                       status={progression.status}

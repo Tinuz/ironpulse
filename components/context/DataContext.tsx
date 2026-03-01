@@ -33,7 +33,8 @@ export interface Exercise {
   muscleGroup?: 'chest' | 'back' | 'shoulders' | 'biceps' | 'triceps' | 'legs' | 'core' | 'full-body' | 'cardio';
   // Strength fields
   targetSets: number;
-  targetReps: number;
+  targetReps: number; // upper bound / max reps
+  minReps?: number; // lower bound (e.g. 8 in "8-12")
   startWeight?: number;
   oneRepMax?: number; // 1RM for automatic set weight calculation
   // Cardio fields
@@ -72,6 +73,8 @@ export interface WorkoutExercise {
   durationMinutes?: number; // Duration of exercise in minutes (deprecated, use cardioData.duration)
   estimatedCalories?: number; // Calculated calories for this exercise
   oneRepMax?: number; // 1RM for automatic set weight calculation
+  targetMinReps?: number; // rep range lower bound from schema (e.g. 8 in "8-12")
+  targetMaxReps?: number; // rep range upper bound from schema
   images?: string[]; // Exercise demonstration images
   anatomyImage?: string; // Muscle anatomy/diagram image
   anatomyAlt?: string; // Alt text for anatomy image
@@ -695,6 +698,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           images: imageData?.images,
           anatomyImage: e.anatomyImage || imageData?.anatomyImage,
           anatomyAlt: e.anatomyAlt || imageData?.anatomyAlt,
+          targetMinReps: e.minReps,
+          targetMaxReps: e.targetReps > 0 ? e.targetReps : undefined,
         };
       }) : [])
     };

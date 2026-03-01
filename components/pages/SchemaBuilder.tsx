@@ -30,7 +30,8 @@ export default function SchemaBuilder() {
   const [exerciseType, setExerciseType] = useState<ExerciseType>('strength');
   const [newExName, setNewExName] = useState('');
   const [newExSets, setNewExSets] = useState(3);
-  const [newExReps, setNewExReps] = useState(10);
+  const [newExMinReps, setNewExMinReps] = useState(8);
+  const [newExReps, setNewExReps] = useState(12);
   const [newExStartWeight, setNewExStartWeight] = useState<number | undefined>(undefined);
   const [newExMuscleGroup, setNewExMuscleGroup] = useState<Exercise['muscleGroup']>(undefined);
   const [newExOneRM, setNewExOneRM] = useState<number | undefined>(undefined);
@@ -121,6 +122,7 @@ export default function SchemaBuilder() {
       muscleGroup: newExMuscleGroup,
       targetSets: exerciseType === 'strength' ? newExSets : 0,
       targetReps: exerciseType === 'strength' ? newExReps : 0,
+      minReps: exerciseType === 'strength' && newExMinReps < newExReps ? newExMinReps : undefined,
       startWeight: exerciseType === 'strength' ? newExStartWeight : undefined,
       oneRepMax: exerciseType === 'strength' ? newExOneRM : undefined,
       anatomyImage: newExAnatomyImage,
@@ -137,7 +139,8 @@ export default function SchemaBuilder() {
     setNewExName('');
     setExerciseType('strength');
     setNewExSets(3);
-    setNewExReps(10);
+    setNewExMinReps(8);
+    setNewExReps(12);
     setNewExStartWeight(undefined);
     setNewExMuscleGroup(undefined);
     setNewExOneRM(undefined);
@@ -197,6 +200,7 @@ export default function SchemaBuilder() {
     setExerciseType(exercise.type || 'strength');
     setNewExName(exercise.name);
     setNewExSets(exercise.targetSets);
+    setNewExMinReps(exercise.minReps ?? 8);
     setNewExReps(exercise.targetReps);
     setNewExStartWeight(exercise.startWeight);
     setNewExMuscleGroup(exercise.muscleGroup);
@@ -226,8 +230,9 @@ export default function SchemaBuilder() {
             name: newExName, 
             type: exerciseType,
             muscleGroup: newExMuscleGroup,
-            targetSets: exerciseType === 'strength' ? newExSets : 0, 
-            targetReps: exerciseType === 'strength' ? newExReps : 0, 
+            targetSets: exerciseType === 'strength' ? newExSets : 0,
+            targetReps: exerciseType === 'strength' ? newExReps : 0,
+            minReps: exerciseType === 'strength' && newExMinReps < newExReps ? newExMinReps : undefined,
             startWeight: exerciseType === 'strength' ? newExStartWeight : undefined,
             oneRepMax: exerciseType === 'strength' ? newExOneRM : undefined,
             anatomyImage: newExAnatomyImage,
@@ -246,7 +251,8 @@ export default function SchemaBuilder() {
     setNewExName('');
     setExerciseType('strength');
     setNewExSets(3);
-    setNewExReps(10);
+    setNewExMinReps(8);
+    setNewExReps(12);
     setNewExStartWeight(undefined);
     setNewExMuscleGroup(undefined);
     setNewExOneRM(undefined);
@@ -264,7 +270,8 @@ export default function SchemaBuilder() {
     setNewExName('');
     setExerciseType('strength');
     setNewExSets(3);
-    setNewExReps(10);
+    setNewExMinReps(8);
+    setNewExReps(12);
     setNewExStartWeight(undefined);
     setNewExMuscleGroup(undefined);
     setNewExOneRM(undefined);
@@ -451,7 +458,7 @@ export default function SchemaBuilder() {
                         ) : (
                           <>
                             <span className="flex items-center gap-1"><RotateCcw size={12}/> {ex.targetSets} {t.workout.sets}</span>
-                            <span className="flex items-center gap-1"><RotateCcw size={12}/> {ex.targetReps} {t.workout.reps}</span>
+                            <span className="flex items-center gap-1"><RotateCcw size={12}/> {ex.minReps ? `${ex.minReps}–${ex.targetReps}` : ex.targetReps} {t.workout.reps}</span>
                             {ex.startWeight && <span className="text-primary">@ {ex.startWeight}kg</span>}
                           </>
                         )}
@@ -697,7 +704,7 @@ export default function SchemaBuilder() {
               {/* Strength-specific fields */}
               {exerciseType === 'strength' && (
                 <>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-3 gap-3">
                     <div>
                       <label className="text-[10px] uppercase font-bold text-muted-foreground">{t.workout.sets}</label>
                       <div className="flex items-center mt-1 bg-white/5 rounded-lg overflow-hidden">
@@ -707,9 +714,17 @@ export default function SchemaBuilder() {
                       </div>
                     </div>
                     <div>
-                      <label className="text-[10px] uppercase font-bold text-muted-foreground">{t.workout.reps}</label>
+                      <label className="text-[10px] uppercase font-bold text-muted-foreground">MIN REPS</label>
                       <div className="flex items-center mt-1 bg-white/5 rounded-lg overflow-hidden">
-                        <button onClick={() => setNewExReps(r => Math.max(1, r - 1))} className="p-2 hover:bg-white/10">-</button>
+                        <button onClick={() => setNewExMinReps(r => Math.max(1, r - 1))} className="p-2 hover:bg-white/10">-</button>
+                        <div className="flex-1 text-center font-mono font-bold">{newExMinReps}</div>
+                        <button onClick={() => setNewExMinReps(r => Math.min(r + 1, newExReps - 1))} className="p-2 hover:bg-white/10">+</button>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-[10px] uppercase font-bold text-muted-foreground">MAX REPS</label>
+                      <div className="flex items-center mt-1 bg-white/5 rounded-lg overflow-hidden">
+                        <button onClick={() => setNewExReps(r => Math.max(r - 1, newExMinReps + 1))} className="p-2 hover:bg-white/10">-</button>
                         <div className="flex-1 text-center font-mono font-bold">{newExReps}</div>
                         <button onClick={() => setNewExReps(r => r + 1)} className="p-2 hover:bg-white/10">+</button>
                       </div>
