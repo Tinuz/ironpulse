@@ -210,9 +210,8 @@ export default function PlayPage() {
     if (!workout) return
 
     const clonedExercises = workout.exercises.map(ex => ({
+      ...ex,
       id: crypto.randomUUID(),
-      exerciseId: ex.exerciseId,
-      name: ex.name,
       sets: ex.sets.map(set => ({
         id: crypto.randomUUID(),
         reps: set.reps,
