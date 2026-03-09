@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Bot, Check, LogOut, User, Languages, Coffee, UserCircle, Lock, Eye, EyeOff, Dumbbell, Shield, FileText, ExternalLink } from 'lucide-react'
+import { ArrowLeft, Bot, Check, LogOut, User, Languages, Coffee, UserCircle, Lock, Eye, EyeOff, Dumbbell, Shield, FileText, ExternalLink, Download, Salad, CalendarRange } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useData } from '@/components/context/DataContext'
 import { useAuth } from '@/components/context/AuthContext'
@@ -22,7 +22,7 @@ interface SocialProfile {
 
 export default function Settings() {
   const router = useRouter()
-  const { coachProfile, setCoachProfile } = useData()
+  const { coachProfile, setCoachProfile, history, nutritionLogs } = useData()
   const { user, signOut } = useAuth()
   const { language, setLanguage, t } = useLanguage()
   
@@ -37,6 +37,16 @@ export default function Settings() {
   const [keepScreenAwake, setKeepScreenAwake] = useState(true)
   const [batterySaverMode, setBatterySaverMode] = useState(false)
   const [batteryLevel, setBatteryLevel] = useState<number | null>(null)
+
+  // Export state
+  const [exportFrom, setExportFrom] = useState(() => {
+    const d = new Date(); d.setMonth(d.getMonth() - 3)
+    return d.toISOString().slice(0, 10)
+  })
+  const [exportTo, setExportTo] = useState(() => new Date().toISOString().slice(0, 10))
+  const [exportWorkouts, setExportWorkouts] = useState(true)
+  const [exportNutrition, setExportNutrition] = useState(true)
+  const [exportFormat, setExportFormat] = useState<'csv' | 'json'>('csv')
 
   useEffect(() => {
     if (user) {
@@ -82,6 +92,105 @@ export default function Settings() {
         })
       })
     }
+  }
+
+  // ── Export helpers ────────────────────────────────────────────────────────
+  const handleExport = () => {
+    const from = new Date(exportFrom)
+    const to   = new Date(exportTo); to.setHours(23, 59, 59)
+
+    if (exportFormat === 'json') {
+      const obj: Record<string, unknown> = {}
+      if (exportWorkouts) {
+        obj.workouts = history.filter(w => {
+          const d = new Date(w.date)
+          return d >= from && d <= to
+        })
+      }
+      if (exportNutrition) {
+        obj.nutrition = nutritionLogs.filter(n => {
+          const d = new Date(n.date)
+          return d >= from && d <= to
+        })
+      }
+      triggerDownload(
+        JSON.stringify(obj, null, 2),
+        `ironpulse-export-${exportFrom}--${exportTo}.json`,
+        'application/json'
+      )
+      return
+    }
+
+    // CSV — each dataset in its own file
+    if (exportWorkouts) {
+      const rows: string[][] = [[
+        'datum','workout','oefening','spiergroep','set','gewicht_kg',
+        'reps','voltooid','opwarming','notities','geschatte_1rm'
+      ]]
+      history
+        .filter(w => { const d = new Date(w.date); return d >= from && d <= to })
+        .forEach(w => {
+          w.exercises.forEach(ex => {
+            ex.sets.forEach((s, idx) => {
+              const oneRM = s.weight && s.reps ? Math.round(s.weight * (1 + s.reps / 30) * 10) / 10 : ''
+              rows.push([
+                w.date, w.name, ex.name, ex.muscleGroup ?? '',
+                String(idx + 1), String(s.weight ?? 0), String(s.reps ?? 0),
+                s.completed ? 'ja' : 'nee', s.isWarmup ? 'ja' : 'nee',
+                ex.notes ?? '', String(oneRM)
+              ])
+            })
+            // Circuit workouts have no sets — emit one row per exercise
+            if (ex.sets.length === 0 && w.circuitConfig) {
+              const weight = w.circuitWeights?.[ex.id] ?? 0
+              rows.push([w.date, w.name, ex.name, ex.muscleGroup ?? '', '1',
+                String(weight), String(w.circuitRoundsCompleted ?? 0),
+                'ja', 'nee', ex.notes ?? '', ''])
+            }
+          })
+        })
+      triggerDownload(
+        rowsToCsv(rows),
+        `ironpulse-workouts-${exportFrom}--${exportTo}.csv`,
+        'text/csv'
+      )
+    }
+
+    if (exportNutrition) {
+      const rows: string[][] = [[
+        'datum','naam','type','calorieen','eiwit_g','koolhydraten_g','vetten_g'
+      ]]
+      nutritionLogs
+        .filter(n => { const d = new Date(n.date); return d >= from && d <= to })
+        .forEach(n => {
+          n.items.forEach(item => {
+            rows.push([
+              n.date, item.name, item.type,
+              String(item.calories), String(item.protein),
+              String(item.carbs), String(item.fats)
+            ])
+          })
+        })
+      triggerDownload(
+        rowsToCsv(rows),
+        `ironpulse-voeding-${exportFrom}--${exportTo}.csv`,
+        'text/csv'
+      )
+    }
+  }
+
+  function rowsToCsv(rows: string[][]): string {
+    return rows.map(r =>
+      r.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')
+    ).join('\n')
+  }
+
+  function triggerDownload(content: string, filename: string, mime: string) {
+    const blob = new Blob([content], { type: mime })
+    const url  = URL.createObjectURL(blob)
+    const a    = document.createElement('a')
+    a.href = url; a.download = filename; a.click()
+    URL.revokeObjectURL(url)
   }
 
   const loadSocialProfile = async () => {
@@ -739,6 +848,137 @@ export default function Settings() {
               ✓ Geen marketing of verkoop aan derden<br/>
               ✓ Veilige opslag op EU-servers
             </p>
+          </div>
+        </div>
+
+        {/* Export Section */}
+        <div>
+          <div className="flex items-center gap-2 mb-4">
+            <Download className="text-primary" size={20} />
+            <h2 className="text-lg font-bold">Gegevens exporteren</h2>
+          </div>
+
+          <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-5">
+            {/* Date range */}
+            <div>
+              <div className="flex items-center gap-1.5 mb-3 text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                <CalendarRange size={13} /> Periode
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">Van</label>
+                  <input
+                    type="date"
+                    value={exportFrom}
+                    onChange={e => setExportFrom(e.target.value)}
+                    className="w-full bg-black/30 border border-white/10 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-primary transition-colors"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">Tot</label>
+                  <input
+                    type="date"
+                    value={exportTo}
+                    onChange={e => setExportTo(e.target.value)}
+                    className="w-full bg-black/30 border border-white/10 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-primary transition-colors"
+                  />
+                </div>
+              </div>
+              {/* Quick range chips */}
+              <div className="flex gap-2 mt-2 flex-wrap">
+                {([
+                  { label: '1 maand', months: 1 },
+                  { label: '3 maanden', months: 3 },
+                  { label: '6 maanden', months: 6 },
+                  { label: '1 jaar', months: 12 },
+                ] as const).map(({ label, months }) => (
+                  <button
+                    key={months}
+                    onClick={() => {
+                      const to = new Date()
+                      const from = new Date(); from.setMonth(from.getMonth() - months)
+                      setExportFrom(from.toISOString().slice(0, 10))
+                      setExportTo(to.toISOString().slice(0, 10))
+                    }}
+                    className="px-3 py-1 text-xs font-bold rounded-full bg-white/8 hover:bg-white/15 border border-white/10 transition-colors"
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* What to export */}
+            <div>
+              <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">Wat exporteren</p>
+              <div className="space-y-2">
+                <label className="flex items-center justify-between cursor-pointer">
+                  <div className="flex items-center gap-2 text-sm font-medium">
+                    <Dumbbell size={15} className="text-primary" /> Workouts
+                  </div>
+                  <button
+                    onClick={() => setExportWorkouts(v => !v)}
+                    className={`relative w-12 h-6 rounded-full transition-colors border ${
+                      exportWorkouts ? 'bg-primary border-primary' : 'bg-gray-700 border-gray-600'
+                    }`}
+                  >
+                    <div className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-md transition-transform ${
+                      exportWorkouts ? 'translate-x-6' : 'translate-x-0'
+                    }`} />
+                  </button>
+                </label>
+                <label className="flex items-center justify-between cursor-pointer">
+                  <div className="flex items-center gap-2 text-sm font-medium">
+                    <Salad size={15} className="text-green-400" /> Voeding
+                  </div>
+                  <button
+                    onClick={() => setExportNutrition(v => !v)}
+                    className={`relative w-12 h-6 rounded-full transition-colors border ${
+                      exportNutrition ? 'bg-primary border-primary' : 'bg-gray-700 border-gray-600'
+                    }`}
+                  >
+                    <div className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-md transition-transform ${
+                      exportNutrition ? 'translate-x-6' : 'translate-x-0'
+                    }`} />
+                  </button>
+                </label>
+              </div>
+            </div>
+
+            {/* Format */}
+            <div>
+              <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">Formaat</p>
+              <div className="grid grid-cols-2 gap-2">
+                {(['csv', 'json'] as const).map(fmt => (
+                  <button
+                    key={fmt}
+                    onClick={() => setExportFormat(fmt)}
+                    className={`py-2.5 rounded-xl text-sm font-bold border transition-all ${
+                      exportFormat === fmt
+                        ? 'bg-primary/15 border-primary text-primary'
+                        : 'bg-white/5 border-white/10 text-muted-foreground hover:border-white/20'
+                    }`}
+                  >
+                    {fmt.toUpperCase()}
+                  </button>
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground/70 mt-2">
+                {exportFormat === 'csv'
+                  ? 'CSV is geschikt voor Excel, Google Sheets en dataviztools. Workouts en voeding worden apart geëxporteerd.'
+                  : 'JSON bevat alle ruwe data in één bestand — ideaal voor eigen scripts of gestructureerde analyse.'}
+              </p>
+            </div>
+
+            {/* Download button */}
+            <button
+              onClick={handleExport}
+              disabled={!exportWorkouts && !exportNutrition}
+              className="w-full py-3.5 bg-primary hover:bg-primary/90 disabled:opacity-40 text-black font-black rounded-xl flex items-center justify-center gap-2 transition-colors"
+            >
+              <Download size={18} />
+              Download{exportFormat === 'csv' && exportWorkouts && exportNutrition ? ' (2 bestanden)' : ''}
+            </button>
           </div>
         </div>
 
