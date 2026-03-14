@@ -767,6 +767,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         durationMinutes: ex.durationMinutes,
         estimatedCalories: ex.estimatedCalories,
         oneRepMax: ex.oneRepMax,
+        targetMinReps: ex.targetMinReps,
+        targetMaxReps: ex.targetMaxReps,
         images: ex.images,
         anatomyImage: ex.anatomyImage,
         anatomyAlt: ex.anatomyAlt,
