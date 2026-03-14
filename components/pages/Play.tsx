@@ -221,7 +221,7 @@ export default function PlayPage() {
         targetMaxReps: ex.targetMaxReps ?? (schemaEx && schemaEx.targetReps > 0 ? schemaEx.targetReps : undefined),
         sets: ex.sets.map(set => ({
           id: crypto.randomUUID(),
-          reps: set.reps,
+          reps: set.reps || schemaEx?.targetReps || 0,
           weight: set.weight,
           completed: false
         }))
