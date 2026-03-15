@@ -69,7 +69,7 @@ export default function Nutrition() {
       try {
         const supabase = getAuthenticatedClient(session.access_token);
 
-        const items = await getCustomFoodItems(supabase, session.user.id, { sortBy: 'usage', limit: 20 });
+        const items = await getCustomFoodItems(supabase, session.user.id, { sortBy: 'usage' });
         
         if (isMounted) {
           setCustomFoodItems(items);
@@ -408,19 +408,16 @@ export default function Nutrition() {
         console.error('Rate limit exceeded');
         if (!append) {
           setSearchResults([]);
-          setShowDropdown(false);
         }
       } else {
         if (!append) {
           setSearchResults([]);
-          setShowDropdown(false);
         }
       }
     } catch (error) {
       console.error('Search error:', error);
       if (!append) {
         setSearchResults([]);
-        setShowDropdown(false);
       }
     } finally {
       setIsSearching(false);
