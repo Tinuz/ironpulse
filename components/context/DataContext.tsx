@@ -680,7 +680,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Clear any existing workout first
     localStorage.removeItem('ft_active');
     setActiveWorkout(null);
-    
+
+    // Sort history once (newest first, skip deload weeks) for cross-schema last-value lookups
+    const sortedHistory = [...history]
+      .filter(w => !w.isDeload)
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
     const newWorkout: WorkoutLog = {
       id: crypto.randomUUID(),
       schemaId: schema ? schema.id : null,
@@ -690,6 +695,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       endTime: null,
       circuitConfig: schema?.circuitConfig,
       exercises: exercises ? exercises : (schema ? schema.exercises.map(e => {
+        // Look up the most recent logged session for this exercise across ALL schemas
+        const lastSession = sortedHistory.find(w =>
+          w.exercises.some(ex => ex.name.toLowerCase() === e.name.toLowerCase())
+        );
+        const lastExercise = lastSession?.exercises.find(
+          ex => ex.name.toLowerCase() === e.name.toLowerCase()
+        );
+
         let sets: WorkoutSet[] = [];
         
         // Generate sets based on 1RM or target values
@@ -705,13 +718,18 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
               isWarmup: config.isWarmup
             }));
           } else {
-            // Use manual values
-            sets = Array(e.targetSets).fill(null).map(() => ({
-              id: crypto.randomUUID(),
-              weight: e.startWeight ?? 0,
-              reps: e.targetReps,
-              completed: false
-            }));
+            // Use last logged weights if available (consistent across schemas),
+            // otherwise fall back to the schema's startWeight
+            const lastCompletedSets = lastExercise?.sets.filter(s => s.completed && !s.isWarmup) ?? [];
+            sets = Array(e.targetSets).fill(null).map((_, i) => {
+              const lastSet = lastCompletedSets[i] ?? lastCompletedSets[lastCompletedSets.length - 1];
+              return {
+                id: crypto.randomUUID(),
+                weight: lastSet?.weight ?? e.startWeight ?? 0,
+                reps: lastSet?.reps ?? e.targetReps,
+                completed: false,
+              };
+            });
           }
         }
         
@@ -726,6 +744,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           muscleGroup: e.muscleGroup,
           oneRepMax: e.oneRepMax,
           sets,
+          notes: lastExercise?.notes,
           cardioData: e.cardioData,
           images: imageData?.images,
           anatomyImage: e.anatomyImage || imageData?.anatomyImage,
