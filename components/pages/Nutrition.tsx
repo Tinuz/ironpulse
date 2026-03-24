@@ -1743,11 +1743,48 @@ export default function Nutrition() {
                       className="w-full bg-card border-2 border-primary/30 rounded-xl p-3 focus:border-primary outline-none text-lg font-bold"
                     />
                     {editingItem && !newItem.baseCalories && (
-                      <p className="text-xs text-muted-foreground mt-1 px-1">
-                        {language === 'nl'
-                          ? 'Grammen niet opgeslagen bij dit item — pas de waarden hieronder direct aan.'
-                          : 'Grams not stored for this item — edit the values below directly.'}
-                      </p>
+                      <div className="mt-3 bg-white/5 border border-white/10 rounded-xl p-3 space-y-2">
+                        <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                          {language === 'nl' ? 'Voeg per-100g waarden toe om de berekening te activeren' : 'Add per-100g values to enable recalculation'}
+                        </p>
+                        <div className="grid grid-cols-2 gap-2">
+                          {[
+                            { label: language === 'nl' ? 'Kcal / 100g' : 'Kcal / 100g', key: 'baseCalories', placeholder: '293' },
+                            { label: language === 'nl' ? 'Eiwit / 100g' : 'Protein / 100g', key: 'baseProtein', placeholder: '2.7' },
+                            { label: language === 'nl' ? 'Koolhydr. / 100g' : 'Carbs / 100g', key: 'baseCarbs', placeholder: '66' },
+                            { label: language === 'nl' ? 'Vetten / 100g' : 'Fats / 100g', key: 'baseFats', placeholder: '1.0' },
+                          ].map(({ label, key, placeholder }) => (
+                            <div key={key}>
+                              <label className="text-[10px] text-muted-foreground uppercase font-semibold mb-1 block">{label}</label>
+                              <input
+                                type="number"
+                                step="0.1"
+                                value={newItem[key as keyof typeof newItem]}
+                                onChange={(e) => {
+                                  const updated = { ...newItem, [key]: e.target.value };
+                                  // If all four base fields are filled, immediately recalculate for the current amount
+                                  if (updated.baseCalories && updated.baseProtein && updated.baseCarbs && updated.baseFats) {
+                                    const multiplier = (parseFloat(updated.amount) || 100) / 100;
+                                    setNewItem({
+                                      ...updated,
+                                      calories: Math.round(parseFloat(updated.baseCalories) * multiplier).toString(),
+                                      protein: (Math.round(parseFloat(updated.baseProtein) * multiplier * 10) / 10).toString(),
+                                      carbs: (Math.round(parseFloat(updated.baseCarbs) * multiplier * 10) / 10).toString(),
+                                      fats: (Math.round(parseFloat(updated.baseFats) * multiplier * 10) / 10).toString(),
+                                      saturatedFat: updated.baseSaturatedFat ? (Math.round(parseFloat(updated.baseSaturatedFat) * multiplier * 10) / 10).toString() : updated.saturatedFat,
+                                      unsaturatedFat: updated.baseUnsaturatedFat ? (Math.round(parseFloat(updated.baseUnsaturatedFat) * multiplier * 10) / 10).toString() : updated.unsaturatedFat,
+                                    });
+                                  } else {
+                                    setNewItem(updated);
+                                  }
+                                }}
+                                placeholder={placeholder}
+                                className="w-full bg-card border border-white/10 rounded-lg p-2 text-sm focus:border-primary outline-none"
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
                     )}
                   </div>
                 )}
