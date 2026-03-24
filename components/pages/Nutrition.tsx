@@ -32,6 +32,7 @@ export default function Nutrition() {
   const { nutritionLogs, addMeal, updateMeal, deleteMeal, addWater, userProfile } = useData()
   const [isAdding, setIsAdding] = useState(false);
   const [editingItem, setEditingItem] = useState<NutritionItem | null>(null);
+  const [editingItemNeedsBase, setEditingItemNeedsBase] = useState(false);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<ViewMode>('day');
@@ -297,6 +298,7 @@ export default function Nutrition() {
   const closeModal = () => {
     setIsAdding(false);
     setEditingItem(null);
+    setEditingItemNeedsBase(false);
     setNewItem({
       name: '',
       calories: '',
@@ -323,6 +325,8 @@ export default function Nutrition() {
     // If grams were stored, back-calculate per-100g base values so the amount
     // slider works correctly.
     const grams = item.grams && item.grams > 0 ? item.grams : null;
+    const noBase = !grams;
+    setEditingItemNeedsBase(noBase);
     const toBase = (val: number) =>
       grams ? (Math.round((val / grams) * 1000) / 10).toString() : '';
 
@@ -1742,7 +1746,7 @@ export default function Nutrition() {
                       placeholder="100"
                       className="w-full bg-card border-2 border-primary/30 rounded-xl p-3 focus:border-primary outline-none text-lg font-bold"
                     />
-                    {editingItem && !newItem.baseCalories && (
+                    {editingItem && editingItemNeedsBase && (
                       <div className="mt-3 bg-white/5 border border-white/10 rounded-xl p-3 space-y-2">
                         <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
                           {language === 'nl' ? 'Voeg per-100g waarden toe om de berekening te activeren' : 'Add per-100g values to enable recalculation'}
