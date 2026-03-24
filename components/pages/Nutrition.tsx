@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft, Plus, Trash2, Utensils, Flame, Droplet, Check, Scan, AlertTriangle, TrendingUp, TrendingDown, Target, ChevronLeft, ChevronRight, Calendar, BarChart3, Clock, Search, Loader2 } from 'lucide-react'
+import { ArrowLeft, Plus, Trash2, Utensils, Flame, Droplet, Check, Scan, AlertTriangle, TrendingUp, TrendingDown, Target, ChevronLeft, ChevronRight, Calendar, BarChart3, Clock, Search, Loader2, Pencil } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useData, NutritionItem } from '@/components/context/DataContext'
 import { useAuth } from '@/components/context/AuthContext'
@@ -29,8 +29,9 @@ export default function Nutrition() {
   const router = useRouter()
   const { t, language } = useLanguage()
   const { session } = useAuth()
-  const { nutritionLogs, addMeal, deleteMeal, addWater, userProfile } = useData()
+  const { nutritionLogs, addMeal, updateMeal, deleteMeal, addWater, userProfile } = useData()
   const [isAdding, setIsAdding] = useState(false);
+  const [editingItem, setEditingItem] = useState<NutritionItem | null>(null);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<ViewMode>('day');
@@ -293,21 +294,9 @@ export default function Nutrition() {
 
   const historyData = viewMode !== 'day' ? getHistoryData() : [];
 
-  const handleAdd = () => {
-    if (!newItem.name || !newItem.calories) return;
-    
-    addMeal(currentDateStr, {
-      name: newItem.name,
-      calories: Number(newItem.calories),
-      protein: Number(newItem.protein) || 0,
-      carbs: Number(newItem.carbs) || 0,
-      fats: Number(newItem.fats) || 0,
-      saturatedFat: newItem.saturatedFat ? Number(newItem.saturatedFat) : undefined,
-      unsaturatedFat: newItem.unsaturatedFat ? Number(newItem.unsaturatedFat) : undefined,
-      type: newItem.type,
-      volume: newItem.volume ? Number(newItem.volume) : undefined
-    });
-
+  const closeModal = () => {
+    setIsAdding(false);
+    setEditingItem(null);
     setNewItem({
       name: '',
       calories: '',
@@ -326,7 +315,53 @@ export default function Nutrition() {
       baseSaturatedFat: '',
       baseUnsaturatedFat: ''
     });
-    setIsAdding(false);
+  };
+
+  const handleEdit = (item: NutritionItem) => {
+    setEditingItem(item);
+    setNewItem({
+      name: item.name,
+      calories: item.calories.toString(),
+      protein: item.protein.toString(),
+      carbs: item.carbs.toString(),
+      fats: item.fats.toString(),
+      saturatedFat: item.saturatedFat?.toString() || '',
+      unsaturatedFat: item.unsaturatedFat?.toString() || '',
+      volume: item.volume?.toString() || '',
+      amount: '100',
+      type: item.type,
+      baseCalories: '',
+      baseProtein: '',
+      baseCarbs: '',
+      baseFats: '',
+      baseSaturatedFat: '',
+      baseUnsaturatedFat: ''
+    });
+    setIsAdding(true);
+  };
+
+  const handleAdd = () => {
+    if (!newItem.name || !newItem.calories) return;
+
+    const itemData = {
+      name: newItem.name,
+      calories: Number(newItem.calories),
+      protein: Number(newItem.protein) || 0,
+      carbs: Number(newItem.carbs) || 0,
+      fats: Number(newItem.fats) || 0,
+      saturatedFat: newItem.saturatedFat ? Number(newItem.saturatedFat) : undefined,
+      unsaturatedFat: newItem.unsaturatedFat ? Number(newItem.unsaturatedFat) : undefined,
+      type: newItem.type,
+      volume: newItem.volume ? Number(newItem.volume) : undefined
+    };
+
+    if (editingItem) {
+      updateMeal(currentDateStr, editingItem.id, itemData);
+    } else {
+      addMeal(currentDateStr, itemData);
+    }
+
+    closeModal();
   };
 
   const handleProductScanned = (product: any) => {
@@ -674,7 +709,7 @@ export default function Nutrition() {
       unsaturatedFat: item.unsaturatedFat,
       type: item.type
     });
-    setIsAdding(false);
+    closeModal();
   };
 
   const navigateDate = (direction: 'prev' | 'next') => {
@@ -1276,12 +1311,20 @@ export default function Nutrition() {
                             </div>
                           </div>
                         </div>
-                        <button 
-                          onClick={() => deleteMeal(currentDateStr, item.id)}
-                          className="text-red-500/60 md:opacity-0 md:group-hover:opacity-100 hover:text-red-500 p-2 hover:bg-red-500/10 rounded-lg transition-all"
-                        >
-                          <Trash2 size={16} />
-                        </button>
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => handleEdit(item)}
+                            className="text-muted-foreground/60 md:opacity-0 md:group-hover:opacity-100 hover:text-primary p-2 hover:bg-primary/10 rounded-lg transition-all"
+                          >
+                            <Pencil size={16} />
+                          </button>
+                          <button 
+                            onClick={() => deleteMeal(currentDateStr, item.id)}
+                            className="text-red-500/60 md:opacity-0 md:group-hover:opacity-100 hover:text-red-500 p-2 hover:bg-red-500/10 rounded-lg transition-all"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
                       </motion.div>
                     ))}
                   </div>
@@ -1300,7 +1343,7 @@ export default function Nutrition() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 bg-black/80 z-50 flex items-end"
-            onClick={() => setIsAdding(false)}
+            onClick={closeModal}
           >
             <motion.div
               initial={{ y: '100%' }}
@@ -1312,17 +1355,17 @@ export default function Nutrition() {
             >
               <div className="p-6 space-y-4">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-xl font-bold">{t.nutrition.addMeal}</h2>
+                  <h2 className="text-xl font-bold">{editingItem ? (language === 'nl' ? 'Wijzig Maaltijd' : 'Edit Meal') : t.nutrition.addMeal}</h2>
                   <button 
-                    onClick={() => setIsAdding(false)}
+                    onClick={closeModal}
                     className="text-muted-foreground"
                   >
                     ✕
                   </button>
                 </div>
 
-                {/* Recent Items Section */}
-                {allRecentItems.length > 0 && (
+                {/* Recent Items Section — hidden when editing an existing item */}
+                {!editingItem && allRecentItems.length > 0 && (
                   <div className="mb-6">
                     <div className="flex items-center justify-between mb-3">
                       <h3 className="text-xs font-bold text-muted-foreground uppercase flex items-center gap-2">
@@ -1791,7 +1834,7 @@ export default function Nutrition() {
                   onClick={handleAdd}
                   className="w-full bg-primary text-primary-foreground font-bold py-4 rounded-xl flex items-center justify-center gap-2 hover:bg-primary/90 transition-colors"
                 >
-                  <Check size={20} /> {t.common.add}
+                  <Check size={20} /> {editingItem ? (language === 'nl' ? 'Opslaan' : 'Save') : t.common.add}
                 </button>
               </div>
             </motion.div>

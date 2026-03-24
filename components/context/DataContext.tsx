@@ -201,6 +201,7 @@ interface DataContextType {
   addBodyStats: (stats: BodyStats) => void;
   deleteBodyStats: (id: string) => void;
   addMeal: (date: string, item: Omit<NutritionItem, 'id'>) => void;
+  updateMeal: (date: string, itemId: string, item: Omit<NutritionItem, 'id'>) => void;
   deleteMeal: (date: string, itemId: string) => void;
   addWater: (date: string, amount: number) => void;
   addSupplement: (supplement: Omit<Supplement, 'id'>) => Promise<void>;
@@ -997,6 +998,33 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const updateMeal = async (date: string, itemId: string, updatedItemData: Omit<NutritionItem, 'id'>) => {
+    const existingLog = nutritionLogs.find(l => l.date === date);
+    if (!existingLog) return;
+
+    const oldItem = existingLog.items.find(i => i.id === itemId);
+    const newItem = { ...updatedItemData, id: itemId };
+    const updatedItems = existingLog.items.map(i => i.id === itemId ? newItem : i);
+
+    // Recalculate water intake when drink volume changes
+    const oldWater = (oldItem?.type === 'drink' && oldItem.volume) ? oldItem.volume : 0;
+    const newWater = (updatedItemData.type === 'drink' && updatedItemData.volume) ? updatedItemData.volume : 0;
+    const updatedWaterIntake = Math.max(0, (existingLog.waterIntake || 0) - oldWater + newWater);
+
+    const { error } = await supabase
+      .from('nutrition_logs')
+      .update({ items: updatedItems, water_intake: updatedWaterIntake })
+      .eq('id', existingLog.id)
+      .eq('user_id', USER_ID);
+
+    if (!error) {
+      setNutritionLogs(prev => prev.map(l => l.date === date
+        ? { ...l, items: updatedItems, waterIntake: updatedWaterIntake }
+        : l
+      ));
+    }
+  };
+
   const deleteMeal = async (date: string, itemId: string) => {
     const existingLog = nutritionLogs.find(l => l.date === date);
     if (!existingLog) return;
@@ -1268,6 +1296,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       addBodyStats,
       deleteBodyStats,
       addMeal,
+      updateMeal,
       deleteMeal,
       addWater,
       addSupplement,
