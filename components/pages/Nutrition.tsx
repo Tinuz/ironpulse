@@ -1712,8 +1712,8 @@ export default function Nutrition() {
                   </button>
                 </div>
 
-                {/* Amount Field - For Food (grams) */}
-                {newItem.type === 'food' && (
+                {/* Amount Field - For Food (grams) — hidden when editing because stored values are already the consumed totals */}
+                {newItem.type === 'food' && !editingItem && (
                   <div className="mb-4">
                     <label className="text-xs font-bold text-primary uppercase mb-2 block flex items-center gap-2">
                       {language === 'nl' ? 'Hoeveelheid (gram)' : 'Amount (grams)'}
@@ -1731,6 +1731,13 @@ export default function Nutrition() {
                       className="w-full bg-card border-2 border-primary/30 rounded-xl p-3 focus:border-primary outline-none text-lg font-bold"
                     />
                   </div>
+                )}
+                {newItem.type === 'food' && editingItem && (
+                  <p className="text-xs text-muted-foreground mb-4 px-1">
+                    {language === 'nl'
+                      ? 'Pas de waarden hieronder rechtstreeks aan voor de geconsumeerde hoeveelheid.'
+                      : 'Edit the values below directly for the amount you consumed.'}
+                  </p>
                 )}
 
                 {/* Volume Field - For Drinks (ml) */}
