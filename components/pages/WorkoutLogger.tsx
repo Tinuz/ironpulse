@@ -976,9 +976,14 @@ export default function WorkoutLogger() {
                     </button>
                   </div>
                 </div>
-                {/* Row 2: rep range + progression badges */}
-                {(exercise.type !== 'cardio' && (exercise.targetMinReps || exercise.targetMaxReps) || (progression.previousBest && exercise.type !== 'cardio')) && (
+                {/* Row 2: sets/rep range + progression badges */}
+                {(exercise.type !== 'cardio' && (exercise.sets.length > 0 || exercise.targetMinReps || exercise.targetMaxReps) || (progression.previousBest && exercise.type !== 'cardio')) && (
                   <div className="flex items-center gap-2 mt-1.5 px-2">
+                    {exercise.sets.length > 0 && (
+                      <span className="text-[10px] font-bold text-muted-foreground bg-white/10 px-1.5 py-0.5 rounded whitespace-nowrap">
+                        {exercise.sets.length} sets
+                      </span>
+                    )}
                     {(exercise.targetMinReps || exercise.targetMaxReps) && (
                       <span className="text-[10px] font-bold text-muted-foreground bg-white/10 px-1.5 py-0.5 rounded whitespace-nowrap">
                         {exercise.targetMinReps && exercise.targetMaxReps
