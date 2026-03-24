@@ -138,6 +138,7 @@ export interface NutritionItem {
   unsaturatedFat?: number; // g - unsaturated fat (mono + poly)
   type: 'food' | 'drink';
   volume?: number; // in ml for drinks
+  grams?: number; // consumed amount in grams (food only) — used to back-calculate per-100g values when editing
 }
 
 export interface NutritionLog {

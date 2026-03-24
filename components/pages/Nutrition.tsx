@@ -319,8 +319,16 @@ export default function Nutrition() {
 
   const handleEdit = (item: NutritionItem) => {
     setEditingItem(item);
+
+    // If grams were stored, back-calculate per-100g base values so the amount
+    // slider works correctly.
+    const grams = item.grams && item.grams > 0 ? item.grams : null;
+    const toBase = (val: number) =>
+      grams ? (Math.round((val / grams) * 1000) / 10).toString() : '';
+
     setNewItem({
       name: item.name,
+      // Show the values scaled to the stored gram amount
       calories: item.calories.toString(),
       protein: item.protein.toString(),
       carbs: item.carbs.toString(),
@@ -328,20 +336,23 @@ export default function Nutrition() {
       saturatedFat: item.saturatedFat?.toString() || '',
       unsaturatedFat: item.unsaturatedFat?.toString() || '',
       volume: item.volume?.toString() || '',
-      amount: '100',
+      amount: grams ? grams.toString() : '100',
       type: item.type,
-      baseCalories: '',
-      baseProtein: '',
-      baseCarbs: '',
-      baseFats: '',
-      baseSaturatedFat: '',
-      baseUnsaturatedFat: ''
+      // Base (per 100g) values — used by handleAmountChange for recalculation
+      baseCalories: toBase(item.calories),
+      baseProtein: toBase(item.protein),
+      baseCarbs: toBase(item.carbs),
+      baseFats: toBase(item.fats),
+      baseSaturatedFat: item.saturatedFat ? toBase(item.saturatedFat) : '',
+      baseUnsaturatedFat: item.unsaturatedFat ? toBase(item.unsaturatedFat) : '',
     });
     setIsAdding(true);
   };
 
   const handleAdd = () => {
     if (!newItem.name || !newItem.calories) return;
+
+    const gramsValue = newItem.type === 'food' && newItem.amount ? Number(newItem.amount) : undefined;
 
     const itemData = {
       name: newItem.name,
@@ -352,7 +363,8 @@ export default function Nutrition() {
       saturatedFat: newItem.saturatedFat ? Number(newItem.saturatedFat) : undefined,
       unsaturatedFat: newItem.unsaturatedFat ? Number(newItem.unsaturatedFat) : undefined,
       type: newItem.type,
-      volume: newItem.volume ? Number(newItem.volume) : undefined
+      volume: newItem.volume ? Number(newItem.volume) : undefined,
+      grams: gramsValue
     };
 
     if (editingItem) {
@@ -1712,8 +1724,8 @@ export default function Nutrition() {
                   </button>
                 </div>
 
-                {/* Amount Field - For Food (grams) — hidden when editing because stored values are already the consumed totals */}
-                {newItem.type === 'food' && !editingItem && (
+                {/* Amount Field - For Food (grams) */}
+                {newItem.type === 'food' && (
                   <div className="mb-4">
                     <label className="text-xs font-bold text-primary uppercase mb-2 block flex items-center gap-2">
                       {language === 'nl' ? 'Hoeveelheid (gram)' : 'Amount (grams)'}
@@ -1730,14 +1742,14 @@ export default function Nutrition() {
                       placeholder="100"
                       className="w-full bg-card border-2 border-primary/30 rounded-xl p-3 focus:border-primary outline-none text-lg font-bold"
                     />
+                    {editingItem && !newItem.baseCalories && (
+                      <p className="text-xs text-muted-foreground mt-1 px-1">
+                        {language === 'nl'
+                          ? 'Grammen niet opgeslagen bij dit item — pas de waarden hieronder direct aan.'
+                          : 'Grams not stored for this item — edit the values below directly.'}
+                      </p>
+                    )}
                   </div>
-                )}
-                {newItem.type === 'food' && editingItem && (
-                  <p className="text-xs text-muted-foreground mb-4 px-1">
-                    {language === 'nl'
-                      ? 'Pas de waarden hieronder rechtstreeks aan voor de geconsumeerde hoeveelheid.'
-                      : 'Edit the values below directly for the amount you consumed.'}
-                  </p>
                 )}
 
                 {/* Volume Field - For Drinks (ml) */}
