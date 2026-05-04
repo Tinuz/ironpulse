@@ -70,6 +70,7 @@ export interface WorkoutSet {
   rir?: number; // Reps In Reserve (0-10)
   rpe?: number; // Rate of Perceived Exertion (1-10)
   isWarmup?: boolean; // Exclude from volume calculations
+  isDropset?: boolean; // Dropset — reduced weight, counts toward volume
 }
 
 export interface WorkoutExercise {
@@ -81,6 +82,7 @@ export interface WorkoutExercise {
   sets: WorkoutSet[]; // for strength exercises
   cardioData?: CardioData; // for cardio exercises
   notes?: string;
+  tags?: string[]; // Quick-tap condition tags (e.g. 'Makkelijk', 'Vermoeid', 'Pijn', 'PR', 'Top set')
   durationMinutes?: number; // Duration of exercise in minutes (deprecated, use cardioData.duration)
   estimatedCalories?: number; // Calculated calories for this exercise
   oneRepMax?: number; // 1RM for automatic set weight calculation
@@ -785,6 +787,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         sets: ex.sets,
         cardioData: ex.cardioData,
         notes: ex.notes,
+        tags: ex.tags,
         durationMinutes: ex.durationMinutes,
         estimatedCalories: ex.estimatedCalories,
         oneRepMax: ex.oneRepMax,

@@ -222,18 +222,29 @@ export default function History() {
                       {log.exercises.map((ex) => {
                         const best = getBest1RM(ex);
                         return (
-                          <div key={ex.id} className="flex justify-between items-center text-sm border-b border-white/5 last:border-0 pb-2 last:pb-0">
-                            <span className="font-medium text-foreground/80">{ex.name}</span>
-                            <div className="flex items-center gap-3">
-                              {best && (
-                                <span className="text-xs font-bold text-primary">
-                                  {roundTo(best.oneRM, 0.5)}{t.history.kgShort} 1RM
+                          <div key={ex.id} className="flex flex-col gap-1 border-b border-white/5 last:border-0 pb-2 last:pb-0">
+                            <div className="flex justify-between items-center text-sm">
+                              <span className="font-medium text-foreground/80">{ex.name}</span>
+                              <div className="flex items-center gap-3">
+                                {best && (
+                                  <span className="text-xs font-bold text-primary">
+                                    {roundTo(best.oneRM, 0.5)}{t.history.kgShort} 1RM
+                                  </span>
+                                )}
+                                <span className="text-muted-foreground font-mono text-xs">
+                                  {ex.sets.filter(s => s.completed && !s.isWarmup).length} {t.history.sets.toLowerCase()}
                                 </span>
-                              )}
-                              <span className="text-muted-foreground font-mono text-xs">
-                                {ex.sets.filter(s => s.completed && !s.isWarmup).length} {t.history.sets.toLowerCase()}
-                              </span>
+                              </div>
                             </div>
+                            {ex.tags && ex.tags.length > 0 && (
+                              <div className="flex flex-wrap gap-1">
+                                {ex.tags.map(tag => (
+                                  <span key={tag} className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/15 text-primary border border-primary/30">
+                                    {tag}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
                           </div>
                         );
                       })}

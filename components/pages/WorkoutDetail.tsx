@@ -350,6 +350,8 @@ export default function WorkoutDetail() {
                         className={`grid grid-cols-[auto_1fr_1fr_auto] gap-3 items-center py-2 px-1 rounded-lg ${
                           set.isWarmup
                             ? 'bg-blue-500/10 border border-blue-500/20'
+                            : set.isDropset
+                            ? 'bg-orange-500/10 border border-orange-500/20'
                             : set.completed ? 'bg-primary/10' : 'bg-white/5'
                         }`}
                       >
@@ -358,17 +360,20 @@ export default function WorkoutDetail() {
                           {set.isWarmup && (
                             <Flame size={10} className="text-blue-400 fill-blue-400" />
                           )}
+                          {set.isDropset && (
+                            <span className="text-[9px] font-bold text-orange-400 uppercase tracking-wide">DS</span>
+                          )}
                         </div>
-                        <div className={`text-center font-black text-lg ${set.isWarmup ? 'text-blue-300' : ''}`}>
+                        <div className={`text-center font-black text-lg ${set.isWarmup ? 'text-blue-300' : set.isDropset ? 'text-orange-300' : ''}`}>
                           {set.weight} <span className="text-xs text-muted-foreground font-normal">kg</span>
                         </div>
-                        <div className={`text-center font-black text-lg ${set.isWarmup ? 'text-blue-300' : ''}`}>
+                        <div className={`text-center font-black text-lg ${set.isWarmup ? 'text-blue-300' : set.isDropset ? 'text-orange-300' : ''}`}>
                           {set.reps} <span className="text-xs text-muted-foreground font-normal">reps</span>
                         </div>
                         <div className="w-6 flex justify-center">
                           {set.isWarmup ? (
                             <span className="text-[9px] font-bold text-blue-400 uppercase tracking-wide">WU</span>
-                          ) : set.completed ? (
+                          ) : set.isDropset ? null : set.completed ? (
                             <div className="w-5 h-5 rounded-full bg-primary/20 border-2 border-primary flex items-center justify-center">
                               <svg className="w-3 h-3 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
@@ -414,6 +419,17 @@ export default function WorkoutDetail() {
                       </div>
                     )}
                   </div>
+
+                  {/* Condition tags */}
+                  {exercise.tags && exercise.tags.length > 0 && (
+                    <div className="mt-3 flex flex-wrap gap-1.5">
+                      {exercise.tags.map(tag => (
+                        <span key={tag} className="text-[11px] px-2 py-0.5 rounded-full bg-primary/15 text-primary border border-primary/30">
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </motion.div>
             );

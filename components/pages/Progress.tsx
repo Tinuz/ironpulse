@@ -11,6 +11,8 @@ import { format } from 'date-fns'
 import FitnessCalculator from '@/components/FitnessCalculator'
 import Sparkline from '@/components/Sparkline'
 import { roundTo } from '@/components/utils/workoutCalculations'
+import { calculate7DayMovingAverage } from '@/components/utils/bodyMetricsAnalytics'
+import { BodyStatsSchema } from '@/lib/validationSchemas'
 import {
   getMostFrequentExercises,
   calculateStrengthScore,
@@ -28,6 +30,7 @@ export default function Progress() {
   const [showCalculator, setShowCalculator] = useState(false);
   const [activeTab, setActiveTab] = useState<'body' | 'strength'>('strength');
   const [periodFilter, setPeriodFilter] = useState<28 | 90 | 180 | 365>(90);
+  const [show7DayAvg, setShow7DayAvg] = useState(false);
 
   // Form State
   const [weight, setWeight] = useState('');
@@ -38,15 +41,26 @@ export default function Progress() {
   const [waist, setWaist] = useState('');
 
   const handleSave = () => {
-    const newStats: BodyStats = {
-      id: crypto.randomUUID(),
-      date: new Date().toISOString(),
+    const candidate = {
       weight: weight ? Number(weight) : undefined,
       height: height ? Number(height) : undefined,
       age: age ? Number(age) : undefined,
       chest: chest ? Number(chest) : undefined,
       biceps: biceps ? Number(biceps) : undefined,
       waist: waist ? Number(waist) : undefined,
+    };
+
+    const validation = BodyStatsSchema.safeParse(candidate);
+    if (!validation.success) {
+      // Surface the first error to the user via an alert (simple, non-breaking)
+      alert(validation.error.issues[0]?.message ?? 'Ongeldige waarden');
+      return;
+    }
+
+    const newStats: BodyStats = {
+      id: crypto.randomUUID(),
+      date: new Date().toISOString(),
+      ...validation.data,
     };
     
     addBodyStats(newStats);
@@ -69,6 +83,14 @@ export default function Progress() {
     biceps: stat.biceps,
     chest: stat.chest
   }));
+
+  const movingAvgData = useMemo(() => {
+    const sorted = [...bodyStats].reverse(); // oldest first
+    const avgs = calculate7DayMovingAverage(sorted);
+    // Build a lookup by ISO date string
+    const avgMap = new Map(avgs.map(a => [format(new Date(a.date), 'MM/dd'), a.avg]));
+    return chartData.map(d => ({ ...d, avg7d: avgMap.get(d.date) }));
+  }, [bodyStats, chartData]);
 
   const latestStats = bodyStats[0];
 
@@ -503,11 +525,23 @@ export default function Progress() {
             {chartData.length > 1 && (
               <div className="space-y-6">
                 <div className="h-64 w-full">
-                  <h3 className="font-bold text-sm mb-4 flex items-center gap-2">
-                    <TrendingUp size={16} className="text-primary" /> {t.progress.weight}
-                  </h3>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-bold text-sm flex items-center gap-2">
+                      <TrendingUp size={16} className="text-primary" /> {t.progress.weight}
+                    </h3>
+                    <button
+                      onClick={() => setShow7DayAvg(v => !v)}
+                      className={`text-[11px] px-2.5 py-1 rounded-full border transition-all ${
+                        show7DayAvg
+                          ? 'bg-blue-500/20 border-blue-500/50 text-blue-300'
+                          : 'bg-white/5 border-white/10 text-zinc-400 hover:bg-white/10'
+                      }`}
+                    >
+                      7-daags gemiddelde
+                    </button>
+                  </div>
                   <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={chartData}>
+                    <LineChart data={movingAvgData}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#333" vertical={false} />
                       <XAxis 
                         dataKey="date" 
@@ -534,6 +568,17 @@ export default function Progress() {
                         strokeWidth={3}
                         dot={{ fill: '#f59e0b', strokeWidth: 0 }}
                       />
+                      {show7DayAvg && (
+                        <Line
+                          type="monotone"
+                          dataKey="avg7d"
+                          stroke="#60a5fa"
+                          strokeWidth={2}
+                          strokeDasharray="5 3"
+                          dot={false}
+                          name="7-daags gem."
+                        />
+                      )}
                     </LineChart>
                   </ResponsiveContainer>
                 </div>

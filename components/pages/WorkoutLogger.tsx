@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft, Plus, Check, X, Clock, Play, Trash2, TrendingUp, TrendingDown, Minus, Award, Zap, StickyNote, Flame, RefreshCw, Heart, Dumbbell, Timer, SkipForward, PlusCircle, Image as ImageIcon, ChevronDown, ChevronUp } from 'lucide-react'
+import { ArrowLeft, Plus, X, Clock, Play, Trash2, TrendingUp, TrendingDown, Minus, Award, Zap, StickyNote, Flame, RefreshCw, Heart, Dumbbell, Timer, SkipForward, PlusCircle, Image as ImageIcon, ChevronDown, ChevronUp } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import clsx from 'clsx'
 import { useData, WorkoutExercise } from '@/components/context/DataContext'
@@ -20,6 +20,7 @@ import { getExerciseProgression, formatProgressionDelta, findLastWorkoutWithExer
 import ProgressionBadge from '@/components/ProgressionBadge'
 import ExerciseSubstitutionModal from '@/components/ExerciseSubstitutionModal'
 import EnhancedSetRow from '@/components/EnhancedSetRow'
+import { REST_TIMES, COMPOUND_KEYWORDS, ACCESSORY_KEYWORDS, PROGRESSIVE_OVERLOAD, DELOAD } from '@/lib/workoutConfig'
 import { useWorkoutPreferences } from '@/components/utils/useWorkoutPreferences'
 import { generateProgressiveOverloadSuggestion } from '@/components/utils/progressiveOverload'
 import CardioExerciseLogger from '@/components/CardioExerciseLogger'
@@ -31,6 +32,7 @@ import { type MuscleGroup } from '@/components/utils/volumeAnalytics'
 import CircuitPlayer from '@/components/CircuitPlayer'
 import { generateSetsFromOneRM, validateOneRM } from '@/components/utils/oneRepMaxCalculations'
 import { getExerciseImages } from '@/lib/exerciseData'
+import WorkoutSummaryModal from '@/components/workout/WorkoutSummaryModal'
 
 const ExerciseStats = ({ 
   exercise,
@@ -331,19 +333,9 @@ export default function WorkoutLogger() {
   // Default rest times based on exercise type (in seconds)
   const getDefaultRestTime = (exerciseName: string) => {
     const name = exerciseName.toLowerCase();
-    // Compound movements: 180-300 seconds (3-5 min)
-    if (name.includes('squat') || name.includes('deadlift') || 
-        name.includes('bench press') || name.includes('overhead press') ||
-        name.includes('row') || name.includes('pull up')) {
-      return 180; // 3 min
-    }
-    // Accessories: 60-90 seconds
-    if (name.includes('curl') || name.includes('extension') || 
-        name.includes('raise') || name.includes('fly')) {
-      return 60; // 60 sec
-    }
-    // Default: 90 seconds
-    return 90;
+    if (COMPOUND_KEYWORDS.some(k => name.includes(k))) return REST_TIMES.COMPOUND;
+    if (ACCESSORY_KEYWORDS.some(k => name.includes(k))) return REST_TIMES.ACCESSORY;
+    return REST_TIMES.DEFAULT;
   };
 
   // Load workout on mount - check both context and localStorage
@@ -500,8 +492,8 @@ export default function WorkoutLogger() {
           const heaviestSet = completedSets.reduce((best, current) => 
             current.weight > best.weight ? current : best
           );
-          // Suggest +2.5kg for progressive overload
-          suggestedWeight = heaviestSet.weight + 2.5;
+          // Suggest progressive overload increment
+          suggestedWeight = heaviestSet.weight + PROGRESSIVE_OVERLOAD.DEFAULT_INCREMENT_KG;
           suggestedReps = heaviestSet.reps;
         }
       }
@@ -665,6 +657,18 @@ export default function WorkoutLogger() {
     setWorkoutData(updated);
     updateActiveWorkout(updated);
   };
+
+  const toggleExerciseTag = (exerciseIndex: number, tag: string) => {
+    if (!workoutData) return;
+    const newExercises = [...workoutData.exercises];
+    const existing = newExercises[exerciseIndex].tags ?? [];
+    newExercises[exerciseIndex].tags = existing.includes(tag)
+      ? existing.filter(t => t !== tag)
+      : [...existing, tag];
+    const updated = { ...workoutData, exercises: newExercises };
+    setWorkoutData(updated);
+    updateActiveWorkout(updated);
+  };
   
   const handleCardioComplete = (exerciseIndex: number, cardioData: any) => {
     if (!workoutData) return;
@@ -759,8 +763,8 @@ export default function WorkoutLogger() {
       }
     }
     
-    // Adjust all weights by 20% reduction (deload) or 25% increase (restore)
-    const multiplier = newDeloadState ? 0.8 : 1.25;
+    // Adjust weights for deload/restore using configured factors
+    const multiplier = newDeloadState ? DELOAD.WEIGHT_REDUCTION_FACTOR : DELOAD.WEIGHT_RESTORE_FACTOR;
     
     const updatedExercises = workoutData.exercises.map(exercise => {
       if (exercise.type === 'cardio') return exercise;
@@ -1210,7 +1214,23 @@ export default function WorkoutLogger() {
                             return {
                               ...ex,
                               sets: ex.sets.map((s, sIdx) =>
-                                sIdx === setIndex ? { ...s, isWarmup: !s.isWarmup } : s
+                                sIdx === setIndex ? { ...s, isWarmup: !s.isWarmup, isDropset: false } : s
+                              )
+                            };
+                          });
+                          const updated = { ...workoutData, exercises: updatedExercises };
+                          setWorkoutData(updated);
+                          updateActiveWorkout(updated);
+                        }}
+                        onToggleDropset={() => {
+                          // Toggle isDropset field (mutually exclusive with warmup)
+                          if (!workoutData) return;
+                          const updatedExercises = workoutData.exercises.map((ex, eIdx) => {
+                            if (eIdx !== exerciseIndex) return ex;
+                            return {
+                              ...ex,
+                              sets: ex.sets.map((s, sIdx) =>
+                                sIdx === setIndex ? { ...s, isDropset: !s.isDropset, isWarmup: false } : s
                               )
                             };
                           });
@@ -1289,6 +1309,31 @@ export default function WorkoutLogger() {
                     className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-sm placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/50 focus:bg-white/10 transition-colors resize-none"
                     rows={3}
                   />
+                  {/* Quick condition tags */}
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {[
+                      { label: '💪 Makkelijk', value: 'Makkelijk' },
+                      { label: '😓 Vermoeid', value: 'Vermoeid' },
+                      { label: '⚠️ Pijn', value: 'Pijn' },
+                      { label: '🏆 PR', value: 'PR' },
+                      { label: '🔥 Top set', value: 'Top set' },
+                    ].map(tag => {
+                      const active = exercise.tags?.includes(tag.value) ?? false;
+                      return (
+                        <button
+                          key={tag.value}
+                          onClick={() => toggleExerciseTag(exerciseIndex, tag.value)}
+                          className={`text-[11px] px-2 py-1 rounded-full border transition-all ${
+                            active
+                              ? 'bg-primary/20 border-primary/50 text-primary font-semibold'
+                              : 'bg-white/5 border-white/10 text-zinc-400 hover:bg-white/10'
+                          }`}
+                        >
+                          {tag.label}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
 
                 {/* Duration & Calories Section */}
@@ -1363,132 +1408,15 @@ export default function WorkoutLogger() {
       </div>
 
       {/* Workout Summary Modal */}
-      <AnimatePresence>
-        {showSummary && workoutData && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-6"
-            onClick={() => setShowSummary(false)}
-          >
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              onClick={(e) => e.stopPropagation()}
-              className="bg-zinc-900 rounded-2xl border border-white/10 max-w-md w-full overflow-hidden shadow-2xl"
-            >
-              {/* Header */}
-              <div className="bg-gradient-to-r from-primary/20 to-orange-500/20 p-6 text-center border-b border-primary/20">
-                <Award size={48} className="text-primary mx-auto mb-3" />
-                <h2 className="text-2xl font-black uppercase tracking-wide">Workout Voltooid!</h2>
-                <p className="text-sm text-muted-foreground mt-1">{workoutData.name}</p>
-              </div>
-
-              {/* Stats Grid */}
-              <div className="p-6 space-y-4">
-                <div className="grid grid-cols-2 gap-3">
-                  {/* Total Time */}
-                  <div className="bg-white/5 rounded-xl p-4 border border-white/10">
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1 uppercase tracking-wider">
-                      <Clock size={12} />
-                      {t.workout.duration}
-                    </div>
-                    <div className="text-2xl font-black text-foreground">
-                      {formatTime(Math.floor((Date.now() - workoutData.startTime) / 1000))}
-                    </div>
-                  </div>
-
-                  {/* Exercises */}
-                  <div className="bg-white/5 rounded-xl p-4 border border-white/10">
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1 uppercase tracking-wider">
-                      <TrendingUp size={12} />
-                      {t.workout.totalExercises}
-                    </div>
-                    <div className="text-2xl font-black text-foreground">
-                      {workoutData.exercises.length}
-                    </div>
-                  </div>
-
-                  {/* Completed Sets */}
-                  <div className="bg-white/5 rounded-xl p-4 border border-white/10">
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1 uppercase tracking-wider">
-                      <Check size={12} />
-                      {t.workout.totalSets}
-                    </div>
-                    <div className="text-2xl font-black text-foreground">
-                      {completedSets}
-                    </div>
-                  </div>
-
-                  {/* Calories Burned */}
-                  <div className="bg-primary/10 rounded-xl p-4 border border-primary/30">
-                    <div className="flex items-center gap-2 text-xs text-primary/80 mb-1 uppercase tracking-wider font-bold">
-                      <Flame size={12} />
-                      {t.workout.estimatedBurn}
-                    </div>
-                    <div className="text-2xl font-black text-primary">
-                      {workoutData.exercises.reduce((sum, ex) => sum + (ex.estimatedCalories || 0), 0) > 0 
-                        ? `~${workoutData.exercises.reduce((sum, ex) => sum + (ex.estimatedCalories || 0), 0)}`
-                        : '—'}
-                    </div>
-                    {workoutData.exercises.reduce((sum, ex) => sum + (ex.estimatedCalories || 0), 0) > 0 && (
-                      <div className="text-xs text-primary/60 mt-0.5">kcal</div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Disclaimer - Only show if calories were calculated */}
-                {workoutData.exercises.reduce((sum, ex) => sum + (ex.estimatedCalories || 0), 0) > 0 && (
-                  <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 text-xs text-yellow-200/90 leading-relaxed">
-                    <strong className="block mb-1">⚠️ {t.workout.calorieDisclaimer}</strong>
-                    {t.workout.calorieDisclaimerText}
-                  </div>
-                )}
-
-                {/* Breakdown if multiple exercises with calories */}
-                {workoutData.exercises.filter(ex => ex.estimatedCalories).length > 1 && (
-                  <div className="border-t border-white/5 pt-4 mt-4">
-                    <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">
-                      {t.workout.breakdown}
-                    </div>
-                    <div className="space-y-1.5 max-h-32 overflow-y-auto">
-                      {workoutData.exercises.map((ex) => (
-                        ex.estimatedCalories && (
-                          <div key={ex.id} className="flex items-center justify-between text-xs bg-white/5 rounded px-3 py-2">
-                            <span className="text-muted-foreground truncate flex-1">{ex.name}</span>
-                            <div className="flex items-center gap-3 flex-shrink-0">
-                              <span className="text-muted-foreground/60">{ex.durationMinutes} min</span>
-                              <span className="text-primary font-bold">{ex.estimatedCalories} kcal</span>
-                            </div>
-                          </div>
-                        )
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Actions */}
-              <div className="p-6 pt-0 flex gap-3">
-                <button 
-                  onClick={() => setShowSummary(false)}
-                  className="flex-1 py-3 bg-white/10 text-foreground font-bold rounded-xl hover:bg-white/20 transition-colors"
-                >
-                  {t.common.cancel}
-                </button>
-                <button 
-                  onClick={confirmFinish}
-                  className="flex-1 py-3 bg-primary text-black font-bold rounded-xl hover:scale-[1.02] active:scale-[0.98] transition-transform shadow-lg shadow-primary/20"
-                >
-                  {t.common.save}
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {workoutData && (
+        <WorkoutSummaryModal
+          isOpen={showSummary}
+          workoutData={workoutData}
+          completedSets={completedSets}
+          onClose={() => setShowSummary(false)}
+          onConfirm={confirmFinish}
+        />
+      )}
 
       {/* Exercise Substitution Modal */}
       <ExerciseSubstitutionModal

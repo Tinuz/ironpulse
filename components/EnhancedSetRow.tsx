@@ -1,10 +1,11 @@
 'use client'
 
-import React, { forwardRef } from 'react'
+import React, { forwardRef, useState } from 'react'
 import { motion } from 'framer-motion'
-import { Check, Trash2, TrendingUp, Flame } from 'lucide-react'
+import { Check, Trash2, TrendingUp, Flame, ChevronDown } from 'lucide-react'
 import clsx from 'clsx'
 import { WorkoutSet } from '@/components/context/DataContext'
+import { WorkoutSetSchema } from '@/lib/validationSchemas'
 
 interface EnhancedSetRowProps {
   set: WorkoutSet
@@ -12,6 +13,7 @@ interface EnhancedSetRowProps {
   onUpdate: (field: 'weight' | 'reps' | 'rir' | 'rpe', value: number | undefined) => void
   onToggleComplete: () => void
   onToggleWarmup: () => void
+  onToggleDropset: () => void
   onRemove: () => void
   canRemove: boolean
   showRIR: boolean
@@ -26,6 +28,7 @@ const EnhancedSetRowBase = forwardRef<HTMLDivElement, EnhancedSetRowProps>(({
   onUpdate,
   onToggleComplete,
   onToggleWarmup,
+  onToggleDropset,
   onRemove,
   canRemove,
   showRIR,
@@ -33,6 +36,17 @@ const EnhancedSetRowBase = forwardRef<HTMLDivElement, EnhancedSetRowProps>(({
   previousBest,
   suggestion
 }, ref) => {
+  const [weightError, setWeightError] = useState<string | undefined>();
+  const [repsError, setRepsError] = useState<string | undefined>();
+
+  const validateAndUpdate = (field: 'weight' | 'reps', value: number) => {
+    const schema = field === 'weight' ? WorkoutSetSchema.shape.weight : WorkoutSetSchema.shape.reps;
+    const result = schema.safeParse(value);
+    if (field === 'weight') setWeightError(result.success ? undefined : result.error.issues[0]?.message);
+    if (field === 'reps') setRepsError(result.success ? undefined : result.error.issues[0]?.message);
+    if (result.success) onUpdate(field, value);
+  };
+
   const isNewPR = !set.isWarmup && previousBest && set.weight > 0 && set.reps > 0 &&
     (set.weight > previousBest.weight || 
      (set.weight === previousBest.weight && set.reps > previousBest.reps))
@@ -47,6 +61,7 @@ const EnhancedSetRowBase = forwardRef<HTMLDivElement, EnhancedSetRowProps>(({
           "rounded-xl transition-all group relative overflow-hidden",
           set.completed && !set.isWarmup ? "bg-primary/10 border-2 border-primary/30" :
           set.isWarmup ? "bg-blue-500/10 border border-blue-500/30" :
+          set.isDropset ? "bg-orange-500/10 border border-orange-500/30" :
           "bg-card border border-white/5 hover:border-white/10"
         )}
       >
@@ -86,6 +101,19 @@ const EnhancedSetRowBase = forwardRef<HTMLDivElement, EnhancedSetRowProps>(({
               >
                 <Flame size={14} className={set.isWarmup ? "fill-blue-300" : ""} />
               </button>
+              {/* Dropset toggle button */}
+              <button
+                onClick={onToggleDropset}
+                className={clsx(
+                  "w-7 h-7 rounded-lg transition-all flex items-center justify-center border",
+                  set.isDropset
+                    ? "bg-orange-500/40 text-orange-300 border-orange-500/60 shadow-[0_0_10px_rgba(249,115,22,0.3)]"
+                    : "bg-white/5 text-zinc-600 border-white/10 hover:bg-orange-500/20 hover:text-orange-400 hover:border-orange-500/40"
+                )}
+                title={set.isDropset ? "Dropset - klik om uit te schakelen" : "Klik om als dropset te markeren"}
+              >
+                <ChevronDown size={14} className={set.isDropset ? "stroke-orange-300" : ""} />
+              </button>
             </div>
             
             {/* Weight input */}
@@ -95,20 +123,28 @@ const EnhancedSetRowBase = forwardRef<HTMLDivElement, EnhancedSetRowProps>(({
                 inputMode="decimal"
                 value={set.weight || ''}
                 placeholder="0"
-                onChange={(e) => onUpdate('weight', Number(e.target.value))}
+                onChange={(e) => validateAndUpdate('weight', Number(e.target.value))}
                 disabled={set.completed}
                 className={clsx(
                   "w-full text-center font-bold text-xl focus:outline-none px-2.5 py-2 rounded-lg transition-all",
                   "placeholder:text-zinc-600 placeholder:font-normal",
                   set.completed 
                     ? "bg-primary/5 text-primary border border-primary/30" 
+                    : weightError
+                    ? "bg-red-500/10 border border-red-500/50 text-red-300"
                     : "bg-white/5 border border-white/10 focus:border-primary/40 focus:bg-white/10",
-                  set.isWarmup && !set.completed && "bg-blue-500/5 border-blue-500/20 text-blue-300"
+                  set.isWarmup && !set.completed && !weightError && "bg-blue-500/5 border-blue-500/20 text-blue-300",
+                  set.isDropset && !set.completed && !weightError && "bg-orange-500/5 border-orange-500/20 text-orange-300"
                 )}
               />
+              {weightError && (
+                <p className="text-[10px] text-red-400 mt-0.5 px-1 leading-tight">{weightError}</p>
+              )}
+              {!weightError && (
               <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[9px] text-zinc-600 font-medium uppercase tracking-wider pointer-events-none">
                 kg
               </span>
+              )}
             </div>
 
             {/* Reps input */}
@@ -118,20 +154,28 @@ const EnhancedSetRowBase = forwardRef<HTMLDivElement, EnhancedSetRowProps>(({
                 inputMode="numeric"
                 value={set.reps || ''}
                 placeholder="0"
-                onChange={(e) => onUpdate('reps', Number(e.target.value))}
+                onChange={(e) => validateAndUpdate('reps', Number(e.target.value))}
                 disabled={set.completed}
                 className={clsx(
                   "w-full text-center font-bold text-xl focus:outline-none px-2.5 py-2 rounded-lg transition-all",
                   "placeholder:text-zinc-600 placeholder:font-normal",
                   set.completed 
                     ? "bg-primary/5 text-primary border border-primary/30" 
+                    : repsError
+                    ? "bg-red-500/10 border border-red-500/50 text-red-300"
                     : "bg-white/5 border border-white/10 focus:border-primary/40 focus:bg-white/10",
-                  set.isWarmup && !set.completed && "bg-blue-500/5 border-blue-500/20 text-blue-300"
+                  set.isWarmup && !set.completed && !repsError && "bg-blue-500/5 border-blue-500/20 text-blue-300",
+                  set.isDropset && !set.completed && !repsError && "bg-orange-500/5 border-orange-500/20 text-orange-300"
                 )}
               />
+              {repsError && (
+                <p className="text-[10px] text-red-400 mt-0.5 px-1 leading-tight">{repsError}</p>
+              )}
+              {!repsError && (
               <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[9px] text-zinc-600 font-medium uppercase tracking-wider pointer-events-none">
                 reps
               </span>
+              )}
             </div>
 
             {/* Complete button */}

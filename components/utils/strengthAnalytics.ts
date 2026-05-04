@@ -264,12 +264,14 @@ export function detectPlateau(
     };
   }
 
-  // Check if last N workouts have same or decreasing 1RM
+  // Check if last N workouts show no improvement vs the most recent (baseline).
+  // A plateau = previous sessions had similar or BETTER 1RM than current session.
+  // Allow 1 kg variance to account for measurement noise.
   let stagnantCount = 0;
   const baseline = oneRMs[0]!;
 
   for (let i = 1; i < Math.min(threshold, oneRMs.length); i++) {
-    if (oneRMs[i]! <= baseline + 1) { // Allow 1kg variance
+    if (oneRMs[i]! >= baseline - 1) { // previous was equal-to or better than current
       stagnantCount++;
     }
   }
