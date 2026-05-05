@@ -39,6 +39,12 @@ import CardioDurationChart from '@/components/CardioDurationChart'
 import CardioActivityChart from '@/components/CardioActivityChart'
 import CardioStatsCards from '@/components/CardioStatsCards'
 import WeeklyCardioGoal from '@/components/WeeklyCardioGoal'
+import ACWRWidget from '@/components/ACWRWidget'
+import RepZoneDistributionChart from '@/components/RepZoneDistributionChart'
+import VolumeLandmarksWidget from '@/components/VolumeLandmarksWidget'
+import RPERIRTrendWidget from '@/components/RPERIRTrendWidget'
+import MuscleBalanceRatiosWidget from '@/components/MuscleBalanceRatiosWidget'
+import WeeklyVolumeProgressionWidget from '@/components/WeeklyVolumeProgressionWidget'
 
 export default function Analytics() {
   const { history } = useData()
@@ -238,6 +244,14 @@ export default function Analytics() {
               <h2 className="text-lg font-bold mb-4">{t.analytics.sections.topExercises}</h2>
               <TopExercisesList workouts={filteredWorkouts} />
             </div>
+
+            {/* ── Wetenschappelijke Analytics ── */}
+            <ACWRWidget />
+            <WeeklyVolumeProgressionWidget />
+            <VolumeLandmarksWidget />
+            <RepZoneDistributionChart />
+            <MuscleBalanceRatiosWidget />
+            <RPERIRTrendWidget />
           </>
         )}
 

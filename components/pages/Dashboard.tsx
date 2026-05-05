@@ -15,6 +15,7 @@ import DeloadRecommendationWidget from '@/components/DeloadRecommendationWidget'
 import AchievementsWidget from '@/components/AchievementsWidget';
 import AchievementToast from '@/components/AchievementToast';
 import AccessorySuggestionsWidget from '@/components/AccessorySuggestionsWidget';
+import ACWRWidget from '@/components/ACWRWidget';
 
 export default function Dashboard() {
   const { history, nutritionLogs, unlockedAchievement } = useData()
@@ -104,6 +105,7 @@ export default function Dashboard() {
       </div>
 
       <WeeklyConsistencyWidget history={history} />
+      <ACWRWidget />
       <WeeklySummaryWidget />
       <MuscleGroupVolumeWidget />
       <PlateauDetectionWidget />
