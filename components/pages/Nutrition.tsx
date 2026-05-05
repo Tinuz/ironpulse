@@ -30,7 +30,7 @@ export default function Nutrition() {
   const router = useRouter()
   const { t, language } = useLanguage()
   const { session } = useAuth()
-  const { nutritionLogs, addMeal, updateMeal, deleteMeal, addWater, userProfile, history } = useData()
+  const { nutritionLogs, addMeal, updateMeal, deleteMeal, addWater, setWaterIntake, userProfile, history } = useData()
   const [isAdding, setIsAdding] = useState(false);
   const [editingItem, setEditingItem] = useState<NutritionItem | null>(null);
   const [editingItemNeedsBase, setEditingItemNeedsBase] = useState(false);
@@ -1371,13 +1371,36 @@ export default function Nutrition() {
             )}
 
             {/* Water Tracker */}
-            {viewMode === 'day' && activeTab === 'food' && (
-              <WaterTracker 
-                currentIntake={todaysLog?.waterIntake || 0}
-                targetIntake={2000}
-                onAddWater={(amount) => addWater(currentDateStr, amount)}
-              />
-            )}
+            {viewMode === 'day' && activeTab === 'food' && (() => {
+              // Weight-based target: 35ml/kg (EFSA 2010), rounded to 100ml, min 2000ml
+              const waterTarget = userProfile
+                ? Math.max(2000, Math.round(userProfile.weight * 35 / 100) * 100)
+                : 2000;
+              // ml from drink-type items logged today (informational, not auto-counted)
+              const drinksFromFoodMl = items
+                .filter(i => i.type === 'drink' && (i.volume || 0) > 0)
+                .reduce((s, i) => s + (i.volume || 0), 0);
+              // 7-day history for streak dots
+              const waterWeekHistory = Array.from({ length: 7 }, (_, idx) => {
+                const d = new Date();
+                d.setDate(d.getDate() - (6 - idx));
+                const dateStr = format(d, 'yyyy-MM-dd');
+                const log = nutritionLogs.find(l => l.date === dateStr);
+                return { date: dateStr, intake: log?.waterIntake || 0, target: waterTarget };
+              });
+              return (
+                <WaterTracker
+                  currentIntake={todaysLog?.waterIntake || 0}
+                  targetIntake={waterTarget}
+                  onAddWater={(amount) => addWater(currentDateStr, amount)}
+                  onSubtractWater={(amount) =>
+                    setWaterIntake(currentDateStr, Math.max(0, (todaysLog?.waterIntake || 0) - amount))
+                  }
+                  weekHistory={waterWeekHistory}
+                  drinksFromFoodMl={drinksFromFoodMl}
+                />
+              );
+            })()}
 
             {/* Quick Meal Templates */}
             {viewMode === 'day' && activeTab === 'food' && isToday && (

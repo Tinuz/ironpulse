@@ -1,251 +1,196 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { Droplet, Plus } from 'lucide-react'
-import clsx from 'clsx'
+import React, { useState } from 'react'
+import { motion } from 'framer-motion'
+import { Droplet, Plus, Minus, Check } from 'lucide-react'
+import { format } from 'date-fns'
+import { nl } from 'date-fns/locale'
 
-interface WaterTrackerProps {
-  currentIntake: number; // in ml
-  targetIntake?: number; // in ml, default 2000ml
-  onAddWater: (amount: number) => void;
+export interface WaterWeekDay {
+  date: string;       // ISO YYYY-MM-DD
+  intake: number;     // ml
+  target: number;     // ml
 }
 
-export default function WaterTracker({ 
-  currentIntake, 
-  targetIntake = 2000, 
-  onAddWater 
+interface WaterTrackerProps {
+  currentIntake: number;            // ml
+  targetIntake?: number;            // ml — default 2000, pass weight*35 for personalised
+  onAddWater: (amount: number) => void;
+  onSubtractWater: (amount: number) => void;
+  weekHistory?: WaterWeekDay[];     // last 7 days for streak dots
+  drinksFromFoodMl?: number;        // ml from drink-type nutrition items (informational)
+}
+
+// Labelled presets — names users recognise
+const PRESETS = [
+  { label: 'Glas',       ml: 200 },
+  { label: 'Beker',      ml: 330 },
+  { label: 'Flesje',     ml: 500 },
+  { label: 'Grote fles', ml: 750 },
+] as const;
+
+export default function WaterTracker({
+  currentIntake,
+  targetIntake = 2000,
+  onAddWater,
+  onSubtractWater,
+  weekHistory,
+  drinksFromFoodMl = 0,
 }: WaterTrackerProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
   const [customAmount, setCustomAmount] = useState('');
-  const [pageVisible, setPageVisible] = useState(true);
+  const [lastAdded, setLastAdded] = useState<number | null>(null);
 
-  useEffect(() => {
-    const handleVisibility = () => setPageVisible(document.visibilityState === 'visible');
-    document.addEventListener('visibilitychange', handleVisibility);
-    return () => document.removeEventListener('visibilitychange', handleVisibility);
-  }, []);
-
-  const quickAmounts = [250, 500, 750];
   const percentage = Math.min((currentIntake / targetIntake) * 100, 100);
-  const glassesCount = Math.floor(currentIntake / 250); // 1 glas = 250ml
+  const isGoalMet = currentIntake >= targetIntake;
 
-  const handleAddWater = (amount: number) => {
+  const handleAdd = (amount: number) => {
     onAddWater(amount);
-    setIsExpanded(false);
+    setLastAdded(amount);
     setCustomAmount('');
   };
 
+  const handleUndo = () => {
+    if (lastAdded !== null && currentIntake > 0) {
+      onSubtractWater(lastAdded);
+      setLastAdded(null);
+    }
+  };
+
+  const handleCustomAdd = () => {
+    const n = Number(customAmount);
+    if (n > 0) handleAdd(n);
+  };
+
+  // Fill colour shifts: amber → blue → cyan as you approach / exceed goal
+  const fillClass =
+    percentage < 40  ? 'from-amber-500/70 to-amber-400/70' :
+    percentage < 75  ? 'from-blue-600 to-blue-400' :
+                       'from-blue-500 to-cyan-400';
+
   return (
-    <div className="bg-card border border-white/5 rounded-2xl overflow-hidden">
-      {/* Header */}
-      <div 
-        onClick={() => setIsExpanded(!isExpanded)}
-        className="p-4 cursor-pointer hover:bg-white/5 transition-colors"
-      >
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="h-12 w-12 rounded-full bg-blue-500/10 flex items-center justify-center">
-              <Droplet className="text-blue-400" size={24} fill="currentColor" />
-            </div>
-            <div>
-              <h3 className="font-bold text-lg">Hydratatie</h3>
-              <p className="text-xs text-muted-foreground">
-                {currentIntake}ml / {targetIntake}ml
-              </p>
-            </div>
-          </div>
-          <div className="text-right">
-            <div className="text-2xl font-black text-blue-400">
-              {Math.round(percentage)}%
-            </div>
-            <div className="text-xs text-muted-foreground font-mono">
-              {glassesCount} glazen
-            </div>
-          </div>
+    <div className="bg-card border border-white/5 rounded-2xl p-4 space-y-4">
+
+      {/* ── Header row ─────────────────────────────────────── */}
+      <div className="flex items-center gap-3">
+        <div className="h-10 w-10 rounded-full bg-blue-500/10 flex items-center justify-center flex-shrink-0">
+          <Droplet className="text-blue-400" size={20} fill="currentColor" />
         </div>
-
-        {/* Water bottle visualization */}
-        <div className="mt-4 relative">
-          {/* Bottle container */}
-          <div className="h-48 w-24 mx-auto relative">
-            {/* Bottle outline */}
-            <div className="absolute inset-0 border-4 border-blue-400/30 rounded-lg rounded-t-3xl"></div>
-            
-            {/* Bottle cap */}
-            <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-12 h-4 bg-blue-400/20 border-2 border-blue-400/30 rounded-t-lg"></div>
-
-            {/* Water fill with wave animation */}
-            <div className="absolute inset-0 overflow-hidden rounded-lg rounded-t-3xl">
-              <motion.div
-                className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-blue-500 to-blue-400"
-                initial={{ height: '0%' }}
-                animate={{ height: `${percentage}%` }}
-                transition={{ duration: 0.8, ease: 'easeOut' }}
-              >
-                {/* Wave effect */}
-                <motion.div
-                  className="absolute top-0 left-0 right-0 h-8 bg-blue-300/30"
-                  animate={pageVisible ? { y: [-4, 4, -4] } : { y: 0 }}
-                  transition={{
-                    repeat: pageVisible ? Infinity : 0,
-                    duration: 2,
-                    ease: 'easeInOut'
-                  }}
-                  style={{
-                    borderRadius: '50% 50% 0 0'
-                  }}
-                />
-                
-                {/* Bubbles */}
-                {[...Array(3)].map((_, i) => (
-                  <motion.div
-                    key={i}
-                    className="absolute w-2 h-2 bg-white/40 rounded-full"
-                    style={{
-                      left: `${20 + i * 30}%`,
-                      bottom: '10%'
-                    }}
-                    animate={pageVisible ? { y: [-100, 20], opacity: [0, 1, 0] } : { y: 0, opacity: 0 }}
-                    transition={{
-                      repeat: pageVisible ? Infinity : 0,
-                      duration: 3,
-                      delay: i * 0.7,
-                      ease: 'easeOut'
-                    }}
-                  />
-                ))}
-              </motion.div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between gap-2">
+            <span className="font-bold text-base leading-tight">Hydratatie</span>
+            <div className="flex items-center gap-2">
+              {isGoalMet && (
+                <motion.span
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  className="flex items-center gap-1 text-[10px] font-bold text-green-400 bg-green-500/15 px-2 py-0.5 rounded-full"
+                >
+                  <Check size={10} /> Doel bereikt!
+                </motion.span>
+              )}
+              <span className={`text-xl font-black tabular-nums ${isGoalMet ? 'text-cyan-400' : 'text-blue-400'}`}>
+                {Math.round(percentage)}%
+              </span>
             </div>
-
-            {/* Measurement lines */}
-            {[25, 50, 75].map((mark) => (
-              <div
-                key={mark}
-                className="absolute left-0 right-0 flex items-center"
-                style={{ bottom: `${mark}%` }}
-              >
-                <div className="h-px w-3 bg-blue-400/20"></div>
-                <div className="flex-1"></div>
-                <div className="text-[10px] text-blue-400/40 font-mono">
-                  {(targetIntake * mark / 100).toFixed(0)}
-                </div>
-              </div>
-            ))}
           </div>
-
-          {/* Progress bar below bottle */}
-          <div className="mt-4 space-y-1">
-            <div className="h-2 bg-white/5 rounded-full overflow-hidden">
-              <motion.div
-                className="h-full bg-gradient-to-r from-blue-500 to-cyan-400 rounded-full"
-                initial={{ width: '0%' }}
-                animate={{ width: `${percentage}%` }}
-                transition={{ duration: 0.8, ease: 'easeOut' }}
-              />
-            </div>
-            {percentage >= 100 && (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="text-center text-sm font-bold text-blue-400 flex items-center justify-center gap-2"
-              >
-                <Check className="text-green-400" size={16} />
-                Doel bereikt! 🎉
-              </motion.div>
+          <div className="text-xs text-muted-foreground mt-0.5">
+            {currentIntake} / {targetIntake} ml
+            {drinksFromFoodMl > 0 && (
+              <span className="ml-2 text-blue-400/60">+ {drinksFromFoodMl}ml via maaltijden</span>
             )}
           </div>
         </div>
       </div>
 
-      {/* Expanded controls */}
-      <AnimatePresence>
-        {isExpanded && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.3 }}
-            className="border-t border-white/5 overflow-hidden"
+      {/* ── Progress bar ───────────────────────────────────── */}
+      <div className="h-3 bg-white/5 rounded-full overflow-hidden">
+        <motion.div
+          className={`h-full rounded-full bg-gradient-to-r ${fillClass}`}
+          initial={{ width: 0 }}
+          animate={{ width: `${percentage}%` }}
+          transition={{ duration: 0.5, ease: 'easeOut' }}
+        />
+      </div>
+
+      {/* ── Quick-add presets ── always visible ────────────── */}
+      <div className="grid grid-cols-4 gap-2">
+        {PRESETS.map(({ label, ml }) => (
+          <button
+            key={ml}
+            onClick={() => handleAdd(ml)}
+            className="flex flex-col items-center py-2.5 px-1 bg-blue-500/10 hover:bg-blue-500/20 active:scale-95 border border-blue-500/20 rounded-xl transition-all"
           >
-            <div className="p-4 space-y-4">
-              <div className="text-xs uppercase tracking-widest text-muted-foreground font-bold">
-                Voeg water toe
-              </div>
+            <Plus size={14} className="text-blue-400 mb-0.5" />
+            <span className="text-[11px] font-bold text-blue-400 leading-tight">{label}</span>
+            <span className="text-[9px] text-blue-400/60 mt-0.5">{ml}ml</span>
+          </button>
+        ))}
+      </div>
 
-              {/* Quick add buttons */}
-              <div className="grid grid-cols-3 gap-2">
-                {quickAmounts.map((amount) => (
-                  <button
-                    key={amount}
-                    onClick={() => handleAddWater(amount)}
-                    className="py-3 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 rounded-xl transition-colors group"
-                  >
-                    <Plus className="mx-auto mb-1 text-blue-400 group-hover:scale-110 transition-transform" size={18} />
-                    <div className="text-sm font-bold text-blue-400">{amount}ml</div>
-                  </button>
-                ))}
-              </div>
+      {/* ── Custom input + undo row ─────────────────────────── */}
+      <div className="flex gap-2">
+        <input
+          type="number"
+          value={customAmount}
+          onChange={e => setCustomAmount(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && handleCustomAdd()}
+          placeholder="Eigen hoeveelheid (ml)"
+          className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-500/50 placeholder:text-muted-foreground/40"
+          min="1"
+          step="50"
+        />
+        <button
+          onClick={handleCustomAdd}
+          disabled={!customAmount || Number(customAmount) <= 0}
+          className="px-3 py-2 rounded-xl bg-blue-500 disabled:bg-white/10 disabled:text-muted-foreground text-white font-bold transition-colors"
+        >
+          <Plus size={16} />
+        </button>
+        <button
+          onClick={handleUndo}
+          disabled={lastAdded === null || currentIntake === 0}
+          title={lastAdded ? `Ongedaan: −${lastAdded}ml` : 'Niets om ongedaan te maken'}
+          className="px-3 py-2 rounded-xl bg-white/5 hover:bg-red-500/10 disabled:opacity-30 disabled:cursor-not-allowed text-muted-foreground hover:text-red-400 transition-colors border border-white/10"
+        >
+          <Minus size={16} />
+        </button>
+      </div>
 
-              {/* Custom amount */}
-              <div className="space-y-2">
-                <label className="text-xs uppercase tracking-widest text-muted-foreground font-bold">
-                  Aangepast bedrag
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    type="number"
-                    value={customAmount}
-                    onChange={(e) => setCustomAmount(e.target.value)}
-                    placeholder="bijv. 350"
-                    className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500/50"
-                    min="0"
-                    step="50"
+      {/* ── 7-day streak dots ──────────────────────────────── */}
+      {weekHistory && weekHistory.length > 0 && (
+        <div>
+          <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-2">
+            7-daagse streak
+          </div>
+          <div className="flex gap-1.5 justify-between">
+            {weekHistory.slice(-7).map(day => {
+              const pct = day.target > 0 ? day.intake / day.target : 0;
+              const hasLog = day.intake > 0;
+              return (
+                <div key={day.date} className="flex flex-col items-center gap-1 flex-1">
+                  <div
+                    title={`${format(new Date(day.date), 'd MMM', { locale: nl })}: ${day.intake}ml`}
+                    className={`h-5 w-full max-w-[28px] rounded-md transition-colors ${
+                      !hasLog        ? 'bg-white/5' :
+                      pct >= 1       ? 'bg-cyan-400/80' :
+                      pct >= 0.5     ? 'bg-blue-500/60' :
+                                       'bg-blue-500/25'
+                    }`}
                   />
-                  <button
-                    onClick={() => customAmount && handleAddWater(Number(customAmount))}
-                    disabled={!customAmount || Number(customAmount) <= 0}
-                    className={clsx(
-                      "px-4 py-2 rounded-lg font-bold text-sm transition-all",
-                      customAmount && Number(customAmount) > 0
-                        ? "bg-blue-500 text-white hover:bg-blue-600"
-                        : "bg-white/5 text-muted-foreground cursor-not-allowed"
-                    )}
-                  >
-                    <Plus size={18} />
-                  </button>
+                  <span className="text-[8px] text-muted-foreground">
+                    {format(new Date(day.date), 'dd/MM')}
+                  </span>
                 </div>
-              </div>
-
-              {/* Close button */}
-              <button
-                onClick={() => setIsExpanded(false)}
-                className="w-full py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-              >
-                Sluiten
-              </button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+              );
+            })}
+          </div>
+          <div className="text-[9px] text-zinc-600 mt-1">
+            Groen = doel gehaald · Blauw = gedeeltelijk · Grijs = niet gelogd
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-function Check({ className, size }: { className?: string; size?: number }) {
-  return (
-    <svg
-      className={className}
-      width={size || 24}
-      height={size || 24}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="3"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <polyline points="20 6 9 17 4 12" />
-    </svg>
-  );
-}
+

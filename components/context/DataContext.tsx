@@ -208,6 +208,7 @@ interface DataContextType {
   updateMeal: (date: string, itemId: string, item: Omit<NutritionItem, 'id'>) => void;
   deleteMeal: (date: string, itemId: string) => void;
   addWater: (date: string, amount: number) => void;
+  setWaterIntake: (date: string, amount: number) => Promise<void>;
   addSupplement: (supplement: Omit<Supplement, 'id'>) => Promise<void>;
   updateSupplement: (id: string, supplement: Partial<Supplement>) => Promise<void>;
   deleteSupplement: (id: string) => Promise<void>;
@@ -1113,6 +1114,43 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // Set water intake to an exact value (used for subtract/undo).
+  // Clamps to 0 minimum; only creates a new log row if amount > 0.
+  const setWaterIntake = async (date: string, amount: number) => {
+    const clamped = Math.max(0, amount);
+    const existingLog = nutritionLogs.find(l => l.date === date);
+
+    if (existingLog) {
+      const { error } = await supabase
+        .from('nutrition_logs')
+        .update({ water_intake: clamped })
+        .eq('id', existingLog.id)
+        .eq('user_id', USER_ID);
+
+      if (!error) {
+        setNutritionLogs(prev => prev.map(l => l.date === date
+          ? { ...l, waterIntake: clamped }
+          : l
+        ));
+      }
+    } else if (clamped > 0) {
+      const { data, error } = await supabase
+        .from('nutrition_logs')
+        .insert({ user_id: USER_ID, date, items: [], water_intake: clamped })
+        .select()
+        .single();
+
+      if (!error && data) {
+        setNutritionLogs(prev => [...prev, {
+          id: data.id,
+          date: data.date,
+          items: data.items || [],
+          waterIntake: data.water_intake || 0
+        }]);
+      }
+    }
+  };
+
   // ---------------------------------------------------------------------------
   // SUPPLEMENTS CRUD
   // ---------------------------------------------------------------------------
@@ -1309,6 +1347,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       updateMeal,
       deleteMeal,
       addWater,
+      setWaterIntake,
       addSupplement,
       updateSupplement,
       deleteSupplement,
