@@ -1175,12 +1175,11 @@ export default function WorkoutLogger() {
                 </div>
               ) : (
                 <div className="p-4 space-y-2">
-                  <div className="grid grid-cols-[auto_1fr_1fr_auto_auto] gap-2 text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-2 px-1">
-                    <div className="w-6 text-center">Set</div>
+                  <div className="grid grid-cols-[28px_1fr_1fr_36px] gap-1.5 text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-2 px-2.5">
+                    <div className="text-center">Set</div>
                     <div className="text-center">KG</div>
                     <div className="text-center">Reps</div>
-                    <div className="w-8 text-center">✓</div>
-                    <div className="w-8"></div>
+                    <div className="text-center">✓</div>
                   </div>
 
                   <AnimatePresence mode="popLayout">
