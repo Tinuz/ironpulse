@@ -8,6 +8,7 @@ import { useData } from '@/components/context/DataContext'
 import { useLanguage } from '@/components/context/LanguageContext'
 import { format, formatDistance, differenceInDays, subDays } from 'date-fns'
 import { nl, enUS } from 'date-fns/locale'
+import PreWorkoutBriefingModal from '@/components/PreWorkoutBriefingModal'
 
 const container = {
   hidden: { opacity: 0 },
@@ -25,12 +26,13 @@ const item = {
 }
 
 export default function PlayPage() {
-  const { schemas, history, startWorkout, deleteSchema } = useData()
+  const { schemas, history, startWorkout, updateActiveWorkout, deleteSchema } = useData()
   const { t, language } = useLanguage()
   const router = useRouter()
   const [schemaMenuOpen, setSchemaMenuOpen] = useState<string | null>(null)
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
   const [createModalOpen, setCreateModalOpen] = useState(false)
+  const [briefingSchemaId, setBriefingSchemaId] = useState<string | null>(null)
 
   const recentWorkouts = history.slice(0, 5)
 
@@ -193,11 +195,19 @@ export default function PlayPage() {
   }, [history])
 
   const handleStartSchema = (schemaId: string) => {
-    const schema = schemas.find(s => s.id === schemaId)
-    if (schema) {
-      startWorkout(schema)
-      router.push('/workout')
+    // Open briefing modal instead of starting immediately
+    setBriefingSchemaId(schemaId)
+  }
+
+  const handleBriefingStart = (deloadMode: boolean) => {
+    const schema = schemas.find(s => s.id === briefingSchemaId!)
+    if (!schema) return
+    const workout = startWorkout(schema)
+    if (deloadMode) {
+      updateActiveWorkout({ ...workout, isDeload: true })
     }
+    setBriefingSchemaId(null)
+    router.push('/workout')
   }
 
   const handleQuickStart = () => {
@@ -495,6 +505,19 @@ export default function PlayPage() {
           </div>
         )}
       </div>
+
+      {/* Pre-Workout Briefing Modal */}
+      {briefingSchemaId && (() => {
+        const briefingSchema = schemas.find(s => s.id === briefingSchemaId)
+        if (!briefingSchema) return null
+        return (
+          <PreWorkoutBriefingModal
+            schema={briefingSchema}
+            onStart={handleBriefingStart}
+            onCancel={() => setBriefingSchemaId(null)}
+          />
+        )
+      })()}
 
       {/* Create Modal */}
       <AnimatePresence>
