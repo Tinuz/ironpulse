@@ -169,6 +169,7 @@ export interface UserProfile {
   height: number;
   gender: 'male' | 'female';
   activityLevel: number;
+  fitnessGoal?: 'bulk' | 'cut' | 'maintain';
   // Legal acceptance tracking
   termsAccepted?: boolean;
   privacyAccepted?: boolean;
@@ -431,6 +432,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           height: profileData.height,
           gender: profileData.gender,
           activityLevel: profileData.activity_level,
+          fitnessGoal: (profileData.fitness_goal as 'bulk' | 'cut' | 'maintain' | undefined) || 'maintain',
           termsAccepted: profileData.terms_accepted,
           privacyAccepted: profileData.privacy_accepted,
           legalAcceptanceDate: profileData.legal_acceptance_date,
@@ -1218,6 +1220,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             height: profile.height,
             gender: profile.gender,
             activity_level: profile.activityLevel,
+            fitness_goal: profile.fitnessGoal || 'maintain',
             updated_at: new Date().toISOString()
           })
           .eq('user_id', USER_ID)
@@ -1232,6 +1235,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             height: data.height,
             gender: data.gender,
             activityLevel: data.activity_level,
+            fitnessGoal: (data.fitness_goal as 'bulk' | 'cut' | 'maintain' | undefined) || 'maintain',
             termsAccepted: data.terms_accepted,
             privacyAccepted: data.privacy_accepted,
             legalAcceptanceDate: data.legal_acceptance_date,
@@ -1249,7 +1253,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             weight: profile.weight,
             height: profile.height,
             gender: profile.gender,
-            activity_level: profile.activityLevel
+            activity_level: profile.activityLevel,
+            fitness_goal: profile.fitnessGoal || 'maintain'
           })
           .select()
           .single();
@@ -1262,6 +1267,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             height: data.height,
             gender: data.gender,
             activityLevel: data.activity_level,
+            fitnessGoal: (data.fitness_goal as 'bulk' | 'cut' | 'maintain' | undefined) || 'maintain',
             termsAccepted: data.terms_accepted,
             privacyAccepted: data.privacy_accepted,
             legalAcceptanceDate: data.legal_acceptance_date,

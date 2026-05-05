@@ -25,6 +25,7 @@ interface CalculatorInputs {
   height: string
   gender: 'male' | 'female'
   activityLevel: number
+  fitnessGoal: 'bulk' | 'cut' | 'maintain'
 }
 
 const activityLevels = [
@@ -42,7 +43,8 @@ export default function FitnessCalculator() {
     weight: '',
     height: '',
     gender: 'male',
-    activityLevel: 1.55
+    activityLevel: 1.55,
+    fitnessGoal: 'maintain',
   })
   
   const [results, setResults] = useState<FitnessMetrics | null>(null)
@@ -57,7 +59,8 @@ export default function FitnessCalculator() {
         weight: userProfile.weight.toString(),
         height: userProfile.height.toString(),
         gender: userProfile.gender,
-        activityLevel: userProfile.activityLevel
+        activityLevel: userProfile.activityLevel,
+        fitnessGoal: userProfile.fitnessGoal || 'maintain',
       })
       // Auto-calculate if profile exists
       calculateMetricsFromProfile(userProfile)
@@ -172,7 +175,8 @@ export default function FitnessCalculator() {
         weight,
         height,
         gender: inputs.gender,
-        activityLevel: inputs.activityLevel
+        activityLevel: inputs.activityLevel,
+        fitnessGoal: inputs.fitnessGoal,
       })
       alert('✅ Profiel opgeslagen!')
     } catch (error) {
@@ -285,6 +289,32 @@ export default function FitnessCalculator() {
               </option>
             ))}
           </select>
+        </div>
+
+        {/* Fitness goal selector — drives protein + calorie targets in nutrition */}
+        <div>
+          <label className="text-xs font-bold text-muted-foreground uppercase mb-2 block">Voedingsdoel</label>
+          <div className="grid grid-cols-3 gap-2">
+            {([
+              { value: 'bulk', label: 'Bulk', desc: '+15% kcal · 1.8g/kg' },
+              { value: 'maintain', label: 'Onderhoud', desc: '±0% kcal · 2.0g/kg' },
+              { value: 'cut', label: 'Cut', desc: '−22% kcal · 2.2g/kg' },
+            ] as const).map(opt => (
+              <button
+                key={opt.value}
+                onClick={() => setInputs({...inputs, fitnessGoal: opt.value})}
+                className={`py-2.5 px-2 rounded-xl text-center transition-colors border ${
+                  inputs.fitnessGoal === opt.value
+                    ? 'bg-primary/20 border-primary text-primary'
+                    : 'bg-white/5 border-white/10 text-muted-foreground'
+                }`}
+              >
+                <div className="font-bold text-xs">{opt.label}</div>
+                <div className="text-[9px] mt-0.5 opacity-70">{opt.desc}</div>
+              </button>
+            ))}
+          </div>
+          <p className="text-[10px] text-zinc-500 mt-1.5">Morton et al. 2018 · Slater &amp; Phillips 2011</p>
         </div>
 
         <div className="flex gap-3">

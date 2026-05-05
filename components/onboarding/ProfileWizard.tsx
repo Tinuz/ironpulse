@@ -104,6 +104,11 @@ export default function ProfileWizard() {
 
     try {
       // Update profile - use gender and activity_level defaults if not set
+      // Map existing goal state to fitnessGoal ('muscle'|'strength' → 'bulk', 'weight-loss' → 'cut', else 'maintain')
+      const fitnessGoal: 'bulk' | 'cut' | 'maintain' =
+        goal === 'muscle' || goal === 'strength' ? 'bulk' :
+        goal === 'weight-loss' ? 'cut' :
+        'maintain';
       const { error: updateError } = await supabase
         .from('user_profile')
         .upsert({
@@ -112,7 +117,8 @@ export default function ProfileWizard() {
           height: heightCm,
           weight: weightKg,
           gender: userProfile?.gender || 'male',
-          activity_level: userProfile?.activityLevel || 1.55
+          activity_level: userProfile?.activityLevel || 1.55,
+          fitness_goal: fitnessGoal,
         }, {
           onConflict: 'user_id'
         })

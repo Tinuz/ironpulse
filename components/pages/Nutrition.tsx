@@ -21,6 +21,7 @@ import CustomFoodItemModal from '@/components/CustomFoodItemModal'
 import { CustomFoodItem } from '@/types/nutrition'
 import { getAuthenticatedClient } from '@/lib/supabase'
 import { getCustomFoodItems, incrementCustomItemUsage } from '@/lib/customFoodItems'
+import { generateNutritionContextInsights, analyseProteinConsistency } from '@/components/utils/nutritionContextAnalytics'
 
 type ViewMode = 'day' | 'week' | 'month';
 type ActiveTab = 'food' | 'supplements';
@@ -29,7 +30,7 @@ export default function Nutrition() {
   const router = useRouter()
   const { t, language } = useLanguage()
   const { session } = useAuth()
-  const { nutritionLogs, addMeal, updateMeal, deleteMeal, addWater, userProfile } = useData()
+  const { nutritionLogs, addMeal, updateMeal, deleteMeal, addWater, userProfile, history } = useData()
   const [isAdding, setIsAdding] = useState(false);
   const [editingItem, setEditingItem] = useState<NutritionItem | null>(null);
   const [editingItemNeedsBase, setEditingItemNeedsBase] = useState(false);
@@ -123,6 +124,12 @@ export default function Nutrition() {
   }), { calories: 0, protein: 0, carbs: 0, fats: 0, saturatedFat: 0, unsaturatedFat: 0 });
 
   // Calculate targets from user profile
+  // Scientific basis:
+  //   Calorie adjustments: Slater & Phillips (2011), J Sports Sci
+  //   Protein targets: Morton et al. (2018), BJSM meta-analysis (49 RCTs, n=1,800+)
+  //     - maintain: ~2.0 g/kg   (upper range for active individuals)
+  //     - bulk:     ~1.8 g/kg   (sufficient during positive energy balance)
+  //     - cut:      ~2.2 g/kg   (higher protein preserves LBM during deficit)
   const getTargets = () => {
     if (!userProfile) return null;
 
@@ -131,6 +138,7 @@ export default function Nutrition() {
     const age = userProfile.age;
     const gender = userProfile.gender;
     const activityLevel = userProfile.activityLevel;
+    const fitnessGoal = userProfile.fitnessGoal || 'maintain';
 
     // BMR berekening (Mifflin-St Jeor)
     let bmr: number;
@@ -142,17 +150,30 @@ export default function Nutrition() {
 
     // TDEE berekening
     const tdee = bmr * activityLevel;
+
+    // Calorie target adjusted for goal (Slater & Phillips 2011)
+    let calorieMultiplier = 1.0;
+    if (fitnessGoal === 'bulk') calorieMultiplier = 1.15;   // +15% surplus
+    else if (fitnessGoal === 'cut') calorieMultiplier = 0.78; // −22% deficit
+    const targetCalories = Math.round(tdee * calorieMultiplier);
     const maintenanceCalories = Math.round(tdee);
 
-    const proteinTarget = Math.round(weight * 2);
-    const fatsTarget = Math.round((maintenanceCalories * 0.28) / 9);
-    const carbsTarget = Math.round((maintenanceCalories - (proteinTarget * 4) - (fatsTarget * 9)) / 4);
+    // Protein target per goal (Morton et al. 2018)
+    let proteinPerKg = 2.0;
+    if (fitnessGoal === 'bulk') proteinPerKg = 1.8;
+    else if (fitnessGoal === 'cut') proteinPerKg = 2.2;
+    const proteinTarget = Math.round(weight * proteinPerKg);
+
+    const fatsTarget = Math.round((targetCalories * 0.28) / 9);
+    const carbsTarget = Math.round((targetCalories - (proteinTarget * 4) - (fatsTarget * 9)) / 4);
 
     return {
       maintenance: maintenanceCalories,
+      target: targetCalories,
       protein: proteinTarget,
       fats: fatsTarget,
-      carbs: carbsTarget
+      carbs: carbsTarget,
+      fitnessGoal,
     };
   };
 
@@ -162,7 +183,7 @@ export default function Nutrition() {
   const getNutritionStatus = () => {
     if (!targets) return null;
 
-    const caloriePercentage = (totals.calories / targets.maintenance) * 100;
+    const caloriePercentage = (totals.calories / targets.target) * 100;
     const proteinPercentage = (totals.protein / targets.protein) * 100;
     const fatsPercentage = (totals.fats / targets.fats) * 100;
     const carbsPercentage = (totals.carbs / targets.carbs) * 100;
@@ -170,7 +191,7 @@ export default function Nutrition() {
     return {
       calories: {
         current: totals.calories,
-        target: targets.maintenance,
+        target: targets.target,
         percentage: caloriePercentage,
         status: caloriePercentage < 70 ? 'low' : caloriePercentage > 115 ? 'high' : 'good'
       },
@@ -212,7 +233,7 @@ export default function Nutrition() {
     
     // Calculate saturated fat as % of total calories (for health recommendations)
     const saturatedCalories = saturated * 9;
-    const saturatedPercentOfTotalCal = targets ? (saturatedCalories / targets.maintenance) * 100 : 0;
+    const saturatedPercentOfTotalCal = targets ? (saturatedCalories / targets.target) * 100 : 0;
     
     // Determine quality score
     // 🟢 >70% unsaturated = excellent
@@ -259,6 +280,21 @@ export default function Nutrition() {
   };
 
   const fatQuality = getFatQuality();
+
+  // Training-day context insights (Phase 2)
+  // Scientific basis: Aragon & Schoenfeld 2013, Burke et al. 2011, Morton et al. 2018
+  const contextResult = targets && userProfile ? generateNutritionContextInsights(
+    history,
+    items,
+    currentDateStr,
+    { calories: targets.target, protein: targets.protein, carbs: targets.carbs },
+    targets.fitnessGoal as 'bulk' | 'cut' | 'maintain',
+  ) : null;
+
+  // Weekly protein consistency (Phase 4)
+  const proteinConsistency = targets && nutritionLogs.length > 0
+    ? analyseProteinConsistency(nutritionLogs, targets.protein)
+    : null;
 
   // Get data for week/month view
   const getHistoryData = () => {
@@ -903,7 +939,7 @@ export default function Nutrition() {
                   {targets && (
                     <Line 
                       type="monotone" 
-                      dataKey={() => targets.maintenance}
+                      dataKey={() => targets.target}
                       stroke="#22c55e" 
                       strokeWidth={2}
                       strokeDasharray="5 5"
@@ -972,12 +1008,23 @@ export default function Nutrition() {
             <div className="bg-card border border-white/5 rounded-3xl p-6 relative overflow-hidden">
               <div className="flex justify-between items-start mb-6">
                 <div className="flex-1">
-                  <div className="text-muted-foreground text-sm font-bold uppercase tracking-wider mb-1">{t.nutrition.calories} {isToday ? t.nutrition.today : format(selectedDate, 'd MMM', { locale: language === 'nl' ? nl : undefined })}</div>
+                  <div className="text-muted-foreground text-sm font-bold uppercase tracking-wider mb-1">
+                    {t.nutrition.calories} {isToday ? t.nutrition.today : format(selectedDate, 'd MMM', { locale: language === 'nl' ? nl : undefined })}
+                    {targets && (
+                      <span className={`ml-2 text-[10px] px-1.5 py-0.5 rounded-md font-bold ${
+                        targets.fitnessGoal === 'bulk' ? 'bg-blue-500/20 text-blue-400' :
+                        targets.fitnessGoal === 'cut'  ? 'bg-orange-500/20 text-orange-400' :
+                        'bg-zinc-500/20 text-zinc-400'
+                      }`}>
+                        {targets.fitnessGoal === 'bulk' ? 'Bulk +15%' : targets.fitnessGoal === 'cut' ? 'Cut −22%' : 'Onderhoud'}
+                      </span>
+                    )}
+                  </div>
                   <div className="flex items-baseline gap-3">
                     <div className="text-5xl font-black tabular-nums">{totals.calories}</div>
                     {targets && (
                       <div className="text-lg text-muted-foreground">
-                        / {targets.maintenance}
+                        / {targets.target}
                       </div>
                     )}
                   </div>
@@ -1135,6 +1182,78 @@ export default function Nutrition() {
                     )}
                   </div>
                 </div>
+              </motion.div>
+            )}
+
+            {/* Training-day context insights — Phase 2 */}
+            {contextResult && contextResult.insights.length > 0 && (
+              <div className="space-y-2">
+                {contextResult.insights.map((insight, idx) => (
+                  <motion.div
+                    key={insight.type}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: idx * 0.07 }}
+                    className={`flex items-start gap-3 p-3 rounded-xl border text-sm ${
+                      insight.severity === 'warning'
+                        ? 'bg-amber-500/10 border-amber-500/25'
+                        : insight.severity === 'tip'
+                        ? 'bg-blue-500/10 border-blue-500/25'
+                        : 'bg-zinc-500/10 border-zinc-500/20'
+                    }`}
+                  >
+                    <div className="text-base mt-0.5 flex-shrink-0">
+                      {insight.severity === 'warning' ? '⚡' : insight.severity === 'tip' ? '💡' : 'ℹ️'}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className={`font-bold text-xs mb-0.5 ${
+                        insight.severity === 'warning' ? 'text-amber-400' :
+                        insight.severity === 'tip'     ? 'text-blue-400' :
+                        'text-zinc-300'
+                      }`}>{insight.title}</div>
+                      <div className="text-xs text-muted-foreground leading-relaxed">{insight.message}</div>
+                      {insight.reference && (
+                        <div className="text-[9px] text-zinc-600 mt-1">{insight.reference}</div>
+                      )}
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            )}
+
+            {/* Weekly protein consistency — Phase 4 */}
+            {proteinConsistency && proteinConsistency.days.some(d => d.hasLog) && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-card border border-white/5 rounded-2xl p-4"
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Eiwitconsistentie (7d)</div>
+                  <div className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                    proteinConsistency.consistencyScore >= 80 ? 'bg-green-500/20 text-green-400' :
+                    proteinConsistency.consistencyScore >= 50 ? 'bg-amber-500/20 text-amber-400' :
+                    'bg-red-500/20 text-red-400'
+                  }`}>
+                    {proteinConsistency.consistencyScore}%
+                    {proteinConsistency.trend === 'improving' ? ' ↑' : proteinConsistency.trend === 'declining' ? ' ↓' : ''}
+                  </div>
+                </div>
+                <div className="flex gap-1.5 justify-between">
+                  {proteinConsistency.days.slice(-7).map(day => (
+                    <div key={day.date} className="flex flex-col items-center gap-1 flex-1">
+                      <div className={`h-6 w-full max-w-[28px] rounded-md ${
+                        !day.hasLog ? 'bg-white/5' :
+                        day.met      ? 'bg-green-500/70' :
+                                       'bg-red-400/50'
+                      }`} title={`${day.date}: ${day.protein}g / ${day.target}g`} />
+                      <div className="text-[8px] text-muted-foreground">
+                        {format(new Date(day.date), 'dd/MM')}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="text-[10px] text-zinc-600 mt-2">Areta et al. 2013 · ≥80% eiwitdoel per dag = groen</div>
               </motion.div>
             )}
 
@@ -1346,6 +1465,51 @@ export default function Nutrition() {
                   </div>
                 )}
               </AnimatePresence>
+
+              {/* Per-item protein highlights — Phase 3 */}
+              {/* Areta et al. 2013: consuming ≥0.4 g/kg protein per meal, 4× per day, */}
+              {/* maximises muscle protein synthesis throughout the day               */}
+              {items.length > 0 && userProfile && targets && (() => {
+                const perMealTarget = Math.round(userProfile.weight * 0.4);
+                const proteinRichItems = items
+                  .filter(i => i.protein >= 10)
+                  .sort((a, b) => b.protein - a.protein);
+                const hitCount = proteinRichItems.filter(i => i.protein >= perMealTarget).length;
+                const recommended = 4;
+                return (
+                  <motion.div
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="mt-4 pt-4 border-t border-white/5"
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Eiwitmomentjes</div>
+                      <div className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                        hitCount >= recommended ? 'bg-green-500/20 text-green-400' :
+                        hitCount >= 2 ? 'bg-amber-500/20 text-amber-400' :
+                        'bg-zinc-500/20 text-zinc-500'
+                      }`}>{hitCount}/{recommended}</div>
+                    </div>
+                    <div className="text-[10px] text-zinc-500 mb-2">
+                      Doel: {recommended}× ≥{perMealTarget}g eiwit per maaltijd · Areta et al. 2013
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {proteinRichItems.slice(0, 8).map(item => (
+                        <div key={item.id} className={`text-[10px] px-2 py-1 rounded-lg font-medium ${
+                          item.protein >= perMealTarget
+                            ? 'bg-pink-500/20 text-pink-300 border border-pink-500/20'
+                            : 'bg-zinc-500/10 text-zinc-400 border border-white/5'
+                        }`}>
+                          {item.name.length > 18 ? item.name.slice(0, 16) + '…' : item.name} · {Math.round(item.protein)}g
+                        </div>
+                      ))}
+                      {proteinRichItems.length === 0 && (
+                        <div className="text-[10px] text-zinc-600 italic">Nog geen eiwitrijke items gelogd.</div>
+                      )}
+                    </div>
+                  </motion.div>
+                );
+              })()}
             </div>
           </>
         )}
