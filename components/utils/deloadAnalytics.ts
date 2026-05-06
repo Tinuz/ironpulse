@@ -177,27 +177,40 @@ function calculateAverageWeight(workouts: WorkoutLog[]): number {
 }
 
 /**
- * Detect accumulated fatigue (high volume for 4+ weeks)
+ * Detect accumulated fatigue (high volume for 3+ recent weeks vs older baseline)
  */
 function detectAccumulatedFatigue(weeklySummaries: any[]): DeloadSignal | null {
   if (weeklySummaries.length < 4) return null;
-  
-  const recentWeeks = weeklySummaries.slice(-4);
-  const avgVolume = recentWeeks.reduce((sum, w) => sum + w.stats.totalVolume, 0) / recentWeeks.length;
-  
-  // Check if all recent weeks are above average
-  const highVolumeWeeks = recentWeeks.filter(w => 
-    w.stats.totalVolume > avgVolume * 1.1 && w.stats.totalWorkouts >= 3
+
+  // Use oldest available weeks as baseline, most recent 3 as "recent load"
+  const baselineWeeks = weeklySummaries.slice(0, Math.max(1, weeklySummaries.length - 3));
+  const recentWeeks = weeklySummaries.slice(-3);
+
+  const baselineAvg = baselineWeeks.reduce((sum: number, w: any) => sum + w.stats.totalVolume, 0) / baselineWeeks.length;
+
+  // A week counts as "high volume" if it's >15% above baseline and has >=2 workouts
+  const highVolumeWeeks = recentWeeks.filter((w: any) =>
+    baselineAvg > 0
+      ? w.stats.totalVolume > baselineAvg * 1.15 && w.stats.totalWorkouts >= 2
+      : w.stats.totalWorkouts >= 3
   ).length;
-  
-  if (highVolumeWeeks >= 4) {
+
+  if (highVolumeWeeks >= 3) {
     return {
       type: 'accumulated_fatigue',
-      severity: highVolumeWeeks >= 5 ? 'high' : 'medium',
-      description: `${highVolumeWeeks} weken achtereen hoog volume - tijd voor herstel`
+      severity: 'high',
+      description: `${highVolumeWeeks} weken achtereen hoog volume boven baseline - tijd voor herstel`
     };
   }
-  
+
+  if (highVolumeWeeks >= 2) {
+    return {
+      type: 'accumulated_fatigue',
+      severity: 'medium',
+      description: `${highVolumeWeeks} weken boven baseline volume - vermoeidheid opbouwen`
+    };
+  }
+
   return null;
 }
 
@@ -257,11 +270,13 @@ function detectMuscleGroupOverload(workouts: WorkoutLog[], weeksToAnalyze: numbe
   const muscleGroupWeeklyVolumes: Record<string, number[]> = {};
   
   for (let weekOffset = 0; weekOffset < weeksToAnalyze; weekOffset++) {
-    const weekStart = new Date();
-    weekStart.setDate(weekStart.getDate() - (weekOffset * 7));
-    const weekEnd = new Date(weekStart);
-    weekEnd.setDate(weekEnd.getDate() + 7);
-    
+    // weekOffset=0 → most recent completed week (7 days ago → today)
+    // weekOffset=1 → the week before that, etc.
+    const weekEnd = new Date();
+    weekEnd.setDate(weekEnd.getDate() - weekOffset * 7);
+    const weekStart = new Date(weekEnd);
+    weekStart.setDate(weekStart.getDate() - 7);
+
     const weekWorkouts = workouts.filter(w => {
       const workoutDate = new Date(w.date);
       return workoutDate >= weekStart && workoutDate < weekEnd;

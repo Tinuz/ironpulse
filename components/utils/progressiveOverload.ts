@@ -55,9 +55,15 @@ export function generateProgressiveOverloadSuggestion(
   const coefficientOfVariation = stdDev / avgWeight
 
   // Check if user hit target reps consistently
+  // Use the most recent workout's average reps as the target (not historical max, which AMRAP sets skew)
+  const mostRecentExerciseSets = relevantWorkouts[0].exercises
+    .find(ex => ex.name.toLowerCase() === exerciseName.toLowerCase())
+    ?.sets.filter(s => s.completed && !s.isWarmup) || []
+  const targetReps = mostRecentExerciseSets.length > 0
+    ? mostRecentExerciseSets.reduce((sum, s) => sum + s.reps, 0) / mostRecentExerciseSets.length
+    : Math.max(...allSets.slice(0, 6).map(s => s.reps))
   const recentReps = allSets.slice(0, 6).map(s => s.reps)
   const avgReps = recentReps.reduce((sum, r) => sum + r, 0) / recentReps.length
-  const targetReps = Math.max(...recentReps) // Assume highest reps is target
 
   // Check RIR if available
   const setsWithRIR = allSets.filter(s => s.rir !== undefined)
@@ -210,7 +216,7 @@ export function shouldDeload(history: WorkoutLog[]): {
   } else if (avgRPE && avgRPE > 9) {
     shouldDeload = true
     reason = 'Consistently high RPE (>9)'
-  } else if (recentWorkouts.length >= 6 && volumeIncrease > 40) {
+  } else if (history.length >= 8 && volumeIncrease > 40) {
     shouldDeload = true
     reason = 'High training frequency + volume increase'
   }

@@ -1,5 +1,5 @@
 import { WorkoutLog, NutritionLog } from '@/components/context/DataContext';
-import { format, startOfWeek, endOfWeek, subDays } from 'date-fns';
+import { format, startOfWeek, endOfWeek, addDays } from 'date-fns';
 import { calculateMuscleGroupVolume, detectMuscleImbalances, MUSCLE_GROUPS } from './volumeAnalytics';
 
 /**
@@ -46,8 +46,8 @@ export function calculateWeeklySummary(
   weekOffset: number = 0 // 0 = current week, -1 = last week, etc.
 ): WeeklySummary {
   const now = new Date();
-  const weekStart = startOfWeek(subDays(now, weekOffset * 7), { weekStartsOn: 1 }); // Monday
-  const weekEnd = endOfWeek(subDays(now, weekOffset * 7), { weekStartsOn: 1 }); // Sunday
+  const weekStart = startOfWeek(addDays(now, weekOffset * 7), { weekStartsOn: 1 }); // Monday
+  const weekEnd = endOfWeek(addDays(now, weekOffset * 7), { weekStartsOn: 1 }); // Sunday
   
   // Filter workouts for this week
   const weekWorkouts = workouts.filter(w => {
