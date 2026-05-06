@@ -16,6 +16,7 @@ import AchievementsWidget from '@/components/AchievementsWidget';
 import AchievementToast from '@/components/AchievementToast';
 import AccessorySuggestionsWidget from '@/components/AccessorySuggestionsWidget';
 import ACWRWidget from '@/components/ACWRWidget';
+import DailyCheckInWidget from '@/components/DailyCheckInWidget';
 
 export default function Dashboard() {
   const { history, nutritionLogs, unlockedAchievement } = useData()
@@ -103,6 +104,8 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      <DailyCheckInWidget />
 
       <WeeklyConsistencyWidget history={history} />
       <ACWRWidget />
