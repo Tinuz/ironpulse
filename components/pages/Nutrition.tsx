@@ -49,6 +49,7 @@ export default function Nutrition() {
   // Recent items state
   const [recentItemsSearch, setRecentItemsSearch] = useState('');
   const [recentItemsDisplayCount, setRecentItemsDisplayCount] = useState(10);
+  const [hiddenRecentKeys, setHiddenRecentKeys] = useState<Set<string>>(new Set());
   const recentItemsScrollRef = useRef<HTMLDivElement>(null);
   
   // Nutrition search state
@@ -738,11 +739,16 @@ export default function Nutrition() {
     return Array.from(uniqueItems.values());
   };
 
-  const allRecentItems = getRecentItems();
-  
+  const recentItemKey = (item: NutritionItem) =>
+    `${item.name}-${item.calories}-${item.protein}-${item.carbs}-${item.fats}-${item.type}`;
+
+  const allRecentItems = getRecentItems().filter(
+    item => !hiddenRecentKeys.has(recentItemKey(item))
+  );
+
   // Filter recent items based on search
   const filteredRecentItems = recentItemsSearch.trim().length > 0
-    ? allRecentItems.filter(item => 
+    ? allRecentItems.filter(item =>
         item.name.toLowerCase().includes(recentItemsSearch.toLowerCase())
       )
     : allRecentItems;
@@ -763,6 +769,34 @@ export default function Nutrition() {
       type: item.type
     });
     closeModal();
+  };
+
+  const handlePrefillFromRecent = (item: NutritionItem) => {
+    const grams = item.grams && item.grams > 0 ? item.grams : null;
+    const toBase = (val: number) =>
+      grams ? (Math.round((val / grams) * 1000) / 10).toString() : '';
+    setNewItem({
+      name: item.name,
+      calories: item.calories.toString(),
+      protein: item.protein.toString(),
+      carbs: item.carbs.toString(),
+      fats: item.fats.toString(),
+      saturatedFat: item.saturatedFat?.toString() || '',
+      unsaturatedFat: item.unsaturatedFat?.toString() || '',
+      volume: item.volume?.toString() || '',
+      amount: grams ? grams.toString() : '100',
+      type: item.type,
+      baseCalories: toBase(item.calories),
+      baseProtein: toBase(item.protein),
+      baseCarbs: toBase(item.carbs),
+      baseFats: toBase(item.fats),
+      baseSaturatedFat: item.saturatedFat ? toBase(item.saturatedFat) : '',
+      baseUnsaturatedFat: item.unsaturatedFat ? toBase(item.unsaturatedFat) : '',
+    });
+    // scroll form into view
+    setTimeout(() => {
+      document.getElementById('recent-item-form-anchor')?.scrollIntoView({ behavior: 'smooth' });
+    }, 50);
   };
 
   const navigateDate = (direction: 'prev' | 'next') => {
@@ -1642,16 +1676,19 @@ export default function Nutrition() {
                       ) : (
                         <>
                           {recentItems.map((item, index) => (
-                            <motion.button
-                              key={`${item.name}-${index}`}
+                            <motion.div
+                              key={`${recentItemKey(item)}-${index}`}
                               initial={{ opacity: 0, x: -20 }}
                               animate={{ opacity: 1, x: 0 }}
                               transition={{ delay: index * 0.03 }}
-                              onClick={() => handleAddRecentItem(item)}
-                              className="w-full bg-card border border-white/5 hover:border-primary/30 hover:bg-primary/5 p-3 rounded-xl transition-all text-left group"
+                              className="w-full bg-card border border-white/5 p-3 rounded-xl"
                             >
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3 flex-1 min-w-0">
+                              <div className="flex items-center justify-between gap-2">
+                                {/* Item info — tapping adds it directly */}
+                                <button
+                                  onClick={() => handleAddRecentItem(item)}
+                                  className="flex items-center gap-3 flex-1 min-w-0 text-left"
+                                >
                                   <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
                                     item.type === 'drink' ? 'bg-blue-500/20 text-blue-400' : 'bg-orange-500/20 text-orange-400'
                                   }`}>
@@ -1666,10 +1703,36 @@ export default function Nutrition() {
                                       {item.fats > 0 && <span>• {item.fats}g F</span>}
                                     </div>
                                   </div>
+                                </button>
+                                {/* Action buttons */}
+                                <div className="flex items-center gap-1 flex-shrink-0">
+                                  {/* Edit: pre-fill form so user can tweak before adding */}
+                                  <button
+                                    onClick={() => handlePrefillFromRecent(item)}
+                                    className="p-1.5 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-all"
+                                    aria-label={language === 'nl' ? 'Aanpassen' : 'Edit before adding'}
+                                  >
+                                    <Pencil size={14} />
+                                  </button>
+                                  {/* Remove from recent list */}
+                                  <button
+                                    onClick={() => setHiddenRecentKeys(prev => new Set([...prev, recentItemKey(item)]))}
+                                    className="p-1.5 text-muted-foreground hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all"
+                                    aria-label={language === 'nl' ? 'Verwijder uit lijst' : 'Remove from list'}
+                                  >
+                                    <Trash2 size={14} />
+                                  </button>
+                                  {/* Quick-add */}
+                                  <button
+                                    onClick={() => handleAddRecentItem(item)}
+                                    className="p-1.5 text-primary hover:text-primary/80 hover:bg-primary/10 rounded-lg transition-all"
+                                    aria-label={language === 'nl' ? 'Direct toevoegen' : 'Add directly'}
+                                  >
+                                    <Plus size={14} />
+                                  </button>
                                 </div>
-                                <Plus size={16} className="text-primary/60 md:opacity-0 md:group-hover:opacity-100 hover:text-primary transition-opacity flex-shrink-0" />
                               </div>
-                            </motion.button>
+                            </motion.div>
                           ))}
                           
                           {/* Load More Button */}
@@ -1694,6 +1757,8 @@ export default function Nutrition() {
                     </div>
                   </div>
                 )}
+
+                <div id="recent-item-form-anchor" />
 
                 <div className="relative" ref={dropdownRef}>
                   <label className="text-xs font-bold text-muted-foreground uppercase mb-2 block">{t.nutrition.mealName}</label>
