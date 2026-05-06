@@ -88,10 +88,10 @@ const EnhancedSetRowBase = forwardRef<HTMLDivElement, EnhancedSetRowProps>(({
 
         <div className="px-2.5 pt-2.5 pb-2">
           {/* ── Main row: # | KG | REPS | ✓ ── */}
-          <div className="grid grid-cols-[28px_1fr_1fr_36px] gap-1.5 items-center">
+          <div className="grid grid-cols-[28px_1fr_1fr_36px] gap-1.5 items-start">
 
             {/* Set number + type badge */}
-            <div className="flex flex-col items-center gap-0.5">
+            <div className="flex flex-col items-center gap-0.5 pt-2">
               <span className={clsx(
                 "font-mono font-bold text-sm leading-none",
                 set.isWarmup ? "text-blue-400" :
@@ -168,7 +168,7 @@ const EnhancedSetRowBase = forwardRef<HTMLDivElement, EnhancedSetRowProps>(({
             <button
               onClick={onToggleComplete}
               className={clsx(
-                "w-9 h-9 rounded-xl flex items-center justify-center transition-all duration-200 self-start mt-0.5",
+                "w-9 h-9 rounded-xl flex items-center justify-center transition-all duration-200 self-start",
                 set.completed
                   ? "bg-primary text-background shadow-[0_0_15px_rgba(245,158,11,0.4)] scale-105"
                   : "bg-white/10 text-muted-foreground hover:bg-white/20"
