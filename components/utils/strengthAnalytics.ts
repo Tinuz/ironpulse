@@ -234,10 +234,11 @@ export function detectPlateau(
   workouts: WorkoutLog[],
   threshold: number = 3
 ): PlateauDetection {
+  // Sort chronologically oldest→newest, take up to (threshold + 3) most recent
   const relevantWorkouts = workouts
     .filter(w => w.exercises.some(ex => ex.name.toLowerCase() === exerciseName.toLowerCase()))
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-    .slice(0, threshold + 2);
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+    .slice(-(threshold + 3));
 
   if (relevantWorkouts.length < threshold) {
     return {
@@ -252,38 +253,42 @@ export function detectPlateau(
     const ex = w.exercises.find(e => e.name.toLowerCase() === exerciseName.toLowerCase());
     if (!ex) return null;
     const best = getBest1RM(ex);
-    return best?.oneRM || null;
-  }).filter(rm => rm !== null);
+    return best?.oneRM ?? null;
+  }).filter((rm): rm is number => rm !== null);
 
   if (oneRMs.length < threshold) {
     return {
       isPlateaued: false,
       workoutsStagnant: 0,
-      last1RM: oneRMs[0] || null,
+      last1RM: oneRMs[oneRMs.length - 1] ?? null,
       suggestedAction: 'Complete more sets to track progress'
     };
   }
 
-  // Check if last N workouts show no improvement vs the most recent (baseline).
-  // A plateau = previous sessions had similar or BETTER 1RM than current session.
-  // Allow 1 kg variance to account for measurement noise.
-  let stagnantCount = 0;
-  const baseline = oneRMs[0]!;
+  // Scan backwards from most recent: count how many consecutive sessions
+  // showed NO improvement (≤1kg noise tolerance) vs the OLDEST session in that streak.
+  // This detects a genuine plateau (no upward trend) without penalising stability.
+  const last1RM = oneRMs[oneRMs.length - 1];
+  let stagnantCount = 1; // always includes current session
 
-  for (let i = 1; i < Math.min(threshold, oneRMs.length); i++) {
-    if (oneRMs[i]! >= baseline - 1) { // previous was equal-to or better than current
-      stagnantCount++;
+  for (let i = oneRMs.length - 2; i >= 0; i--) {
+    const prevBest = Math.max(...oneRMs.slice(0, i + 1));
+    // If there was a meaningful improvement somewhere before index i → plateau started here
+    if (last1RM > prevBest + 1) {
+      break; // progress since then → not stagnant from this point back
     }
+    stagnantCount++;
+    if (stagnantCount >= threshold + 3) break; // cap to avoid going back forever
   }
 
-  const isPlateaued = stagnantCount >= threshold - 1;
+  const isPlateaued = stagnantCount >= threshold;
 
   return {
     isPlateaued,
-    workoutsStagnant: stagnantCount + 1,
-    last1RM: baseline,
-    suggestedAction: isPlateaued 
-      ? 'Tijd voor deload of variatie in reps/sets' 
+    workoutsStagnant: stagnantCount,
+    last1RM,
+    suggestedAction: isPlateaued
+      ? 'Tijd voor deload of variatie in reps/sets'
       : 'Blijf progressive overload toepassen'
   };
 }

@@ -1,17 +1,25 @@
 import { WorkoutExercise, WorkoutLog } from '@/components/context/DataContext';
 
 /**
- * Brzycki Formula voor 1RM berekening
- * 1RM = gewicht ÷ (1.0278 - 0.0278 × reps)
- * Meest accuraat voor 1-10 reps
+ * 1RM berekening via gecombineerde formule:
+ * - Reps 1–10: Brzycki (meest accuraat in kracht-range, Brzycki 1993)
+ *   1RM = weight / (1.0278 − 0.0278 × reps)
+ * - Reps 11–30: Epley (stabieler bij hogere reps, Epley 1985)
+ *   1RM = weight × (1 + reps / 30)
+ * - Reps > 30: niet betrouwbaar, geef een conservatieve schatting
  */
 export function calculate1RM(weight: number, reps: number): number {
+  if (reps <= 0 || weight <= 0) return 0;
   if (reps === 1) return weight;
-  if (reps > 12) {
-    // Voor hoge reps minder accuraat, gebruik conservatieve schatting
-    return weight / (1.0278 - 0.0278 * Math.min(reps, 12));
+  if (reps <= 10) {
+    return weight / (1.0278 - 0.0278 * reps);
   }
-  return weight / (1.0278 - 0.0278 * reps);
+  if (reps <= 30) {
+    // Epley formula
+    return weight * (1 + reps / 30);
+  }
+  // Very high reps: use conservative Epley capped at reps=30
+  return weight * (1 + 30 / 30);
 }
 
 /**
@@ -123,15 +131,22 @@ export function calculateProgression(
   const currentVolume = calculateVolume(currentExercise);
   
   // Calculate average reps for current workout (completed sets only)
-  const currentCompletedSets = currentExercise.sets.filter(s => s.completed && s.reps > 0);
+  const currentCompletedSets = currentExercise.sets.filter(s => s.completed && !s.isWarmup && s.reps > 0);
   const currentAverageReps = currentCompletedSets.length > 0
     ? currentCompletedSets.reduce((sum, s) => sum + s.reps, 0) / currentCompletedSets.length
     : 0;
-  
-  // Check if all sets hit a target rep range (e.g., all sets >= 12 reps)
-  const targetReps = 12; // Can be made configurable
-  const readyForWeightIncrease = currentCompletedSets.length > 0 && 
-    currentCompletedSets.every(s => s.reps >= targetReps);
+
+  // Infer target rep range from the user's own set history (most common rep count in recent sessions).
+  // Science (Schoenfeld 2017): hypertrophy occurs across 6–30 reps; there's no universal magic number.
+  // We use the user's own pattern rather than a hard-coded value.
+  const inferredTargetReps = currentCompletedSets.length > 0
+    ? Math.round(currentCompletedSets.reduce((sum, s) => sum + s.reps, 0) / currentCompletedSets.length)
+    : 12; // fallback only when no sets exist
+
+  // User is ready to increase weight when all working sets hit or exceed their inferred target
+  // AND average reps is at the top of their typical range (Bompa & Haff 2009: double-progression model)
+  const readyForWeightIncrease = currentCompletedSets.length > 0 &&
+    currentCompletedSets.every(s => s.reps >= inferredTargetReps);
 
   if (previousExercises.length === 0 || !current1RM) {
     return {
@@ -157,8 +172,8 @@ export function calculateProgression(
   const previous1RM = getBest1RM(previousExercise);
   const previousVolume = calculateVolume(previousExercise);
   
-  // Calculate previous average reps
-  const previousCompletedSets = previousExercise.sets.filter(s => s.completed && s.reps > 0);
+  // Calculate previous average reps (exclude warmups — same as currentCompletedSets filter)
+  const previousCompletedSets = previousExercise.sets.filter(s => s.completed && !s.isWarmup && s.reps > 0);
   const previousAverageReps = previousCompletedSets.length > 0
     ? previousCompletedSets.reduce((sum, s) => sum + s.reps, 0) / previousCompletedSets.length
     : 0;
@@ -267,7 +282,7 @@ export function generateOverloadSuggestion(
     const newWeight = roundTo(best.weight + suggestedIncrease, 2.5);
     return {
       type: 'increase-weight',
-      message: `💪 Alle sets op 12+ reps! Verhoog naar ${newWeight}kg volgende keer`,
+      message: `💪 Alle sets geraakt! Verhoog naar ${newWeight}kg volgende keer`,
       suggestedWeight: newWeight
     };
   }
@@ -277,7 +292,7 @@ export function generateOverloadSuggestion(
     const avgRepsGained = Math.round(progression.repProgression * 10) / 10;
     return {
       type: 'increase-reps',
-      message: `📈 +${avgRepsGained} reps gemiddeld! Blijf gewicht verhogen naar 12 reps per set`,
+      message: `📈 +${avgRepsGained} reps gemiddeld! Blijf gewicht verhogen tot je doelreps haalt`,
       suggestedReps: Math.ceil(progression.currentAverageReps)
     };
   }
@@ -315,7 +330,7 @@ export function generateOverloadSuggestion(
     if (currentAvg < 12) {
       return {
         type: 'maintain',
-        message: `✅ Goede progressie! Focus op 12 reps voor alle sets`
+        message: `✅ Goede progressie! Focus op meer reps voor alle sets`
       };
     }
     return {
