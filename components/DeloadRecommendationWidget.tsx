@@ -38,8 +38,9 @@ export default function DeloadRecommendationWidget() {
     )
   }
   
-  // Don't show if no deload needed and no signals
-  if (!recommendation.shouldDeload && recommendation.signals.length === 0) {
+  // Don't show if no deload needed — signals alone without shouldDeload=true
+  // don't warrant showing a deload widget (stagnation on isolation exercises etc.)
+  if (!recommendation.shouldDeload) {
     return null
   }
   

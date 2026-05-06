@@ -14,7 +14,7 @@ vi.mock('@/components/context/DataContext', () => ({}));
 import {
   generateProgressiveOverloadSuggestion,
   shouldDeload,
-} from '@/components/utils/progressiveoverload';
+} from '@/components/utils/progressiveOverload';
 import type { WorkoutLog, WorkoutExercise, WorkoutSet } from '@/components/context/DataContext';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────

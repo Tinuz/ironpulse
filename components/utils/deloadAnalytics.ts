@@ -1,6 +1,7 @@
 import { WorkoutLog } from '@/components/context/DataContext';
 import { calculateWeeklySummary } from './weeklyAnalytics';
 import { detectAllPlateaus } from './plateauDetection';
+import { isCompoundExercise } from './exerciseClassification';
 
 /**
  * Deload recommendation data structure
@@ -215,21 +216,30 @@ function detectAccumulatedFatigue(weeklySummaries: any[]): DeloadSignal | null {
 }
 
 /**
- * Detect multiple plateaus (systemic fatigue)
+ * Detect multiple plateaus (systemic fatigue).
+ *
+ * Science (Bannister 1975 fitness-fatigue model; Zatsiorsky & Kraemer 2006):
+ * Only compound lifts stagnating together indicates systemic fatigue.
+ * Isolation exercises (lateral raise, curl, extension, etc.) reach their
+ * ceiling due to accommodation — not because the body needs rest.
+ * Counting isolation plateaus here would trigger false deload recommendations.
  */
 function detectMultiplePlateaus(workouts: WorkoutLog[]): DeloadSignal | null {
-  const plateaus = detectAllPlateaus(workouts, 3);
-  
-  if (plateaus.length >= 3) {
-    const severePlateaus = plateaus.filter(p => p.weeksStagnant >= 3).length;
-    
+  const allPlateaus = detectAllPlateaus(workouts, 3);
+
+  // Filter to compound lifts only — isolation plateaus ≠ systemic fatigue
+  const compoundPlateaus = allPlateaus.filter(p => isCompoundExercise(p.exerciseName));
+
+  if (compoundPlateaus.length >= 3) {
+    const severePlateaus = compoundPlateaus.filter(p => p.weeksStagnant >= 3).length;
+
     return {
       type: 'multiple_plateaus',
       severity: severePlateaus >= 2 ? 'high' : 'medium',
-      description: `${plateaus.length} oefeningen gestagneerd - mogelijk systemische vermoeidheid`
+      description: `${compoundPlateaus.length} compound oefeningen gestagneerd - mogelijk systemische vermoeidheid`
     };
   }
-  
+
   return null;
 }
 

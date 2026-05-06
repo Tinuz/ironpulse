@@ -231,7 +231,7 @@ function suggestFromProfile(
 }
 
 /**
- * Determine if exercise is compound (involves multiple joints/muscle groups)
+ * Determine if exercise is compound (involves multiple joints/muscle groups).
  */
 function isCompoundExercise(exerciseName: string): boolean {
   const name = exerciseName.toLowerCase();

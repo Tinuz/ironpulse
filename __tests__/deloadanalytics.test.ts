@@ -15,7 +15,7 @@ import { describe, it, expect, vi } from 'vitest';
 
 vi.mock('@/components/context/DataContext', () => ({}));
 
-import { detectDeloadNeed } from '@/components/utils/deloadanalytics';
+import { detectDeloadNeed } from '@/components/utils/deloadAnalytics';
 import type { WorkoutLog, WorkoutExercise, WorkoutSet } from '@/components/context/DataContext';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -210,9 +210,9 @@ describe('detectDeloadNeed — performance decline signal', () => {
 // ─── detectDeloadNeed — multiple_plateaus signal ──────────────────────────────
 
 describe('detectDeloadNeed — multiple plateaus signal', () => {
-  it('fires multiple_plateaus when 3+ exercises are stagnant', () => {
+  it('fires multiple_plateaus when 3+ COMPOUND exercises are stagnant', () => {
     const stagnantSet = [makeSet(80, 5)];
-    // 4 sessions per exercise, same weight → all plateaued
+    // Bench Press, Squat, Deadlift are all recognised as compound
     const exercises = ['Bench Press', 'Squat', 'Deadlift'];
 
     const workouts = Array.from({ length: 4 }, (_, i) =>
@@ -224,12 +224,41 @@ describe('detectDeloadNeed — multiple plateaus signal', () => {
     expect(hasPlateauSignal).toBe(true);
   });
 
-  it('does NOT fire multiple_plateaus when fewer than 3 exercises are stagnant', () => {
+  it('does NOT fire multiple_plateaus when fewer than 3 compound exercises are stagnant', () => {
     const stagnantSet = [makeSet(80, 5)];
-    // Only 1 exercise stagnant
+    // Only 1 compound exercise stagnant
     const workouts = Array.from({ length: 4 }, (_, i) =>
       makeWorkout(`w${i}`, (3 - i) * 7, [makeExercise('Bench Press', stagnantSet)]),
     );
+    const result = detectDeloadNeed(workouts);
+    const hasPlateauSignal = result.signals.some(s => s.type === 'multiple_plateaus');
+    expect(hasPlateauSignal).toBe(false);
+  });
+
+  it('does NOT fire multiple_plateaus for 3+ stagnant ISOLATION exercises', () => {
+    // Cable side raise, lateral raise, bicep curl — all isolation
+    // These plateau due to accommodation, not systemic fatigue (Zatsiorsky & Kraemer 2006)
+    const stagnantSet = [makeSet(15, 15)];
+    const isolationExercises = ['Cable Side Raise', 'Lateral Raise', 'Bicep Curl'];
+
+    const workouts = Array.from({ length: 4 }, (_, i) =>
+      makeWorkout(`w${i}`, (3 - i) * 7, isolationExercises.map(n => makeExercise(n, stagnantSet))),
+    );
+
+    const result = detectDeloadNeed(workouts);
+    const hasPlateauSignal = result.signals.some(s => s.type === 'multiple_plateaus');
+    expect(hasPlateauSignal).toBe(false);
+  });
+
+  it('does NOT fire multiple_plateaus when only isolation exercises stagnate alongside one compound', () => {
+    const stagnantSet = [makeSet(15, 15)];
+    // 1 compound (Bench Press) + 2 isolation (Lateral Raise, Curl) → only 1 compound plateau → no signal
+    const exercises = ['Bench Press', 'Lateral Raise', 'Bicep Curl'];
+
+    const workouts = Array.from({ length: 4 }, (_, i) =>
+      makeWorkout(`w${i}`, (3 - i) * 7, exercises.map(n => makeExercise(n, stagnantSet))),
+    );
+
     const result = detectDeloadNeed(workouts);
     const hasPlateauSignal = result.signals.some(s => s.type === 'multiple_plateaus');
     expect(hasPlateauSignal).toBe(false);

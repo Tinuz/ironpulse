@@ -1,5 +1,6 @@
 import { WorkoutLog } from '@/components/context/DataContext';
 import { detectPlateau, PlateauDetection } from './strengthAnalytics';
+import { isCompoundExercise } from './exerciseClassification';
 
 /**
  * Enhanced plateau detection with AI-powered suggestions
@@ -74,7 +75,13 @@ export function detectAllPlateaus(
 }
 
 /**
- * Generate rule-based suggestions for breaking through plateaus
+ * Generate rule-based suggestions for breaking through plateaus.
+ *
+ * Science (Schoenfeld 2010, Zatsiorsky & Kraemer 2006):
+ * - Isolation exercises plateau due to accommodation, not systemic fatigue.
+ *   Correct response: variation in rep range, tempo, or exercise swap.
+ * - Compound lifts plateau due to fatigue or programming. Deload is relevant
+ *   when multiple compound lifts stagnate together.
  */
 function generateRuleSuggestions(
   exerciseName: string,
@@ -82,14 +89,28 @@ function generateRuleSuggestions(
   muscleGroup?: string
 ): string[] {
   const suggestions: string[] = [];
-  
-  // Time-based suggestions
-  if (weeksStagnant >= 4) {
-    suggestions.push('Overweeg een deload week (50-60% intensiteit)');
-    suggestions.push('Wissel naar variatie van deze oefening');
-  } else if (weeksStagnant >= 2) {
-    suggestions.push('Probeer andere rep ranges (5x5 → 3x8-10)');
-    suggestions.push('Verhoog sets met zelfde gewicht');
+  const isCompound = isCompoundExercise(exerciseName);
+
+  if (isCompound) {
+    // Compound lifts: deload is a valid option when stagnation is long
+    if (weeksStagnant >= 4) {
+      suggestions.push('Overweeg een deload week (50-60% intensiteit)');
+      suggestions.push('Wissel naar variatie van deze oefening');
+    } else if (weeksStagnant >= 2) {
+      suggestions.push('Probeer andere rep ranges (5x5 → 3x8-10)');
+      suggestions.push('Verhoog sets met zelfde gewicht');
+    }
+  } else {
+    // Isolation exercises: accommodation is the cause, not fatigue.
+    // Variation always first — no deload recommendation.
+    suggestions.push('Probeer een andere rep-range (15-20 reps voor meer pomp)');
+    suggestions.push('Wissel naar een vergelijkbare oefening (bv. DB in plaats van kabel)');
+    if (weeksStagnant >= 4) {
+      suggestions.push('Verander de volgorde in je training (eerder = meer focus)');
+      suggestions.push('Voeg drop-sets of rest-pause sets toe');
+    } else {
+      suggestions.push('Verhoog de time-under-tension (langzamer uitvoeren)');
+    }
   }
   
   // Muscle group specific suggestions (using granular muscleGroup field!)
