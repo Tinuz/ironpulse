@@ -263,6 +263,7 @@ export default function SquadDetail({ squadId }: SquadDetailProps) {
                     <img 
                       src={member.avatar_url} 
                       alt={member.username || 'User'} 
+                      loading="lazy"
                       className="w-full h-full rounded-full object-cover" 
                     />
                   ) : (

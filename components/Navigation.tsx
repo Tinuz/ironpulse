@@ -21,29 +21,38 @@ export default function Navigation() {
 
     loadUnreadCount()
 
-    const batterySaverMode = localStorage.getItem('battery_saver_mode') === 'true'
+    // Default: focus-based polling — no persistent WebSocket, saves battery on mobile.
+    // Real-time WebSocket is opt-in via the 'realtime_reactions' localStorage flag.
+    const realtimeEnabled = localStorage.getItem('realtime_reactions') === 'true'
 
-    if (batterySaverMode) {
-      // Battery saver: refresh on window focus instead of keeping a WebSocket alive
-      const handleFocus = () => loadUnreadCount()
-      window.addEventListener('focus', handleFocus)
-      return () => window.removeEventListener('focus', handleFocus)
+    if (realtimeEnabled) {
+      // Real-time Supabase subscription (opt-in)
+      const channel = supabase
+        .channel('reaction-notifications')
+        .on('postgres_changes', {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'workout_reactions'
+        }, () => {
+          loadUnreadCount()
+        })
+        .subscribe()
+
+      return () => {
+        supabase.removeChannel(channel)
+      }
     }
 
-    // Normal mode: real-time Supabase subscription
-    const channel = supabase
-      .channel('reaction-notifications')
-      .on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'workout_reactions'
-      }, () => {
-        loadUnreadCount()
-      })
-      .subscribe()
-
+    // Default: refresh count when the tab regains focus or becomes visible
+    const handleFocus = () => loadUnreadCount()
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') loadUnreadCount()
+    }
+    window.addEventListener('focus', handleFocus)
+    document.addEventListener('visibilitychange', handleVisibility)
     return () => {
-      supabase.removeChannel(channel)
+      window.removeEventListener('focus', handleFocus)
+      document.removeEventListener('visibilitychange', handleVisibility)
     }
   }, [user])
 

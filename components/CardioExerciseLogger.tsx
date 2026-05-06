@@ -25,6 +25,8 @@ export default function CardioExerciseLogger({
   const [isRunning, setIsRunning] = useState(false)
   const [elapsedSeconds, setElapsedSeconds] = useState(initialData?.duration || 0)
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
+  // Internal ref tracks exact seconds without causing a re-render per tick
+  const elapsedRef = useRef<number>(initialData?.duration || 0)
   
   // Cardio data state
   const [distance, setDistance] = useState<number | undefined>(initialData?.distance)
@@ -33,19 +35,20 @@ export default function CardioExerciseLogger({
     typeof initialData?.intensity === 'string' ? initialData.intensity : 'moderate'
   )
 
-  // Timer effect
+  // Timer effect — internal 1s tick in a ref; display flushes every 5s to reduce re-renders
   useEffect(() => {
     if (isRunning) {
-      // Use longer interval in battery saver mode
-      const batterySaverMode = localStorage.getItem('battery_saver_mode') === 'true'
-      const updateInterval = batterySaverMode ? 5000 : 1000 // 5s vs 1s
-
       intervalRef.current = setInterval(() => {
-        setElapsedSeconds(prev => prev + (batterySaverMode ? 5 : 1))
-      }, updateInterval)
+        elapsedRef.current += 1
+        if (elapsedRef.current % 5 === 0) {
+          setElapsedSeconds(elapsedRef.current)
+        }
+      }, 1000)
     } else {
       if (intervalRef.current) {
         clearInterval(intervalRef.current)
+        // Flush exact value on pause/stop
+        setElapsedSeconds(elapsedRef.current)
       }
     }
 
@@ -66,17 +69,20 @@ export default function CardioExerciseLogger({
 
   const handleReset = () => {
     setIsRunning(false)
+    elapsedRef.current = 0
     setElapsedSeconds(0)
   }
 
   const handleComplete = () => {
-    if (elapsedSeconds === 0) {
+    // Use ref value for exact final duration
+    const finalSeconds = elapsedRef.current || elapsedSeconds
+    if (finalSeconds === 0) {
       alert('Voer minimaal een duur in')
       return
     }
 
     const cardioData: CardioData = {
-      duration: elapsedSeconds,
+      duration: finalSeconds,
       distance,
       heartRate,
       intensity

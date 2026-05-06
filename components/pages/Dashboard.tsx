@@ -49,6 +49,7 @@ export default function Dashboard() {
               <img 
                 src={user.user_metadata.avatar_url} 
                 alt="Profile" 
+                loading="lazy"
                 className="h-12 w-12 rounded-professional border-2 border-accent-primary/50 shadow-card hover:scale-105 transition-transform object-cover"
               />
             ) : (

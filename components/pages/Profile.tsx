@@ -192,7 +192,7 @@ export default function Profile() {
             {/* Avatar */}
             <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-primary to-accent flex items-center justify-center text-white font-bold text-2xl flex-shrink-0">
               {profile.avatar_url ? (
-                <img src={profile.avatar_url} alt={profile.username} className="w-full h-full rounded-full object-cover" />
+                <img src={profile.avatar_url} alt={profile.username} loading="lazy" className="w-full h-full rounded-full object-cover" />
               ) : (
                 profile.username[0].toUpperCase()
               )}

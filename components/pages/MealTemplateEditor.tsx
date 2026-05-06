@@ -563,6 +563,7 @@ export default function MealTemplateEditor() {
                               <img 
                                 src={result.imageUrl} 
                                 alt={result.name}
+                                loading="lazy"
                                 className="w-full h-full object-cover"
                                 onError={(e) => {
                                   e.currentTarget.style.display = 'none'

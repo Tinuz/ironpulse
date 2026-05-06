@@ -596,7 +596,7 @@ function UserCard({
           className="w-14 h-14 rounded-full bg-gradient-to-tr from-primary to-accent flex items-center justify-center text-white font-bold text-xl cursor-pointer hover:scale-105 transition-transform flex-shrink-0"
         >
           {profile.avatar_url ? (
-            <img src={profile.avatar_url} alt={profile.username} className="w-full h-full rounded-full object-cover" />
+            <img src={profile.avatar_url} alt={profile.username} loading="lazy" className="w-full h-full rounded-full object-cover" />
           ) : (
             profile.username[0].toUpperCase()
           )}
@@ -709,7 +709,7 @@ function ActivityCard({ activity, router, t }: { activity: FriendActivity; route
         {/* Avatar */}
         <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-green-500 to-emerald-500 flex items-center justify-center text-white font-bold flex-shrink-0">
           {activity.avatar_url ? (
-            <img src={activity.avatar_url} alt={activity.username} className="w-full h-full rounded-full object-cover" />
+            <img src={activity.avatar_url} alt={activity.username} loading="lazy" className="w-full h-full rounded-full object-cover" />
           ) : (
             activity.username[0].toUpperCase()
           )}

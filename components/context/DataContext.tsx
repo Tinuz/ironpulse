@@ -306,15 +306,30 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const loadAllData = async () => {
     try {
-      // Load schemas
-      const { data: schemasData } = await supabase
-        .from('schemas')
-        .select('*')
-        .eq('user_id', USER_ID)
-        .order('created_at', { ascending: false });
+      // Fetch all independent tables in parallel — ~5× faster on slow connections
+      const ninetyDaysAgo = new Date();
+      ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+      const ninetyDaysAgoStr = ninetyDaysAgo.toISOString().split('T')[0];
 
+      const [
+        { data: schemasData },
+        { data: historyData },
+        { data: statsData },
+        { data: nutritionData },
+        { data: supplementsData },
+        { data: profileData },
+      ] = await Promise.all([
+        supabase.from('schemas').select('*').eq('user_id', USER_ID).order('created_at', { ascending: false }),
+        supabase.from('workout_history').select('*').eq('user_id', USER_ID).order('date', { ascending: false }),
+        supabase.from('body_stats').select('*').eq('user_id', USER_ID).order('date', { ascending: false }),
+        supabase.from('nutrition_logs').select('*').eq('user_id', USER_ID).gte('date', ninetyDaysAgoStr).order('date', { ascending: false }),
+        supabase.from('supplements').select('*').eq('user_id', USER_ID).order('date', { ascending: false }),
+        supabase.from('user_profile').select('*').eq('user_id', USER_ID).single(),
+      ]);
+
+      // Schemas
       if (schemasData && schemasData.length > 0) {
-      setSchemas(schemasData.map(s => {
+        setSchemas(schemasData.map(s => {
           const { exercises, mode, circuitConfig } = unpackExercises(s.exercises);
           return { id: s.id, name: s.name, exercises, color: s.color || undefined, mode, circuitConfig };
         }));
@@ -337,13 +352,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       }
 
-      // Load workout history
-      const { data: historyData } = await supabase
-        .from('workout_history')
-        .select('*')
-        .eq('user_id', USER_ID)
-        .order('date', { ascending: false });
-
+      // Workout history
       if (historyData) {
         setHistory(historyData.map(h => ({
           id: h.id,
@@ -359,13 +368,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         })));
       }
 
-      // Load body stats
-      const { data: statsData } = await supabase
-        .from('body_stats')
-        .select('*')
-        .eq('user_id', USER_ID)
-        .order('date', { ascending: false });
-
+      // Body stats
       if (statsData) {
         setBodyStats(statsData.map(s => ({
           id: s.id,
@@ -381,13 +384,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         })));
       }
 
-      // Load nutrition logs
-      const { data: nutritionData } = await supabase
-        .from('nutrition_logs')
-        .select('*')
-        .eq('user_id', USER_ID)
-        .order('date', { ascending: false });
-
+      // Nutrition logs (last 90 days only)
       if (nutritionData) {
         setNutritionLogs(nutritionData.map(n => ({
           id: n.id,
@@ -397,13 +394,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         })));
       }
 
-      // Load supplements
-      const { data: supplementsData } = await supabase
-        .from('supplements')
-        .select('*')
-        .eq('user_id', USER_ID)
-        .order('date', { ascending: false });
-
+      // Supplements
       if (supplementsData) {
         setSupplements(supplementsData.map(s => ({
           id: s.id,
@@ -418,13 +409,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         })));
       }
 
-      // Load user profile
-      const { data: profileData } = await supabase
-        .from('user_profile')
-        .select('*')
-        .eq('user_id', USER_ID)
-        .single();
-
+      // User profile
       if (profileData) {
         setUserProfile({
           id: profileData.id,
@@ -442,7 +427,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
       }
 
-      // Load achievements from Supabase
+      // Achievements — sequential after main data (depends on history for checks)
       await loadAchievements();
 
       // Check for incomplete workout ONLY on first app load (new session)

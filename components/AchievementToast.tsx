@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import { X, Sparkles } from 'lucide-react'
 import { Achievement } from '@/components/utils/achievementEngine'
 
@@ -11,6 +11,8 @@ interface AchievementToastProps {
 }
 
 export default function AchievementToast({ achievement, onClose }: AchievementToastProps) {
+  const prefersReducedMotion = useReducedMotion()
+
   // Auto-dismiss after 5 seconds
   useEffect(() => {
     if (achievement) {
@@ -33,7 +35,8 @@ export default function AchievementToast({ achievement, onClose }: AchievementTo
           exit={{ opacity: 0, y: -20, scale: 0.95 }}
           className="pointer-events-auto relative"
         >
-          {/* Confetti effect */}
+          {/* Confetti effect — skipped when user prefers reduced motion */}
+          {!prefersReducedMotion && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: [0, 1, 0] }}
@@ -68,6 +71,7 @@ export default function AchievementToast({ achievement, onClose }: AchievementTo
               />
             ))}
           </motion.div>
+          )}
           
           {/* Toast Card */}
           <motion.div

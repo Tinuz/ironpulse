@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useRef, useCallback } from 'react'
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ArrowLeft, Plus, Trash2, Utensils, Flame, Droplet, Check, Scan, AlertTriangle, TrendingUp, TrendingDown, Target, ChevronLeft, ChevronRight, Calendar, BarChart3, Clock, Search, Loader2, Pencil } from 'lucide-react'
 import { useRouter } from 'next/navigation'
@@ -708,43 +708,32 @@ export default function Nutrition() {
   };
 
   // Get recent unique items from all nutrition logs (sorted by date, newest first)
-  const getRecentItems = () => {
-    // Sort logs by date (newest first)
-    const sortedLogs = [...nutritionLogs].sort((a, b) => 
+  const recentItemKey = (item: NutritionItem) =>
+    `${item.name}-${item.calories}-${item.protein}-${item.carbs}-${item.fats}-${item.type}`;
+
+  const allRecentItems = useMemo(() => {
+    const sortedLogs = [...nutritionLogs].sort((a, b) =>
       new Date(b.date).getTime() - new Date(a.date).getTime()
     );
-    
-    // Collect items in reverse order (newest additions first)
     const allItems: (NutritionItem & { addedDate: string })[] = [];
-    
     sortedLogs.forEach(log => {
-      // Reverse the items array to get most recently added items first
       const itemsWithDate = [...log.items].reverse().map(item => ({
         ...item,
         addedDate: log.date
       }));
       allItems.push(...itemsWithDate);
     });
-    
-    // Create unique items based on name + nutritional values (keep first occurrence = most recent)
     const uniqueItems = new Map<string, NutritionItem & { addedDate: string }>();
-    
     allItems.forEach(item => {
-      const key = `${item.name}-${item.calories}-${item.protein}-${item.carbs}-${item.fats}-${item.type}`;
+      const key = recentItemKey(item);
       if (!uniqueItems.has(key)) {
         uniqueItems.set(key, item);
       }
     });
-    
-    return Array.from(uniqueItems.values());
-  };
-
-  const recentItemKey = (item: NutritionItem) =>
-    `${item.name}-${item.calories}-${item.protein}-${item.carbs}-${item.fats}-${item.type}`;
-
-  const allRecentItems = getRecentItems().filter(
-    item => !hiddenRecentKeys.has(recentItemKey(item))
-  );
+    return Array.from(uniqueItems.values()).filter(
+      item => !hiddenRecentKeys.has(recentItemKey(item))
+    );
+  }, [nutritionLogs, hiddenRecentKeys]);
 
   // Filter recent items based on search
   const filteredRecentItems = recentItemsSearch.trim().length > 0
@@ -1890,6 +1879,7 @@ export default function Nutrition() {
                                 <img 
                                   src={result.imageUrl} 
                                   alt={result.name}
+                                  loading="lazy"
                                   className="w-full h-full object-cover"
                                   onError={(e) => {
                                     e.currentTarget.style.display = 'none';
