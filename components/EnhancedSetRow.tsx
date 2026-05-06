@@ -179,13 +179,13 @@ const EnhancedSetRowBase = forwardRef<HTMLDivElement, EnhancedSetRowProps>(({
           </div>
 
           {/* ── Secondary row: WU / DS / suggestion / RIR / RPE / delete ── */}
-          <div className="flex items-center gap-1.5 mt-2 pt-2 border-t border-white/[0.06]">
+          <div className="flex items-center gap-1.5 mt-2 pt-2 border-t border-white/[0.06] overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
 
             {/* Warmup toggle */}
             <button
               onClick={onToggleWarmup}
               className={clsx(
-                "flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-bold transition-all border",
+                "flex-shrink-0 flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-bold transition-all border",
                 set.isWarmup
                   ? "bg-blue-500/25 text-blue-300 border-blue-500/40"
                   : "bg-white/5 text-zinc-500 border-white/10 hover:text-blue-400 hover:border-blue-500/30"
@@ -200,7 +200,7 @@ const EnhancedSetRowBase = forwardRef<HTMLDivElement, EnhancedSetRowProps>(({
             <button
               onClick={onToggleDropset}
               className={clsx(
-                "flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-bold transition-all border",
+                "flex-shrink-0 flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-bold transition-all border",
                 set.isDropset
                   ? "bg-orange-500/25 text-orange-300 border-orange-500/40"
                   : "bg-white/5 text-zinc-500 border-white/10 hover:text-orange-400 hover:border-orange-500/30"
@@ -211,13 +211,13 @@ const EnhancedSetRowBase = forwardRef<HTMLDivElement, EnhancedSetRowProps>(({
               DS
             </button>
 
-            <div className="flex-1" />
+            <div className="flex-shrink-0 flex-1 min-w-2" />
 
             {/* Suggestion */}
             {suggestion && !set.completed && (
               <button
                 onClick={() => onUpdate('weight', suggestion.weight)}
-                className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-bold bg-green-500/10 text-green-400 border border-green-500/20 hover:bg-green-500/20 transition-all"
+                className="flex-shrink-0 flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-bold bg-green-500/10 text-green-400 border border-green-500/20 hover:bg-green-500/20 transition-all"
               >
                 <TrendingUp size={11} />
                 {suggestion.weight}kg
@@ -226,7 +226,7 @@ const EnhancedSetRowBase = forwardRef<HTMLDivElement, EnhancedSetRowProps>(({
 
             {/* RIR stepper */}
             {showRIR && !set.isWarmup && (
-              <div className="flex items-center bg-white/5 border border-white/10 rounded-lg px-1.5 py-1 gap-0.5">
+              <div className="flex-shrink-0 flex items-center bg-white/5 border border-white/10 rounded-lg px-1.5 py-1 gap-0.5">
                 <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-wide pr-1">RIR</span>
                 <button
                   onClick={() => onUpdate('rir', set.rir !== undefined && set.rir > 0 ? set.rir - 1 : undefined)}
@@ -246,7 +246,7 @@ const EnhancedSetRowBase = forwardRef<HTMLDivElement, EnhancedSetRowProps>(({
 
             {/* RPE stepper */}
             {showRPE && !set.isWarmup && (
-              <div className="flex items-center bg-white/5 border border-white/10 rounded-lg px-1.5 py-1 gap-0.5">
+              <div className="flex-shrink-0 flex items-center bg-white/5 border border-white/10 rounded-lg px-1.5 py-1 gap-0.5">
                 <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-wide pr-1">RPE</span>
                 <button
                   onClick={() => onUpdate('rpe', set.rpe !== undefined && set.rpe > 1 ? set.rpe - 1 : undefined)}
@@ -269,7 +269,7 @@ const EnhancedSetRowBase = forwardRef<HTMLDivElement, EnhancedSetRowProps>(({
               onClick={onRemove}
               disabled={!canRemove}
               className={clsx(
-                "w-7 h-7 rounded-lg flex items-center justify-center transition-all",
+                "flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center transition-all",
                 canRemove
                   ? "text-red-500/40 hover:text-red-500 hover:bg-red-500/10"
                   : "invisible pointer-events-none"
