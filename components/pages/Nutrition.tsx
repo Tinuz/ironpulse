@@ -40,7 +40,8 @@ export default function Nutrition() {
   const [showHistory, setShowHistory] = useState(false);
   const [activeTab, setActiveTab] = useState<ActiveTab>('food');
   const [showSupplementsCoach, setShowSupplementsCoach] = useState(false);
-  
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+
   // Custom food items state
   const [showCustomFoodModal, setShowCustomFoodModal] = useState(false);
   const [customFoodItems, setCustomFoodItems] = useState<CustomFoodItem[]>([]);
@@ -1448,41 +1449,71 @@ export default function Nutrition() {
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, x: -20 }}
-                        className="bg-card border border-white/5 p-4 rounded-xl flex justify-between items-center group"
+                        className="bg-card border border-white/5 rounded-xl overflow-hidden"
                       >
-                        <div className="flex items-center gap-3">
-                          <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                            item.type === 'drink' ? 'bg-blue-500/20 text-blue-400' : 'bg-orange-500/20 text-orange-400'
-                          }`}>
-                            {item.type === 'drink' ? <Droplet size={18} /> : <Utensils size={18} />}
-                          </div>
-                          <div>
-                            <div className="font-bold">{item.name}</div>
-                            <div className="text-xs text-muted-foreground flex gap-2">
-                              <span>{item.calories} kcal</span>
-                              {item.protein > 0 && <span>• {item.protein}g P</span>}
-                              {item.carbs > 0 && <span>• {item.carbs}g C</span>}
-                              {item.fats > 0 && <span>• {item.fats}g F</span>}
-                              {item.type === 'drink' && item.volume && (
-                                <span className="text-blue-400">• {item.volume}ml</span>
-                              )}
+                        {deleteConfirmId === item.id ? (
+                          /* Inline delete confirmation */
+                          <div className="flex items-center justify-between p-4 bg-red-500/10 border border-red-500/30 rounded-xl">
+                            <span className="text-sm font-semibold text-red-400">
+                              {language === 'nl' ? 'Verwijderen?' : 'Delete?'}
+                            </span>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => setDeleteConfirmId(null)}
+                                className="px-3 py-1.5 text-sm rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
+                              >
+                                {language === 'nl' ? 'Annuleer' : 'Cancel'}
+                              </button>
+                              <button
+                                onClick={() => {
+                                  deleteMeal(currentDateStr, item.id);
+                                  setDeleteConfirmId(null);
+                                }}
+                                className="px-3 py-1.5 text-sm rounded-lg bg-red-500 hover:bg-red-600 text-white font-semibold transition-colors"
+                              >
+                                {language === 'nl' ? 'Verwijder' : 'Delete'}
+                              </button>
                             </div>
                           </div>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <button
-                            onClick={() => handleEdit(item)}
-                            className="text-muted-foreground/60 md:opacity-0 md:group-hover:opacity-100 hover:text-primary p-2 hover:bg-primary/10 rounded-lg transition-all"
-                          >
-                            <Pencil size={16} />
-                          </button>
-                          <button 
-                            onClick={() => deleteMeal(currentDateStr, item.id)}
-                            className="text-red-500/60 md:opacity-0 md:group-hover:opacity-100 hover:text-red-500 p-2 hover:bg-red-500/10 rounded-lg transition-all"
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
+                        ) : (
+                          <div className="p-4 flex justify-between items-center group">
+                            <div className="flex items-center gap-3 flex-1 min-w-0">
+                              <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
+                                item.type === 'drink' ? 'bg-blue-500/20 text-blue-400' : 'bg-orange-500/20 text-orange-400'
+                              }`}>
+                                {item.type === 'drink' ? <Droplet size={18} /> : <Utensils size={18} />}
+                              </div>
+                              <div className="min-w-0">
+                                <div className="font-bold truncate">{item.name}</div>
+                                <div className="text-xs text-muted-foreground flex gap-2">
+                                  <span>{item.calories} kcal</span>
+                                  {item.protein > 0 && <span>• {item.protein}g P</span>}
+                                  {item.carbs > 0 && <span>• {item.carbs}g C</span>}
+                                  {item.fats > 0 && <span>• {item.fats}g F</span>}
+                                  {item.type === 'drink' && item.volume && (
+                                    <span className="text-blue-400">• {item.volume}ml</span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-1 flex-shrink-0">
+                              <button
+                                onClick={() => handleEdit(item)}
+                                className="text-muted-foreground hover:text-primary p-2 hover:bg-primary/10 rounded-lg transition-all"
+                                aria-label={language === 'nl' ? 'Bewerken' : 'Edit'}
+                              >
+                                <Pencil size={16} />
+                              </button>
+                              <button
+                                onClick={() => setDeleteConfirmId(item.id)}
+                                className="text-red-500/70 hover:text-red-500 p-2 hover:bg-red-500/10 rounded-lg transition-all"
+                                aria-label={language === 'nl' ? 'Verwijderen' : 'Delete'}
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </div>
+                          </div>
+                        )}
                       </motion.div>
                     ))}
                   </div>
