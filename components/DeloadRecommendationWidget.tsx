@@ -7,10 +7,11 @@ import { useData } from '@/components/context/DataContext'
 import { detectDeloadNeed, isCurrentlyDeloading } from '@/components/utils/deloadAnalytics'
 
 export default function DeloadRecommendationWidget() {
-  const { history } = useData()
+  const { history, restDays } = useData()
   
+  const restDayDates = restDays.map(r => r.date)
   const recommendation = detectDeloadNeed(history, 6)
-  const currentlyDeloading = isCurrentlyDeloading(history)
+  const currentlyDeloading = isCurrentlyDeloading(history, restDayDates)
   
   // Don't show if not enough data
   if (history.length < 6) return null

@@ -568,9 +568,27 @@ function generateDeloadProtocol(urgency: DeloadRecommendation['urgency'], _weeks
 }
 
 /**
- * Check if user is currently in deload week (based on volume)
+ * Check if user is currently in deload week (based on volume or manual rest days).
+ * Accepts an optional array of rest day dates (YYYY-MM-DD) so manually marked
+ * rest/deload/vacation days are treated as active deload.
  */
-export function isCurrentlyDeloading(workouts: WorkoutLog[]): boolean {
+export function isCurrentlyDeloading(workouts: WorkoutLog[], restDayDates: string[] = []): boolean {
+  // Check if the last 3 days are all manually marked as rest/deload/vacation
+  const restDaySet = new Set(restDayDates);
+  const today = new Date();
+  let consecutiveRestDays = 0;
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(today);
+    d.setDate(today.getDate() - i);
+    const key = d.toISOString().split('T')[0];
+    if (restDaySet.has(key)) {
+      consecutiveRestDays++;
+    } else {
+      break;
+    }
+  }
+  if (consecutiveRestDays >= 3) return true;
+
   const currentWeek = calculateWeeklySummary(workouts, [], 0);
   const lastWeek = calculateWeeklySummary(workouts, [], -1);
   

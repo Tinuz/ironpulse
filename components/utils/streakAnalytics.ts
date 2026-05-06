@@ -1,7 +1,9 @@
 /**
  * Workout Streak Analytics
  * 
- * Calculate and track workout streaks and consistency metrics
+ * Calculate and track workout streaks and consistency metrics.
+ * Rest days (manually marked by the user as deload/vacation/rest) are treated
+ * as valid "bridge" days — they don't break an active streak.
  */
 
 import { WorkoutLog } from '@/components/context/DataContext';
@@ -16,10 +18,15 @@ export interface StreakData {
 }
 
 /**
- * Calculate workout streak from history
- * A streak continues if workouts happen on consecutive or same days
+ * Calculate workout streak from history, optionally bridging over rest days.
+ *
+ * @param restDayDates - YYYY-MM-DD strings for days the user marked as rest/deload/vacation.
+ *   Any gap in training that is fully covered by rest days does NOT break the streak.
  */
-export function calculateWorkoutStreak(history: WorkoutLog[]): StreakData {
+export function calculateWorkoutStreak(
+  history: WorkoutLog[],
+  restDayDates: string[] = [],
+): StreakData {
   if (history.length === 0) {
     return {
       currentStreak: 0,
@@ -30,6 +37,8 @@ export function calculateWorkoutStreak(history: WorkoutLog[]): StreakData {
       lastWorkoutDate: null
     };
   }
+
+  const restDaySet = new Set(restDayDates);
 
   // Sort workouts by date (newest first)
   const sortedWorkouts = [...history].sort((a, b) => 
@@ -52,6 +61,25 @@ export function calculateWorkoutStreak(history: WorkoutLog[]): StreakData {
     };
   }
 
+  /**
+   * Returns true if ALL calendar days between startDate (exclusive) and endDate (exclusive)
+   * are covered by the restDaySet — meaning the gap is a valid rest bridge.
+   */
+  function gapCoveredByRestDays(laterDate: Date, earlierDate: Date): boolean {
+    const diffDays = Math.floor(
+      (laterDate.getTime() - earlierDate.getTime()) / (1000 * 60 * 60 * 24)
+    );
+    if (diffDays <= 1) return true; // adjacent days, no gap
+    // Check every day in the gap (exclusive of both endpoints)
+    for (let d = 1; d < diffDays; d++) {
+      const gapDate = new Date(earlierDate);
+      gapDate.setDate(earlierDate.getDate() + d);
+      const key = gapDate.toISOString().split('T')[0];
+      if (!restDaySet.has(key)) return false;
+    }
+    return true;
+  }
+
   // Calculate current streak
   let currentStreak = 0;
   const streakDates: string[] = [];
@@ -67,18 +95,24 @@ export function calculateWorkoutStreak(history: WorkoutLog[]): StreakData {
     const daysDiff = Math.floor((checkDate.getTime() - workoutDate.getTime()) / (1000 * 60 * 60 * 24));
     
     if (daysDiff === 0 || daysDiff === 1) {
-      // Same day or previous day = streak continues
+      // Same day or previous day — streak continues normally
       currentStreak++;
       streakDates.push(workoutDates[i]);
       checkDate = new Date(workoutDate);
-      checkDate.setDate(checkDate.getDate() - 1); // Move to day before
     } else {
-      // Gap found, streak broken
-      break;
+      // Gap found — check if every day in the gap is a rest day
+      if (gapCoveredByRestDays(checkDate, workoutDate)) {
+        currentStreak++;
+        streakDates.push(workoutDates[i]);
+        checkDate = new Date(workoutDate);
+      } else {
+        // Unexcused gap — streak broken
+        break;
+      }
     }
   }
 
-  // Calculate longest streak ever
+  // Calculate longest streak ever (also respects rest days as bridges)
   let longestStreak = 0;
   let tempStreak = 1;
   
@@ -90,7 +124,7 @@ export function calculateWorkoutStreak(history: WorkoutLog[]): StreakData {
     
     const daysDiff = Math.floor((currentDate.getTime() - nextDate.getTime()) / (1000 * 60 * 60 * 24));
     
-    if (daysDiff <= 1) {
+    if (daysDiff <= 1 || gapCoveredByRestDays(currentDate, nextDate)) {
       tempStreak++;
     } else {
       longestStreak = Math.max(longestStreak, tempStreak);

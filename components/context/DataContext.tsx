@@ -178,6 +178,15 @@ export interface UserProfile {
   privacyVersion?: string;
 }
 
+export type RestDayType = 'rest' | 'deload' | 'vacation';
+
+export interface RestDay {
+  id: string;
+  date: string; // YYYY-MM-DD
+  type: RestDayType;
+  note?: string;
+}
+
 // ============================================================================
 // CONTEXT INTERFACE
 // ============================================================================
@@ -214,6 +223,9 @@ interface DataContextType {
   deleteSupplement: (id: string) => Promise<void>;
   setCoachProfile: (profile: CoachProfileType) => void;
   saveUserProfile: (profile: Omit<UserProfile, 'id'>) => Promise<void>;
+  restDays: RestDay[];
+  addRestDay: (date: string, type: RestDayType, note?: string) => Promise<void>;
+  removeRestDay: (date: string) => Promise<void>;
 }
 
 // ============================================================================
@@ -273,6 +285,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [nutritionLogs, setNutritionLogs] = useState<NutritionLog[]>([]);
   const [supplements, setSupplements] = useState<Supplement[]>([]);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [restDays, setRestDays] = useState<RestDay[]>([]);
   const [achievements, setAchievements] = useState<string[]>([]);
   const [unlockedAchievement, setUnlockedAchievement] = useState<{ id: string; name: string; description: string; icon: string; category: string } | null>(null);
   const [showRecoveryModal, setShowRecoveryModal] = useState(false);
@@ -318,6 +331,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         { data: nutritionData },
         { data: supplementsData },
         { data: profileData },
+        { data: restDaysData },
       ] = await Promise.all([
         supabase.from('schemas').select('*').eq('user_id', USER_ID).order('created_at', { ascending: false }),
         supabase.from('workout_history').select('*').eq('user_id', USER_ID).order('date', { ascending: false }),
@@ -325,6 +339,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         supabase.from('nutrition_logs').select('*').eq('user_id', USER_ID).gte('date', ninetyDaysAgoStr).order('date', { ascending: false }),
         supabase.from('supplements').select('*').eq('user_id', USER_ID).order('date', { ascending: false }),
         supabase.from('user_profile').select('*').eq('user_id', USER_ID).single(),
+        supabase.from('user_rest_days').select('*').eq('user_id', USER_ID).order('date', { ascending: false }),
       ]);
 
       // Schemas
@@ -425,6 +440,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           termsVersion: profileData.terms_version,
           privacyVersion: profileData.privacy_version
         });
+      }
+
+      // Rest days
+      if (restDaysData) {
+        setRestDays(restDaysData.map(r => ({
+          id: r.id,
+          date: r.date,
+          type: r.type as RestDayType,
+          note: r.note || undefined,
+        })));
       }
 
       // Achievements — sequential after main data (depends on history for checks)
@@ -1305,6 +1330,48 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // ---------------------------------------------------------------------------
+  // REST DAYS CRUD
+  // ---------------------------------------------------------------------------
+
+  const addRestDay = async (date: string, type: RestDayType, note?: string) => {
+    if (!USER_ID) return;
+    // Optimistic update
+    const tempId = crypto.randomUUID();
+    const newDay: RestDay = { id: tempId, date, type, note };
+    setRestDays(prev => {
+      const filtered = prev.filter(r => r.date !== date);
+      return [...filtered, newDay];
+    });
+    const { data, error } = await supabase
+      .from('user_rest_days')
+      .upsert({ user_id: USER_ID, date, type, note: note ?? null }, { onConflict: 'user_id,date' })
+      .select()
+      .single();
+    if (!error && data) {
+      setRestDays(prev => prev.map(r => r.id === tempId ? { ...r, id: data.id } : r));
+    } else if (error) {
+      // Rollback
+      setRestDays(prev => prev.filter(r => r.id !== tempId));
+      console.error('Error adding rest day:', error);
+    }
+  };
+
+  const removeRestDay = async (date: string) => {
+    if (!USER_ID) return;
+    const removed = restDays.find(r => r.date === date);
+    setRestDays(prev => prev.filter(r => r.date !== date));
+    const { error } = await supabase
+      .from('user_rest_days')
+      .delete()
+      .eq('user_id', USER_ID)
+      .eq('date', date);
+    if (error) {
+      if (removed) setRestDays(prev => [...prev, removed]);
+      console.error('Error removing rest day:', error);
+    }
+  };
+
   return (
     <DataContext.Provider value={{
       schemas,
@@ -1317,6 +1384,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       userProfile,
       achievements,
       unlockedAchievement,
+      restDays,
+      addRestDay,
+      removeRestDay,
       addSchema,
       updateSchema,
       deleteSchema,
