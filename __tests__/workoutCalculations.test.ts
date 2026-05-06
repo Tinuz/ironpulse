@@ -42,11 +42,26 @@ describe('calculate1RM', () => {
     expect(calculate1RM(80, 5)).toBeGreaterThan(80);
   });
 
-  it('caps reps at 12 for high-rep calculations (conservative estimate)', () => {
-    // 20 reps should not wildly exceed the 12-rep estimate
+  it('uses Epley for high reps — 20-rep estimate is higher than 12-rep estimate', () => {
+    // After the fix: Epley(40kg, 20) = 40 × (1 + 20/30) ≈ 66.7; Brzycki(40kg, 12) ≈ 56
     const at12 = calculate1RM(40, 12);
     const at20 = calculate1RM(40, 20);
-    expect(at20).toBeCloseTo(at12, 1);
+    expect(at20).toBeGreaterThan(at12);
+  });
+
+  it('Epley formula: 100kg × 10 reps ≈ 133kg 1RM', () => {
+    // Brzycki: 100 / (1.0278 - 0.0278×10) = 100 / 0.75 = 133.3
+    expect(calculate1RM(100, 10)).toBeCloseTo(133.3, 0);
+  });
+
+  it('Epley formula: 100kg × 15 reps ≈ 150kg 1RM', () => {
+    // Epley: 100 × (1 + 15/30) = 100 × 1.5 = 150
+    expect(calculate1RM(100, 15)).toBeCloseTo(150, 0);
+  });
+
+  it('returns 0 for zero weight or zero reps', () => {
+    expect(calculate1RM(0, 5)).toBe(0);
+    expect(calculate1RM(100, 0)).toBe(0);
   });
 
   it('higher reps produce a higher estimated 1RM at the same weight', () => {
