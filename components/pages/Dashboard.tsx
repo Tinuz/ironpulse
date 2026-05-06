@@ -17,6 +17,9 @@ import AchievementToast from '@/components/AchievementToast';
 import AccessorySuggestionsWidget from '@/components/AccessorySuggestionsWidget';
 import ACWRWidget from '@/components/ACWRWidget';
 import DailyCheckInWidget from '@/components/DailyCheckInWidget';
+import ProximityToFailureWidget from '@/components/ProximityToFailureWidget';
+import FrequencyOptimizationWidget from '@/components/FrequencyOptimizationWidget';
+import RecompositionWidget from '@/components/RecompositionWidget';
 
 export default function Dashboard() {
   const { history, nutritionLogs, unlockedAchievement } = useData()
@@ -112,8 +115,11 @@ export default function Dashboard() {
       <ACWRWidget />
       <WeeklySummaryWidget />
       <MuscleGroupVolumeWidget />
+      <ProximityToFailureWidget />
+      <FrequencyOptimizationWidget />
       <PlateauDetectionWidget />
       <DeloadRecommendationWidget />
+      <RecompositionWidget />
       <AchievementsWidget />
       <AccessorySuggestionsWidget />
 
