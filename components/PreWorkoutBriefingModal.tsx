@@ -95,11 +95,11 @@ function InsightCard({ insight }: { insight: BriefingInsight }) {
     },
     info: {
       icon: insight.type === 'overload_ready'
-        ? <TrendingUp size={15} className="text-primary flex-shrink-0 mt-0.5" />
+        ? <TrendingUp size={15} className="text-green-400 flex-shrink-0 mt-0.5" />
         : <Info size={15} className="text-blue-400 flex-shrink-0 mt-0.5" />,
-      border: insight.type === 'overload_ready' ? 'border-primary/30' : 'border-blue-500/20',
-      bg: insight.type === 'overload_ready' ? 'bg-primary/10' : 'bg-blue-500/10',
-      titleColor: insight.type === 'overload_ready' ? 'text-primary' : 'text-blue-300',
+      border: insight.type === 'overload_ready' ? 'border-green-500/30' : 'border-blue-500/20',
+      bg: insight.type === 'overload_ready' ? 'bg-green-500/10' : 'bg-blue-500/10',
+      titleColor: insight.type === 'overload_ready' ? 'text-green-400' : 'text-blue-300',
     },
   }
   const c = config[insight.severity]
