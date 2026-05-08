@@ -102,9 +102,11 @@ export function detectDeloadNeed(
  * Detect declining volume trend (sign of accumulated fatigue)
  */
 function detectVolumeDecline(weeklySummaries: any[]): DeloadSignal | null {
-  if (weeklySummaries.length < 3) return null;
-  
-  const recentWeeks = weeklySummaries.slice(-3);
+  // Skip weeks with no training (vacation, planned rest) — they are not fatigue signals
+  const activeWeeks = weeklySummaries.filter(w => w.stats.totalWorkouts >= 1);
+  if (activeWeeks.length < 3) return null;
+
+  const recentWeeks = activeWeeks.slice(-3);
   const volumes = recentWeeks.map(w => w.stats.totalVolume);
   
   // Check if each week is lower than previous
@@ -181,11 +183,13 @@ function calculateAverageWeight(workouts: WorkoutLog[]): number {
  * Detect accumulated fatigue (high volume for 3+ recent weeks vs older baseline)
  */
 function detectAccumulatedFatigue(weeklySummaries: any[]): DeloadSignal | null {
-  if (weeklySummaries.length < 4) return null;
+  // Skip weeks with no training — including them lowers the baseline artificially
+  const activeWeeks = weeklySummaries.filter(w => w.stats.totalWorkouts >= 1);
+  if (activeWeeks.length < 4) return null;
 
   // Use oldest available weeks as baseline, most recent 3 as "recent load"
-  const baselineWeeks = weeklySummaries.slice(0, Math.max(1, weeklySummaries.length - 3));
-  const recentWeeks = weeklySummaries.slice(-3);
+  const baselineWeeks = activeWeeks.slice(0, Math.max(1, activeWeeks.length - 3));
+  const recentWeeks = activeWeeks.slice(-3);
 
   const baselineAvg = baselineWeeks.reduce((sum: number, w: any) => sum + w.stats.totalVolume, 0) / baselineWeeks.length;
 
@@ -247,9 +251,11 @@ function detectMultiplePlateaus(workouts: WorkoutLog[]): DeloadSignal | null {
  * Detect overreaching (volume spike then crash)
  */
 function detectOverreaching(weeklySummaries: any[]): DeloadSignal | null {
-  if (weeklySummaries.length < 4) return null;
-  
-  const volumes = weeklySummaries.map(w => w.stats.totalVolume);
+  // Skip weeks with no training — vacation weeks would falsely look like a crash
+  const activeWeeks = weeklySummaries.filter(w => w.stats.totalWorkouts >= 1);
+  if (activeWeeks.length < 4) return null;
+
+  const volumes = activeWeeks.map(w => w.stats.totalVolume);
   const avgVolume = volumes.reduce((a, b) => a + b, 0) / volumes.length;
   
   // Look for spike (>150% avg) followed by drop (<80% avg)
