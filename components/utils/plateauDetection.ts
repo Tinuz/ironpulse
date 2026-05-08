@@ -46,15 +46,16 @@ export function detectAllPlateaus(
       
       const lastWorkoutDate = relevantWorkouts[0]?.date || new Date().toISOString();
 
-      // weeksStagnant = span from the oldest stagnant session to the most recent one
-      // (not "now minus Nth workout" which inflated the number massively)
-      const stagnantSessionCount = Math.min(detection.workoutsStagnant, relevantWorkouts.length);
-      const oldestStagnantWorkout = relevantWorkouts[stagnantSessionCount - 1];
-      const oldestStagnantDate = new Date(oldestStagnantWorkout?.date || lastWorkoutDate);
+      // weeksStagnant = calendar span from the first stagnant session to the last workout.
+      // plateauStartDate is set by detectPlateau to the exact date the stagnant streak began,
+      // so there is no session-index arithmetic that could over-count rest/vacation weeks.
       const newestDate = new Date(lastWorkoutDate);
-      const weeksStagnant = Math.max(1, Math.ceil(
-        (newestDate.getTime() - oldestStagnantDate.getTime()) / (1000 * 60 * 60 * 24 * 7)
-      ));
+      const weeksStagnant = detection.plateauStartDate
+        ? Math.max(1, Math.ceil(
+            (newestDate.getTime() - new Date(detection.plateauStartDate).getTime())
+            / (1000 * 60 * 60 * 24 * 7)
+          ))
+        : 1;
       
       // Get muscle group from most recent workout with this exercise
       const muscleGroup = relevantWorkouts[0]?.exercises.find(ex => ex.name === exerciseName)?.muscleGroup;

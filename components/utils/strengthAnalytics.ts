@@ -226,6 +226,8 @@ export interface PlateauDetection {
   isPlateaued: boolean;
   workoutsStagnant: number;
   last1RM: number | null;
+  /** ISO date string of the first session in the stagnant streak; null when not plateaued */
+  plateauStartDate: string | null;
   suggestedAction: string;
 }
 
@@ -234,62 +236,81 @@ export function detectPlateau(
   workouts: WorkoutLog[],
   threshold: number = 3
 ): PlateauDetection {
-  // Sort chronologically oldest→newest, take up to (threshold + 3) most recent
+  // Haff & Triplett (2015): typical day-to-day 1RM variation is 2–3%; use 2.5% as noise floor
+  const NOISE_TOLERANCE = 0.025;
+  // Zatsiorsky & Kraemer (2006): a >10% load reduction below the session-window peak
+  // signals an intentional reset (injury recovery, form reset) — not a true plateau.
+  const RESET_THRESHOLD = 0.10;
+
+  // Wider window (Schoenfeld et al. 2017: plateau meaningful after 3–4 sessions;
+  // use 8 sessions minimum to capture the full stagnant streak accurately)
   const relevantWorkouts = workouts
     .filter(w => w.exercises.some(ex => ex.name.toLowerCase() === exerciseName.toLowerCase()))
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-    .slice(-(threshold + 3));
+    .slice(-Math.max(threshold + 5, 8));
+
+  interface SessionPoint { oneRM: number; date: string }
+
+  const notPlateaued = (last1RM: number | null): PlateauDetection => ({
+    isPlateaued: false,
+    workoutsStagnant: 0,
+    last1RM,
+    plateauStartDate: null,
+    suggestedAction: 'Blijf progressive overload toepassen',
+  });
 
   if (relevantWorkouts.length < threshold) {
-    return {
-      isPlateaued: false,
-      workoutsStagnant: 0,
-      last1RM: null,
-      suggestedAction: 'Keep training to establish baseline'
-    };
+    return notPlateaued(null);
   }
 
-  const oneRMs = relevantWorkouts.map(w => {
-    const ex = w.exercises.find(e => e.name.toLowerCase() === exerciseName.toLowerCase());
-    if (!ex) return null;
-    const best = getBest1RM(ex);
-    return best?.oneRM ?? null;
-  }).filter((rm): rm is number => rm !== null);
+  const sessionData: SessionPoint[] = relevantWorkouts
+    .map(w => {
+      const ex = w.exercises.find(e => e.name.toLowerCase() === exerciseName.toLowerCase());
+      if (!ex) return null;
+      const best = getBest1RM(ex);
+      return best ? { oneRM: best.oneRM, date: w.date } : null;
+    })
+    .filter((d): d is SessionPoint => d !== null);
 
-  if (oneRMs.length < threshold) {
-    return {
-      isPlateaued: false,
-      workoutsStagnant: 0,
-      last1RM: oneRMs[oneRMs.length - 1] ?? null,
-      suggestedAction: 'Complete more sets to track progress'
-    };
+  if (sessionData.length < threshold) {
+    return notPlateaued(sessionData[sessionData.length - 1]?.oneRM ?? null);
   }
 
-  // Scan backwards from most recent: count how many consecutive sessions
-  // showed NO improvement (≤1kg noise tolerance) vs the OLDEST session in that streak.
-  // This detects a genuine plateau (no upward trend) without penalising stability.
-  const last1RM = oneRMs[oneRMs.length - 1];
-  let stagnantCount = 1; // always includes current session
+  const currentRM = sessionData[sessionData.length - 1].oneRM;
+  const windowPeakRM = Math.max(...sessionData.map(s => s.oneRM));
 
-  for (let i = oneRMs.length - 2; i >= 0; i--) {
-    const prevBest = Math.max(...oneRMs.slice(0, i + 1));
-    // If there was a meaningful improvement somewhere before index i → plateau started here
-    if (last1RM > prevBest + 1) {
-      break; // progress since then → not stagnant from this point back
+  // Reset detection: if the user's current 1RM is >10% below their session-window peak,
+  // they intentionally reduced load — this is recovery/reset, not a plateau.
+  if (currentRM < windowPeakRM * (1 - RESET_THRESHOLD)) {
+    return notPlateaued(currentRM);
+  }
+
+  // Backward scan (oldest→newest perspective, iterating newest→oldest):
+  // Count consecutive sessions where currentRM did NOT beat the historical best
+  // by more than the noise tolerance. If it did beat it → progress happened → stop.
+  let stagnantCount = 1; // always includes the current session
+  for (let i = sessionData.length - 2; i >= 0; i--) {
+    const prevBestRM = Math.max(...sessionData.slice(0, i + 1).map(s => s.oneRM));
+    // Current meaningfully exceeds everything before session i → genuine progress since then
+    if (currentRM > prevBestRM * (1 + NOISE_TOLERANCE)) {
+      break;
     }
     stagnantCount++;
-    if (stagnantCount >= threshold + 3) break; // cap to avoid going back forever
   }
 
   const isPlateaued = stagnantCount >= threshold;
+  const plateauStartDate = isPlateaued
+    ? sessionData[sessionData.length - stagnantCount].date
+    : null;
 
   return {
     isPlateaued,
     workoutsStagnant: stagnantCount,
-    last1RM,
+    last1RM: currentRM,
+    plateauStartDate,
     suggestedAction: isPlateaued
-      ? 'Tijd voor deload of variatie in reps/sets'
-      : 'Blijf progressive overload toepassen'
+      ? 'Tijd voor variatie in reps/sets'
+      : 'Blijf progressive overload toepassen',
   };
 }
 
