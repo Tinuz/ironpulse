@@ -171,7 +171,7 @@ function ExerciseRow({ ex }: { ex: ExerciseBriefing }) {
               </span>
             )}
             {ex.readyForOverload && !ex.isPlateau && (
-              <span className="text-[9px] font-bold text-primary bg-primary/10 border border-primary/20 rounded px-1 py-0.5">
+              <span className="text-[9px] font-bold text-green-400 bg-green-400/10 border border-green-400/20 rounded px-1 py-0.5">
                 ↑ ZWAARDER
               </span>
             )}
@@ -185,14 +185,22 @@ function ExerciseRow({ ex }: { ex: ExerciseBriefing }) {
             <p className="text-[11px] text-zinc-600 mt-0.5">Nog niet gelogd</p>
           )}
 
-          {ex.suggestedWeight && (
-            <p className="text-[11px] text-primary mt-0.5">
-              Vandaag: <span className="font-bold">{ex.suggestedWeight} kg</span>
-              {ex.readyForOverload && ex.overloadSuggestion && (
-                <span className="text-zinc-500"> (overload: {ex.overloadSuggestion.split('—')[0].trim()})</span>
-              )}
-            </p>
-          )}
+          {(ex.suggestedWeight || ex.overloadWeight) && (() => {
+            const isOverload = ex.readyForOverload && ex.overloadWeight !== null
+            const displayWeight = isOverload ? ex.overloadWeight : ex.suggestedWeight
+            const isLighter = !isOverload && ex.lastWeight !== null && (displayWeight ?? 0) < ex.lastWeight
+            const weightColor = isOverload
+              ? 'text-green-400'
+              : isLighter
+              ? 'text-amber-400'
+              : 'text-zinc-300'
+            const label = isOverload ? 'Doel vandaag:' : 'Vandaag:'
+            return (
+              <p className={`text-[11px] mt-0.5 ${weightColor}`}>
+                {label} <span className="font-bold">{displayWeight} kg</span>
+              </p>
+            )
+          })()}
         </div>
         <Dumbbell size={14} className="text-zinc-600 flex-shrink-0 mt-0.5" />
       </div>

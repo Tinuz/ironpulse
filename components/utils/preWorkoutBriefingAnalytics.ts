@@ -61,6 +61,8 @@ export interface ExerciseBriefing {
   /** True when a progressive overload increase is indicated */
   readyForOverload: boolean;
   overloadSuggestion: string | null;
+  /** Numeric overload target weight (null when not ready for overload) */
+  overloadWeight: number | null;
   /** True when the exercise is detected as plateaued */
   isPlateau: boolean;
   plateauDescription: string | null;
@@ -383,6 +385,7 @@ export function generatePreWorkoutBriefing(
         suggestedWeightReason,
         readyForOverload,
         overloadSuggestion,
+        overloadWeight: readyForOverload ? (overload?.suggestedWeight ?? null) : null,
         isPlateau: !!plateau,
         plateauDescription: plateau?.ruleSuggestions?.[0] ?? null,
         rpeRising: rpeTrend?.rpeTrend === 'rising',
