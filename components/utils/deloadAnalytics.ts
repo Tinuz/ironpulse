@@ -234,7 +234,9 @@ function detectMultiplePlateaus(workouts: WorkoutLog[]): DeloadSignal | null {
   // Filter to compound lifts only — isolation plateaus ≠ systemic fatigue
   const compoundPlateaus = allPlateaus.filter(p => isCompoundExercise(p.exerciseName));
 
-  if (compoundPlateaus.length >= 3) {
+  // Threshold raised to 4: with a longer training history more compounds naturally
+  // stagnate independently; 3 was triggering false deload signals.
+  if (compoundPlateaus.length >= 4) {
     const severePlateaus = compoundPlateaus.filter(p => p.weeksStagnant >= 3).length;
 
     return {
@@ -314,14 +316,37 @@ function detectMuscleGroupOverload(workouts: WorkoutLog[], weeksToAnalyze: numbe
   }
   
   // Analyze each muscle group for overload patterns
+  // Track how many workouts per week (parallel to muscleGroupWeeklyVolumes) so we can
+  // exclude zero-workout weeks from the average — vacation weeks would otherwise
+  // artificially lower the baseline and make normal weeks look like spikes.
+  const weekWorkoutCounts: number[] = [];
+  for (let weekOffset = 0; weekOffset < weeksToAnalyze; weekOffset++) {
+    const weekEnd = new Date();
+    weekEnd.setDate(weekEnd.getDate() - weekOffset * 7);
+    const weekStart = new Date(weekEnd);
+    weekStart.setDate(weekStart.getDate() - 7);
+    weekWorkoutCounts[weekOffset] = workouts.filter(w => {
+      const d = new Date(w.date);
+      return d >= weekStart && d < weekEnd;
+    }).length;
+  }
+
   Object.entries(muscleGroupWeeklyVolumes).forEach(([muscleGroup, weeklyVolumes]) => {
     if (muscleGroup === 'unknown' || muscleGroup === 'cardio' || muscleGroup === 'full-body') return;
-    
-    const avgVolume = weeklyVolumes.reduce((a, b) => a + b, 0) / weeklyVolumes.length;
+
+    // Only include weeks that had at least one workout in the average
+    const activeVolumes = weeklyVolumes.filter((_, i) => weekWorkoutCounts[i] >= 1);
+    if (activeVolumes.length === 0) return;
+    const avgVolume = activeVolumes.reduce((a, b) => a + b, 0) / activeVolumes.length;
     if (avgVolume === 0) return;
-    
-    // Pattern 1: High volume for 3+ consecutive weeks (accumulated fatigue)
-    const recentWeeks = weeklyVolumes.slice(0, 3);
+
+    // Pattern 1: High volume for 3+ consecutive recent active weeks (accumulated fatigue)
+    const recentActiveWeeks = weeklyVolumes
+      .map((v, i) => ({ v, active: weekWorkoutCounts[i] >= 1 }))
+      .filter(x => x.active)
+      .slice(0, 3)
+      .map(x => x.v);
+    const recentWeeks = recentActiveWeeks;
     const highVolumeWeeks = recentWeeks.filter(v => v > avgVolume * 1.2).length;
     
     if (highVolumeWeeks >= 3) {
