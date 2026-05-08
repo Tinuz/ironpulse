@@ -364,8 +364,8 @@ export function generatePreWorkoutBriefing(
         e => e.exerciseName.toLowerCase() === nameLower
       );
 
-      // Overload-ready insight (only show if no MRV warning already for this muscle)
-      if (readyForOverload) {
+      // Overload-ready insight — suppress entirely when a deload is recommended
+      if (readyForOverload && !deloadRec.shouldDeload) {
         insights.push({
           type: 'overload_ready',
           severity: 'info',
@@ -383,9 +383,9 @@ export function generatePreWorkoutBriefing(
         lastTrainedDate,
         suggestedWeight,
         suggestedWeightReason,
-        readyForOverload,
-        overloadSuggestion,
-        overloadWeight: readyForOverload ? (overload?.suggestedWeight ?? null) : null,
+        readyForOverload: readyForOverload && !deloadRec.shouldDeload,
+        overloadSuggestion: deloadRec.shouldDeload ? null : overloadSuggestion,
+        overloadWeight: (readyForOverload && !deloadRec.shouldDeload) ? (overload?.suggestedWeight ?? null) : null,
         isPlateau: !!plateau,
         plateauDescription: plateau?.ruleSuggestions?.[0] ?? null,
         rpeRising: rpeTrend?.rpeTrend === 'rising',
