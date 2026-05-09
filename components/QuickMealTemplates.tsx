@@ -1,8 +1,8 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { motion } from 'framer-motion'
-import { Package, Plus, ChevronRight, Sun, Moon, Cookie, Utensils, Flame } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Package, Plus, ChevronRight, Sun, Moon, Cookie, Utensils, Flame, X, Check } from 'lucide-react'
 import { useAuth } from '@/components/context/AuthContext'
 import { useLanguage } from '@/components/context/LanguageContext'
 import { MealTemplate, MealCategory } from '@/types/nutrition'
@@ -28,6 +28,7 @@ export default function QuickMealTemplates({ onTemplateLogged }: QuickMealTempla
   const [templates, setTemplates] = useState<MealTemplate[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [loggingTemplate, setLoggingTemplate] = useState<string | null>(null)
+  const [portionPicker, setPortionPicker] = useState<{ template: MealTemplate; portions: number } | null>(null)
 
   useEffect(() => {
     let isMounted = true
@@ -74,7 +75,8 @@ export default function QuickMealTemplates({ onTemplateLogged }: QuickMealTempla
 
 
 
-  const handleLogTemplate = async (template: MealTemplate) => {
+  const handleLogTemplate = async (template: MealTemplate, portions: number = 1) => {
+    setPortionPicker(null)
     setLoggingTemplate(template.id)
     try {
       const today = format(new Date(), 'yyyy-MM-dd')
@@ -85,7 +87,7 @@ export default function QuickMealTemplates({ onTemplateLogged }: QuickMealTempla
           'Authorization': `Bearer ${session?.access_token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ date: today })
+        body: JSON.stringify({ date: today, portions })
       })
 
       if (response.ok) {
@@ -156,7 +158,7 @@ export default function QuickMealTemplates({ onTemplateLogged }: QuickMealTempla
         {templates.map(template => (
           <motion.button
             key={template.id}
-            onClick={() => handleLogTemplate(template)}
+            onClick={() => setPortionPicker({ template, portions: 1 })}
             disabled={loggingTemplate === template.id}
             whileTap={{ scale: 0.98 }}
             className="bg-card border border-white/5 rounded-xl p-3 hover:border-primary/30 transition-all text-left disabled:opacity-50"
@@ -196,6 +198,108 @@ export default function QuickMealTemplates({ onTemplateLogged }: QuickMealTempla
           </motion.button>
         ))}
       </div>
+
+      {/* Portion Picker Modal */}
+      <AnimatePresence>
+        {portionPicker && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-end justify-center p-4 bg-black/80"
+            onClick={() => setPortionPicker(null)}
+          >
+            <motion.div
+              initial={{ y: 80, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 80, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-card border border-white/10 rounded-2xl p-5 w-full max-w-sm space-y-4"
+            >
+              {/* Header */}
+              <div className="flex items-start justify-between">
+                <div>
+                  <h3 className="font-bold text-lg">{t.templates.selectPortion}</h3>
+                  <p className="text-sm text-muted-foreground">{portionPicker.template.name}</p>
+                </div>
+                <button onClick={() => setPortionPicker(null)} className="p-1 text-muted-foreground hover:text-foreground">
+                  <X size={20} />
+                </button>
+              </div>
+
+              {/* Preset portion buttons */}
+              <div className="grid grid-cols-6 gap-1.5">
+                {([0.25, 0.5, 0.75, 1, 1.5, 2] as const).map((p, i) => (
+                  <button
+                    key={p}
+                    onClick={() => setPortionPicker(prev => prev ? { ...prev, portions: p } : null)}
+                    className={`py-2 rounded-lg text-sm font-bold transition-colors ${
+                      portionPicker.portions === p
+                        ? 'bg-primary text-white'
+                        : 'bg-white/5 text-foreground hover:bg-white/10'
+                    }`}
+                  >
+                    {['¼', '½', '¾', '1×', '1½', '2×'][i]}
+                  </button>
+                ))}
+              </div>
+
+              {/* Custom input */}
+              <div className="flex items-center gap-2">
+                <label className="text-sm text-muted-foreground whitespace-nowrap">Eigen getal:</label>
+                <input
+                  type="number"
+                  min="0.1"
+                  max="10"
+                  step="0.25"
+                  value={portionPicker.portions}
+                  onChange={(e) => {
+                    const v = parseFloat(e.target.value)
+                    if (!isNaN(v) && v > 0) setPortionPicker(prev => prev ? { ...prev, portions: v } : null)
+                  }}
+                  className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-center focus:outline-none focus:border-primary"
+                />
+                <span className="text-sm text-muted-foreground">×</span>
+              </div>
+
+              {/* Live macro preview */}
+              <div className="bg-background/50 rounded-xl p-3">
+                <div className="grid grid-cols-4 gap-2 text-center">
+                  <div>
+                    <div className="text-sm font-bold text-orange-400">{Math.round((portionPicker.template.totalCalories || 0) * portionPicker.portions)}</div>
+                    <div className="text-xs text-muted-foreground">kcal</div>
+                  </div>
+                  <div>
+                    <div className="text-sm font-bold text-pink-400">{(Math.round((portionPicker.template.totalProtein || 0) * portionPicker.portions * 10) / 10)}g</div>
+                    <div className="text-xs text-muted-foreground">eiwit</div>
+                  </div>
+                  <div>
+                    <div className="text-sm font-bold text-blue-400">{(Math.round((portionPicker.template.totalCarbs || 0) * portionPicker.portions * 10) / 10)}g</div>
+                    <div className="text-xs text-muted-foreground">koolh.</div>
+                  </div>
+                  <div>
+                    <div className="text-sm font-bold text-yellow-400">{(Math.round((portionPicker.template.totalFats || 0) * portionPicker.portions * 10) / 10)}g</div>
+                    <div className="text-xs text-muted-foreground">vet</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Confirm button */}
+              <button
+                onClick={() => handleLogTemplate(portionPicker.template, portionPicker.portions)}
+                disabled={loggingTemplate === portionPicker.template.id}
+                className="w-full py-3 bg-gradient-to-r from-primary to-red-600 text-white rounded-xl font-bold hover:from-red-600 hover:to-red-700 transition-all shadow-lg disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {loggingTemplate === portionPicker.template.id ? (
+                  <><Check size={20} />{t.templates.logged}</>
+                ) : (
+                  <><Plus size={20} />{t.templates.confirmAndLog}</>
+                )}
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   )
 }

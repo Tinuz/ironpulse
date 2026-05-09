@@ -153,7 +153,9 @@ export const translations = {
       usedTimes: '{count}× gebruikt',
       moreItems: 'meer items',
       viewAll: 'Bekijk alle',
-      createToQuickLog: 'Maak templates voor snel loggen'
+      createToQuickLog: 'Maak templates voor snel loggen',
+      selectPortion: 'Aantal porties',
+      confirmAndLog: 'Bevestig & Log'
     },
 
     // Custom Food Items
@@ -786,7 +788,9 @@ export const translations = {
       usedTimes: 'Used {count}×',
       moreItems: 'more items',
       viewAll: 'View all',
-      createToQuickLog: 'Create templates for quick logging'
+      createToQuickLog: 'Create templates for quick logging',
+      selectPortion: 'Number of portions',
+      confirmAndLog: 'Confirm & Log'
     },
 
     // Custom Food Items

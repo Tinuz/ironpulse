@@ -50,7 +50,7 @@ export async function POST(
 
     const userId = user.id;
     const body = await request.json();
-    const { date, adjustments } = body;
+    const { date, adjustments, portions } = body;
 
     if (!date) {
       return NextResponse.json(
@@ -80,7 +80,19 @@ export async function POST(
     // Convert template to nutrition items
     let nutritionItems = templateToNutritionItems(template);
 
-    // Apply adjustments if provided
+    // Apply global portion multiplier (e.g. 0.5 for a half portion)
+    const portionMultiplier = typeof portions === 'number' && portions > 0 ? portions : 1;
+    if (portionMultiplier !== 1) {
+      nutritionItems = nutritionItems.map(item => ({
+        ...item,
+        calories: Math.round(item.calories * portionMultiplier),
+        protein: Math.round(item.protein * portionMultiplier * 10) / 10,
+        carbs: Math.round(item.carbs * portionMultiplier * 10) / 10,
+        fats: Math.round(item.fats * portionMultiplier * 10) / 10,
+      }));
+    }
+
+    // Apply per-item adjustments if provided
     if (adjustments && Array.isArray(adjustments)) {
       adjustments.forEach(adj => {
         const item = template.items.find(i => i.id === adj.itemId);
