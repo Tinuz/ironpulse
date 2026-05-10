@@ -88,7 +88,7 @@ export default function ExerciseSubstitutionModal({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+      <div className="fixed inset-0 z-50 flex items-center justify-center">
         {/* Backdrop */}
         <motion.div
           initial={{ opacity: 0 }}
@@ -100,10 +100,10 @@ export default function ExerciseSubstitutionModal({
 
         {/* Modal */}
         <motion.div
-          initial={{ opacity: 0, y: 100 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 100 }}
-          className="relative w-full max-w-2xl mx-4 mb-4 sm:mb-0 bg-card border border-white/10 rounded-2xl shadow-2xl max-h-[90vh] flex flex-col"
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.95 }}
+          className="relative w-full max-w-2xl mx-4 bg-card border border-white/10 rounded-2xl shadow-2xl max-h-[90vh] flex flex-col"
         >
           {/* Header */}
           <div className="p-6 border-b border-white/5">
