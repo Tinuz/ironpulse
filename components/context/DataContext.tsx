@@ -162,6 +162,19 @@ export interface Supplement {
   createdAt?: string;
 }
 
+export interface SupplementStack {
+  id: string;
+  name: string;
+  dosageAmount: number;
+  dosageUnit: 'g' | 'mg' | 'pills' | 'capsules' | 'scoops' | 'ml' | 'tablets';
+  brand?: string;
+  timing?: 'morning' | 'pre-workout' | 'post-workout' | 'evening' | 'with-meal' | 'before-bed';
+  notes?: string;
+  isActive: boolean;
+  sortOrder: number;
+  createdAt?: string;
+}
+
 export interface UserProfile {
   id: string;
   age: number;
@@ -198,6 +211,7 @@ interface DataContextType {
   bodyStats: BodyStats[];
   nutritionLogs: NutritionLog[];
   supplements: Supplement[];
+  supplementStacks: SupplementStack[];
   coachProfile: CoachProfileType;
   userProfile: UserProfile | null;
   achievements: string[]; // Array of unlocked achievement IDs
@@ -221,6 +235,11 @@ interface DataContextType {
   addSupplement: (supplement: Omit<Supplement, 'id'>) => Promise<void>;
   updateSupplement: (id: string, supplement: Partial<Supplement>) => Promise<void>;
   deleteSupplement: (id: string) => Promise<void>;
+  addSupplementStack: (stack: Omit<SupplementStack, 'id' | 'sortOrder' | 'isActive'>) => Promise<void>;
+  updateSupplementStack: (id: string, stack: Partial<SupplementStack>) => Promise<void>;
+  deleteSupplementStack: (id: string) => Promise<void>;
+  toggleSupplementStack: (id: string, isActive: boolean) => Promise<void>;
+  logStackToday: (date: string) => Promise<void>;
   setCoachProfile: (profile: CoachProfileType) => void;
   saveUserProfile: (profile: Omit<UserProfile, 'id'>) => Promise<void>;
   restDays: RestDay[];
@@ -284,6 +303,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [bodyStats, setBodyStats] = useState<BodyStats[]>([]);
   const [nutritionLogs, setNutritionLogs] = useState<NutritionLog[]>([]);
   const [supplements, setSupplements] = useState<Supplement[]>([]);
+  const [supplementStacks, setSupplementStacks] = useState<SupplementStack[]>([]);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [restDays, setRestDays] = useState<RestDay[]>([]);
   const [achievements, setAchievements] = useState<string[]>([]);
@@ -341,6 +361,28 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         supabase.from('user_profile').select('*').eq('user_id', USER_ID).single(),
         supabase.from('user_rest_days').select('*').eq('user_id', USER_ID).order('date', { ascending: false }),
       ]);
+
+      // Supplement stacks (routine templates)
+      const { data: stacksData } = await supabase
+        .from('supplement_stacks')
+        .select('*')
+        .eq('user_id', USER_ID)
+        .order('sort_order', { ascending: true });
+
+      if (stacksData) {
+        setSupplementStacks(stacksData.map(s => ({
+          id: s.id,
+          name: s.name,
+          dosageAmount: s.dosage_amount,
+          dosageUnit: s.dosage_unit,
+          brand: s.brand || undefined,
+          timing: s.timing || undefined,
+          notes: s.notes || undefined,
+          isActive: s.is_active,
+          sortOrder: s.sort_order,
+          createdAt: s.created_at,
+        })));
+      }
 
       // Schemas
       if (schemasData && schemasData.length > 0) {
@@ -1242,6 +1284,107 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // ---------------------------------------------------------------------------
+  // SUPPLEMENT STACKS CRUD
+  // ---------------------------------------------------------------------------
+
+  const addSupplementStack = async (stack: Omit<SupplementStack, 'id' | 'sortOrder' | 'isActive'>) => {
+    const nextOrder = supplementStacks.length;
+    const { data, error } = await supabase
+      .from('supplement_stacks')
+      .insert({
+        user_id: USER_ID,
+        name: stack.name,
+        dosage_amount: stack.dosageAmount,
+        dosage_unit: stack.dosageUnit,
+        brand: stack.brand || null,
+        timing: stack.timing || null,
+        notes: stack.notes || null,
+        is_active: true,
+        sort_order: nextOrder,
+      })
+      .select()
+      .single();
+
+    if (!error && data) {
+      setSupplementStacks(prev => [...prev, {
+        id: data.id,
+        name: data.name,
+        dosageAmount: data.dosage_amount,
+        dosageUnit: data.dosage_unit,
+        brand: data.brand || undefined,
+        timing: data.timing || undefined,
+        notes: data.notes || undefined,
+        isActive: data.is_active,
+        sortOrder: data.sort_order,
+        createdAt: data.created_at,
+      }]);
+    }
+  };
+
+  const updateSupplementStack = async (id: string, stack: Partial<SupplementStack>) => {
+    const update: Record<string, unknown> = {};
+    if (stack.name !== undefined) update.name = stack.name;
+    if (stack.dosageAmount !== undefined) update.dosage_amount = stack.dosageAmount;
+    if (stack.dosageUnit !== undefined) update.dosage_unit = stack.dosageUnit;
+    if (stack.brand !== undefined) update.brand = stack.brand || null;
+    if (stack.timing !== undefined) update.timing = stack.timing || null;
+    if (stack.notes !== undefined) update.notes = stack.notes || null;
+    if (stack.isActive !== undefined) update.is_active = stack.isActive;
+
+    const { error } = await supabase
+      .from('supplement_stacks')
+      .update(update)
+      .eq('id', id)
+      .eq('user_id', USER_ID);
+
+    if (!error) {
+      setSupplementStacks(prev => prev.map(s =>
+        s.id === id ? { ...s, ...stack } : s
+      ));
+    }
+  };
+
+  const deleteSupplementStack = async (id: string) => {
+    const { error } = await supabase
+      .from('supplement_stacks')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', USER_ID);
+
+    if (!error) {
+      setSupplementStacks(prev => prev.filter(s => s.id !== id));
+    }
+  };
+
+  const toggleSupplementStack = async (id: string, isActive: boolean) => {
+    await updateSupplementStack(id, { isActive });
+  };
+
+  /**
+   * Log all active stack items as daily supplement entries for the given date.
+   * Skips items already logged that day (matched by name + date).
+   */
+  const logStackToday = async (date: string) => {
+    const activeStacks = supplementStacks.filter(s => s.isActive);
+    const alreadyLogged = new Set(
+      supplements.filter(s => s.date === date).map(s => s.name.toLowerCase())
+    );
+
+    for (const stack of activeStacks) {
+      if (alreadyLogged.has(stack.name.toLowerCase())) continue;
+      await addSupplement({
+        date,
+        name: stack.name,
+        dosageAmount: stack.dosageAmount,
+        dosageUnit: stack.dosageUnit,
+        brand: stack.brand,
+        timing: stack.timing,
+        notes: stack.notes,
+      });
+    }
+  };
+
   const setCoachProfile = (profile: CoachProfileType) => {
     setCoachProfileState(profile);
     if (typeof window !== 'undefined') {
@@ -1380,6 +1523,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       bodyStats,
       nutritionLogs,
       supplements,
+      supplementStacks,
       coachProfile,
       userProfile,
       achievements,
@@ -1406,6 +1550,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       addSupplement,
       updateSupplement,
       deleteSupplement,
+      addSupplementStack,
+      updateSupplementStack,
+      deleteSupplementStack,
+      toggleSupplementStack,
+      logStackToday,
       setCoachProfile,
       saveUserProfile
     }}>
