@@ -153,17 +153,28 @@ export default function Nutrition() {
     // TDEE berekening
     const tdee = bmr * activityLevel;
 
-    // Calorie target adjusted for goal (Slater & Phillips 2011)
-    let calorieMultiplier = 1.0;
-    if (fitnessGoal === 'bulk') calorieMultiplier = 1.15;   // +15% surplus
-    else if (fitnessGoal === 'cut') calorieMultiplier = 0.78; // −22% deficit
+    // Calorie target adjusted for goal
+    // Sources: Slater & Phillips 2011, Barakat et al. 2020, Helms et al. 2014
+    const CALORIE_MULTIPLIERS: Record<string, number> = {
+      'bulk':      1.15,  // +15% — Slater & Phillips 2011
+      'lean-bulk': 1.07,  // +7%  — Barakat et al. 2020, Hall et al. 2012
+      'maintain':  1.0,
+      'lean-cut':  0.90,  // −10% — Barakat et al. 2020
+      'cut':       0.80,  // −20% — Helms et al. 2014 (≤20% for LBM preservation)
+    };
+    const calorieMultiplier = CALORIE_MULTIPLIERS[fitnessGoal] ?? 1.0;
     const targetCalories = Math.round(tdee * calorieMultiplier);
     const maintenanceCalories = Math.round(tdee);
 
-    // Protein target per goal (Morton et al. 2018)
-    let proteinPerKg = 2.0;
-    if (fitnessGoal === 'bulk') proteinPerKg = 1.8;
-    else if (fitnessGoal === 'cut') proteinPerKg = 2.2;
+    // Protein target per goal (Morton et al. 2018 meta-analysis + Stokes et al. 2018)
+    const PROTEIN_PER_KG: Record<string, number> = {
+      'bulk':      1.8,
+      'lean-bulk': 1.8,
+      'maintain':  2.0,
+      'lean-cut':  2.2,
+      'cut':       2.3,  // Helms et al. 2014
+    };
+    const proteinPerKg = PROTEIN_PER_KG[fitnessGoal] ?? 2.0;
     const proteinTarget = Math.round(weight * proteinPerKg);
 
     const fatsTarget = Math.round((targetCalories * 0.28) / 9);
@@ -1036,11 +1047,17 @@ export default function Nutrition() {
                     {t.nutrition.calories} {isToday ? t.nutrition.today : format(selectedDate, 'd MMM', { locale: language === 'nl' ? nl : undefined })}
                     {targets && (
                       <span className={`ml-2 text-[10px] px-1.5 py-0.5 rounded-md font-bold ${
-                        targets.fitnessGoal === 'bulk' ? 'bg-blue-500/20 text-blue-400' :
-                        targets.fitnessGoal === 'cut'  ? 'bg-orange-500/20 text-orange-400' :
+                        targets.fitnessGoal === 'bulk'      ? 'bg-orange-500/20 text-orange-400' :
+                        targets.fitnessGoal === 'lean-bulk' ? 'bg-blue-500/20 text-blue-400' :
+                        targets.fitnessGoal === 'lean-cut'  ? 'bg-yellow-500/20 text-yellow-400' :
+                        targets.fitnessGoal === 'cut'       ? 'bg-red-500/20 text-red-400' :
                         'bg-zinc-500/20 text-zinc-400'
                       }`}>
-                        {targets.fitnessGoal === 'bulk' ? 'Bulk +15%' : targets.fitnessGoal === 'cut' ? 'Cut −22%' : 'Onderhoud'}
+                        {targets.fitnessGoal === 'bulk'      ? 'Bulk +15%' :
+                         targets.fitnessGoal === 'lean-bulk' ? 'Lean Bulk +7%' :
+                         targets.fitnessGoal === 'lean-cut'  ? 'Lean Cut −10%' :
+                         targets.fitnessGoal === 'cut'       ? 'Cut −20%' :
+                         'Onderhoud'}
                       </span>
                     )}
                   </div>

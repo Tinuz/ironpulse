@@ -2,8 +2,12 @@
 
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Calculator, TrendingDown, TrendingUp, Activity, Heart, Zap, Save } from 'lucide-react'
+import { Calculator, Activity, Heart, Zap, Save, ChevronDown, ChevronUp, Info } from 'lucide-react'
 import { useData } from '@/components/context/DataContext'
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
 
 interface FitnessMetrics {
   bmi: number
@@ -11,13 +15,15 @@ interface FitnessMetrics {
   bmr: number
   tdee: number
   maintenanceCalories: number
-  weightLossCalories: number
-  weightGainCalories: number
+  goalCalories: number
+  goalProtein: number
   bodyFatPercentage: number
   idealWeightMin: number
   idealWeightMax: number
   leanBodyMass: number
 }
+
+type FitnessGoal = 'bulk' | 'lean-bulk' | 'maintain' | 'lean-cut' | 'cut'
 
 interface CalculatorInputs {
   age: string
@@ -25,16 +31,133 @@ interface CalculatorInputs {
   height: string
   gender: 'male' | 'female'
   activityLevel: number
-  fitnessGoal: 'bulk' | 'cut' | 'maintain'
+  fitnessGoal: FitnessGoal
 }
 
-const activityLevels = [
-  { value: 1.2, label: 'Zittend', description: 'Weinig tot geen beweging' },
-  { value: 1.375, label: 'Licht actief', description: '1-3 dagen/week lichte sport' },
-  { value: 1.55, label: 'Matig actief', description: '3-5 dagen/week matige sport' },
-  { value: 1.725, label: 'Zeer actief', description: '6-7 dagen/week intensieve sport' },
-  { value: 1.9, label: 'Extreem actief', description: 'Zware fysieke arbeid/topsport' }
+// ---------------------------------------------------------------------------
+// Activity levels
+// Based on: WHO/FAO/UNU Technical Report Series 724 (2001)
+//           Ainsworth METs Compendium (2011)
+// ---------------------------------------------------------------------------
+
+const ACTIVITY_LEVELS = [
+  {
+    value: 1.2,
+    label: 'Zittend',
+    short: 'Weinig beweging',
+    example: 'Kantoorwerk, nauwelijks sport',
+  },
+  {
+    value: 1.375,
+    label: 'Licht actief',
+    short: '1–3× /week',
+    example: 'Wandelen, 1-2× fitness of yoga per week',
+  },
+  {
+    value: 1.55,
+    label: 'Matig actief',
+    short: '3–4× /week',
+    example: '3-4× kracht of cardio, weinig extra beweging',
+  },
+  {
+    value: 1.65,
+    label: 'Actief',
+    short: '4–5× /week gemengd',
+    example: '4× kracht + 1-2× cardio/sport (bijv. padel, hardlopen)',
+  },
+  {
+    value: 1.725,
+    label: 'Zeer actief',
+    short: '6–7× /week intensief',
+    example: 'Dagelijkse intensieve training, competitiesport',
+  },
+  {
+    value: 1.9,
+    label: 'Extreem actief',
+    short: 'Fysieke arbeid + sport',
+    example: 'Zwaar beroep + intensief trainingsprogramma',
+  },
 ]
+
+// ---------------------------------------------------------------------------
+// Goal configuration
+// Calorie surplus/deficit:
+//   Bulk    +15% — Slater & Phillips 2011 (J Sports Sci)
+//   Lean Bulk +7% — Barakat et al. 2020 (Strength Cond J), Hall et al. 2012 (AJCN)
+//   Maintain ±0%
+//   Lean Cut −10% — Barakat et al. 2020
+//   Cut     −20% — Helms et al. 2014 (J Int Soc Sports Nutr) — max 20% for LBM preservation
+// Protein targets:
+//   Based on Morton et al. 2018 meta-analysis (Br J Sports Med) + Stokes et al. 2018
+// ---------------------------------------------------------------------------
+
+const GOAL_CONFIG: Record<FitnessGoal, {
+  label: string
+  sublabel: string
+  calorieMultiplier: number
+  proteinPerKg: number
+  color: string
+  bgActive: string
+  borderActive: string
+  description: string
+}> = {
+  'bulk': {
+    label: 'Bulk',
+    sublabel: '+15% kcal · 1.8 g/kg',
+    calorieMultiplier: 1.15,
+    proteinPerKg: 1.8,
+    color: 'text-orange-400',
+    bgActive: 'bg-orange-500/20',
+    borderActive: 'border-orange-500',
+    description: 'Maximaal spieropbouw, meer vetaanzet acceptabel',
+  },
+  'lean-bulk': {
+    label: 'Lean Bulk',
+    sublabel: '+7% kcal · 1.8 g/kg',
+    calorieMultiplier: 1.07,
+    proteinPerKg: 1.8,
+    color: 'text-blue-400',
+    bgActive: 'bg-blue-500/20',
+    borderActive: 'border-blue-500',
+    description: 'Optimale spiergroei met minimale vettoename — aanbevolen voor getrainde atleten',
+  },
+  'maintain': {
+    label: 'Onderhoud',
+    sublabel: '±0% kcal · 2.0 g/kg',
+    calorieMultiplier: 1.0,
+    proteinPerKg: 2.0,
+    color: 'text-green-400',
+    bgActive: 'bg-green-500/20',
+    borderActive: 'border-green-500',
+    description: 'Lichaamssamenstelling behouden, herstel en prestatie optimaliseren',
+  },
+  'lean-cut': {
+    label: 'Lean Cut',
+    sublabel: '−10% kcal · 2.2 g/kg',
+    calorieMultiplier: 0.90,
+    proteinPerKg: 2.2,
+    color: 'text-yellow-400',
+    bgActive: 'bg-yellow-500/20',
+    borderActive: 'border-yellow-500',
+    description: 'Geleidelijk vetverliess met maximaal spierbehoud — ideaal voor krachtsporters',
+  },
+  'cut': {
+    label: 'Cut',
+    sublabel: '−20% kcal · 2.3 g/kg',
+    calorieMultiplier: 0.80,
+    proteinPerKg: 2.3,
+    color: 'text-red-400',
+    bgActive: 'bg-red-500/20',
+    borderActive: 'border-red-500',
+    description: 'Agressief vetverlies, hogere eiwitbehoefte voor spierbehoud',
+  },
+}
+
+const GOAL_ORDER: FitnessGoal[] = ['bulk', 'lean-bulk', 'maintain', 'lean-cut', 'cut']
+
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
 
 export default function FitnessCalculator() {
   const { userProfile, saveUserProfile } = useData()
@@ -43,15 +166,15 @@ export default function FitnessCalculator() {
     weight: '',
     height: '',
     gender: 'male',
-    activityLevel: 1.55,
-    fitnessGoal: 'maintain',
+    activityLevel: 1.65,
+    fitnessGoal: 'lean-bulk',
   })
-  
+
   const [results, setResults] = useState<FitnessMetrics | null>(null)
   const [showResults, setShowResults] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [showActivityInfo, setShowActivityInfo] = useState(false)
 
-  // Load user profile data when component mounts
   useEffect(() => {
     if (userProfile) {
       setInputs({
@@ -60,9 +183,8 @@ export default function FitnessCalculator() {
         height: userProfile.height.toString(),
         gender: userProfile.gender,
         activityLevel: userProfile.activityLevel,
-        fitnessGoal: userProfile.fitnessGoal || 'maintain',
+        fitnessGoal: (userProfile.fitnessGoal as FitnessGoal) || 'lean-bulk',
       })
-      // Auto-calculate if profile exists
       calculateMetricsFromProfile(userProfile)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -70,75 +192,61 @@ export default function FitnessCalculator() {
 
   const calculateMetricsFromProfile = (profile: typeof userProfile) => {
     if (!profile) return
-    
-    const age = profile.age
-    const weight = profile.weight
-    const height = profile.height
-    const heightInMeters = height / 100
-
-    calculateAndSetMetrics(age, weight, height, heightInMeters, profile.gender, profile.activityLevel)
+    const h = profile.height / 100
+    doCalculate(profile.age, profile.weight, profile.height, h, profile.gender, profile.activityLevel, (profile.fitnessGoal as FitnessGoal) || 'lean-bulk')
   }
 
   const calculateMetrics = () => {
     const age = parseInt(inputs.age)
     const weight = parseFloat(inputs.weight)
     const height = parseFloat(inputs.height)
-    
-    // Validatie
+
     if (!age || !weight || !height || age < 13 || age > 120 || weight < 30 || weight > 300 || height < 100 || height > 250) {
-      alert('Voer geldige waarden in (leeftijd 13-120, gewicht 30-300kg, lengte 100-250cm)')
+      alert('Voer geldige waarden in (leeftijd 13–120, gewicht 30–300 kg, lengte 100–250 cm)')
       return
     }
 
-    const heightInMeters = height / 100
-    calculateAndSetMetrics(age, weight, height, heightInMeters, inputs.gender, inputs.activityLevel)
+    doCalculate(age, weight, height, height / 100, inputs.gender, inputs.activityLevel, inputs.fitnessGoal)
   }
 
-  const calculateAndSetMetrics = (
+  const doCalculate = (
     age: number,
     weight: number,
     height: number,
-    heightInMeters: number,
+    heightM: number,
     gender: 'male' | 'female',
-    activityLevel: number
+    activityLevel: number,
+    goal: FitnessGoal
   ) => {
-    // BMI berekening
-    const bmi = weight / (heightInMeters * heightInMeters)
-    
-    // BMI categorie
+    // BMI
+    const bmi = weight / (heightM * heightM)
     let bmiCategory: string
     if (bmi < 18.5) bmiCategory = 'Ondergewicht'
     else if (bmi < 25) bmiCategory = 'Normaal gewicht'
     else if (bmi < 30) bmiCategory = 'Overgewicht'
     else bmiCategory = 'Obesitas'
 
-    // BMR berekening (Mifflin-St Jeor)
-    let bmr: number
-    if (gender === 'male') {
-      bmr = (10 * weight) + (6.25 * height) - (5 * age) + 5
-    } else {
-      bmr = (10 * weight) + (6.25 * height) - (5 * age) - 161
-    }
+    // BMR — Mifflin-St Jeor (Mifflin et al. 1990, JADA)
+    const bmr = gender === 'male'
+      ? (10 * weight) + (6.25 * height) - (5 * age) + 5
+      : (10 * weight) + (6.25 * height) - (5 * age) - 161
 
-    // TDEE berekening
+    // TDEE
     const tdee = bmr * activityLevel
     const maintenanceCalories = Math.round(tdee)
-    const weightLossCalories = Math.round(tdee - 500)
-    const weightGainCalories = Math.round(tdee + 500)
 
-    // Vetpercentage schatting
-    let bodyFatPercentage: number
-    if (gender === 'male') {
-      bodyFatPercentage = (1.20 * bmi) + (0.23 * age) - 16.2
-    } else {
-      bodyFatPercentage = (1.20 * bmi) + (0.23 * age) - 5.4
-    }
+    // Goal-adjusted targets
+    const cfg = GOAL_CONFIG[goal]
+    const goalCalories = Math.round(tdee * cfg.calorieMultiplier)
+    const goalProtein = Math.round(weight * cfg.proteinPerKg)
 
-    // Ideaal gewicht bereik (BMI 18.5-24.9)
-    const idealWeightMin = 18.5 * (heightInMeters * heightInMeters)
-    const idealWeightMax = 24.9 * (heightInMeters * heightInMeters)
+    // Body fat estimate (Deurenberg et al. 1991)
+    const bodyFatPercentage = gender === 'male'
+      ? (1.20 * bmi) + (0.23 * age) - 16.2
+      : (1.20 * bmi) + (0.23 * age) - 5.4
 
-    // Lean body mass
+    const idealWeightMin = 18.5 * (heightM * heightM)
+    const idealWeightMax = 24.9 * (heightM * heightM)
     const leanBodyMass = weight - (weight * (bodyFatPercentage / 100))
 
     setResults({
@@ -147,14 +255,13 @@ export default function FitnessCalculator() {
       bmr: Math.round(bmr),
       tdee: Math.round(tdee),
       maintenanceCalories,
-      weightLossCalories,
-      weightGainCalories,
+      goalCalories,
+      goalProtein,
       bodyFatPercentage: Math.round(bodyFatPercentage * 10) / 10,
       idealWeightMin: Math.round(idealWeightMin * 10) / 10,
       idealWeightMax: Math.round(idealWeightMax * 10) / 10,
-      leanBodyMass: Math.round(leanBodyMass * 10) / 10
+      leanBodyMass: Math.round(leanBodyMass * 10) / 10,
     })
-    
     setShowResults(true)
   }
 
@@ -162,7 +269,7 @@ export default function FitnessCalculator() {
     const age = parseInt(inputs.age)
     const weight = parseFloat(inputs.weight)
     const height = parseFloat(inputs.height)
-    
+
     if (!age || !weight || !height) {
       alert('Vul eerst alle velden in')
       return
@@ -179,7 +286,7 @@ export default function FitnessCalculator() {
         fitnessGoal: inputs.fitnessGoal,
       })
       alert('✅ Profiel opgeslagen!')
-    } catch (error) {
+    } catch {
       alert('❌ Fout bij opslaan. Probeer opnieuw.')
     } finally {
       setIsSaving(false)
@@ -192,43 +299,46 @@ export default function FitnessCalculator() {
     return 'text-red-500'
   }
 
-  const getBodyFatCategory = (percentage: number, gender: string) => {
+  const getBodyFatCategory = (pct: number, gender: string) => {
     if (gender === 'male') {
-      if (percentage < 6) return { label: 'Essentieel vet', color: 'text-red-500' }
-      if (percentage < 14) return { label: 'Atletisch', color: 'text-green-500' }
-      if (percentage < 18) return { label: 'Fit', color: 'text-green-400' }
-      if (percentage < 25) return { label: 'Gemiddeld', color: 'text-yellow-500' }
+      if (pct < 6)  return { label: 'Essentieel vet', color: 'text-red-500' }
+      if (pct < 14) return { label: 'Atletisch', color: 'text-green-500' }
+      if (pct < 18) return { label: 'Fit', color: 'text-green-400' }
+      if (pct < 25) return { label: 'Gemiddeld', color: 'text-yellow-500' }
       return { label: 'Hoog', color: 'text-red-500' }
     } else {
-      if (percentage < 14) return { label: 'Essentieel vet', color: 'text-red-500' }
-      if (percentage < 21) return { label: 'Atletisch', color: 'text-green-500' }
-      if (percentage < 25) return { label: 'Fit', color: 'text-green-400' }
-      if (percentage < 32) return { label: 'Gemiddeld', color: 'text-yellow-500' }
+      if (pct < 14) return { label: 'Essentieel vet', color: 'text-red-500' }
+      if (pct < 21) return { label: 'Atletisch', color: 'text-green-500' }
+      if (pct < 25) return { label: 'Fit', color: 'text-green-400' }
+      if (pct < 32) return { label: 'Gemiddeld', color: 'text-yellow-500' }
       return { label: 'Hoog', color: 'text-red-500' }
     }
   }
 
+  const goalCfg = GOAL_CONFIG[inputs.fitnessGoal]
+
   return (
     <div className="space-y-6">
       {/* Input Form */}
-      <div className="bg-card border border-white/5 rounded-2xl p-6 space-y-4">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center">
+      <div className="bg-card border border-white/5 rounded-2xl p-6 space-y-5">
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
             <Calculator size={20} className="text-primary" />
           </div>
           <div>
             <h3 className="text-lg font-bold">Fitness Calculator</h3>
-            <p className="text-xs text-muted-foreground">Bereken je BMI, caloriebehoefte en meer</p>
+            <p className="text-xs text-muted-foreground">Bereken je BMI, TDEE, calorie- en eiwitdoelstelling</p>
           </div>
         </div>
 
+        {/* Basic inputs */}
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="text-xs font-bold text-muted-foreground uppercase mb-2 block">Leeftijd (jaar)</label>
             <input
               type="number"
               value={inputs.age}
-              onChange={(e) => setInputs({...inputs, age: e.target.value})}
+              onChange={e => setInputs({...inputs, age: e.target.value})}
               placeholder="25"
               className="w-full bg-background border border-white/10 rounded-xl p-3 focus:border-primary outline-none"
             />
@@ -238,7 +348,7 @@ export default function FitnessCalculator() {
             <input
               type="number"
               value={inputs.weight}
-              onChange={(e) => setInputs({...inputs, weight: e.target.value})}
+              onChange={e => setInputs({...inputs, weight: e.target.value})}
               placeholder="75"
               className="w-full bg-background border border-white/10 rounded-xl p-3 focus:border-primary outline-none"
             />
@@ -248,7 +358,7 @@ export default function FitnessCalculator() {
             <input
               type="number"
               value={inputs.height}
-              onChange={(e) => setInputs({...inputs, height: e.target.value})}
+              onChange={e => setInputs({...inputs, height: e.target.value})}
               placeholder="180"
               className="w-full bg-background border border-white/10 rounded-xl p-3 focus:border-primary outline-none"
             />
@@ -258,65 +368,105 @@ export default function FitnessCalculator() {
             <div className="flex gap-2">
               <button
                 onClick={() => setInputs({...inputs, gender: 'male'})}
-                className={`flex-1 py-3 rounded-xl font-bold transition-colors ${
-                  inputs.gender === 'male' ? 'bg-primary text-primary-foreground' : 'bg-white/5 text-muted-foreground'
-                }`}
-              >
-                Man
-              </button>
+                className={`flex-1 py-3 rounded-xl font-bold transition-colors ${inputs.gender === 'male' ? 'bg-primary text-primary-foreground' : 'bg-white/5 text-muted-foreground'}`}
+              >Man</button>
               <button
                 onClick={() => setInputs({...inputs, gender: 'female'})}
-                className={`flex-1 py-3 rounded-xl font-bold transition-colors ${
-                  inputs.gender === 'female' ? 'bg-primary text-primary-foreground' : 'bg-white/5 text-muted-foreground'
-                }`}
-              >
-                Vrouw
-              </button>
+                className={`flex-1 py-3 rounded-xl font-bold transition-colors ${inputs.gender === 'female' ? 'bg-primary text-primary-foreground' : 'bg-white/5 text-muted-foreground'}`}
+              >Vrouw</button>
             </div>
           </div>
         </div>
 
+        {/* Activity level — card picker */}
         <div>
-          <label className="text-xs font-bold text-muted-foreground uppercase mb-2 block">Activiteitsniveau</label>
-          <select
-            value={inputs.activityLevel}
-            onChange={(e) => setInputs({...inputs, activityLevel: parseFloat(e.target.value)})}
-            className="w-full bg-background border border-white/10 rounded-xl p-3 focus:border-primary outline-none"
-          >
-            {activityLevels.map((level) => (
-              <option key={level.value} value={level.value}>
-                {level.label} - {level.description}
-              </option>
-            ))}
-          </select>
-        </div>
+          <div className="flex items-center justify-between mb-2">
+            <label className="text-xs font-bold text-muted-foreground uppercase">Activiteitsniveau</label>
+            <button
+              onClick={() => setShowActivityInfo(v => !v)}
+              className="text-xs text-muted-foreground flex items-center gap-1 hover:text-foreground transition-colors"
+            >
+              <Info size={12} />
+              Hoe kies ik?
+              {showActivityInfo ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+            </button>
+          </div>
 
-        {/* Fitness goal selector — drives protein + calorie targets in nutrition */}
-        <div>
-          <label className="text-xs font-bold text-muted-foreground uppercase mb-2 block">Voedingsdoel</label>
-          <div className="grid grid-cols-3 gap-2">
-            {([
-              { value: 'bulk', label: 'Bulk', desc: '+15% kcal · 1.8g/kg' },
-              { value: 'maintain', label: 'Onderhoud', desc: '±0% kcal · 2.0g/kg' },
-              { value: 'cut', label: 'Cut', desc: '−22% kcal · 2.2g/kg' },
-            ] as const).map(opt => (
+          {showActivityInfo && (
+            <div className="mb-3 bg-white/5 rounded-xl p-3 text-xs text-muted-foreground space-y-1">
+              <p className="font-semibold text-foreground">PAL-waarden (WHO/FAO/UNU 2001)</p>
+              <p>PAL = Physical Activity Level. Bepaal je gemiddelde week: tel trainingen + dagelijkse beweging.</p>
+              <p className="text-primary font-medium">Voorbeeld: 4× kracht + 1× padel + 1× hardlopen → "Actief" (PAL 1.65)</p>
+            </div>
+          )}
+
+          <div className="space-y-2">
+            {ACTIVITY_LEVELS.map(level => (
               <button
-                key={opt.value}
-                onClick={() => setInputs({...inputs, fitnessGoal: opt.value})}
-                className={`py-2.5 px-2 rounded-xl text-center transition-colors border ${
-                  inputs.fitnessGoal === opt.value
-                    ? 'bg-primary/20 border-primary text-primary'
-                    : 'bg-white/5 border-white/10 text-muted-foreground'
+                key={level.value}
+                onClick={() => setInputs({...inputs, activityLevel: level.value})}
+                className={`w-full rounded-xl px-4 py-3 text-left transition-colors border ${
+                  inputs.activityLevel === level.value
+                    ? 'bg-primary/15 border-primary'
+                    : 'bg-white/3 border-white/5 hover:bg-white/7'
                 }`}
               >
-                <div className="font-bold text-xs">{opt.label}</div>
-                <div className="text-[9px] mt-0.5 opacity-70">{opt.desc}</div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-2 h-2 rounded-full shrink-0 ${inputs.activityLevel === level.value ? 'bg-primary' : 'bg-white/20'}`} />
+                    <div>
+                      <span className={`font-bold text-sm ${inputs.activityLevel === level.value ? 'text-primary' : 'text-foreground'}`}>
+                        {level.label}
+                      </span>
+                      <span className="text-xs text-muted-foreground ml-2">{level.short}</span>
+                    </div>
+                  </div>
+                  <span className="text-xs text-muted-foreground font-mono">{level.value}</span>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1 ml-5">{level.example}</p>
               </button>
             ))}
           </div>
-          <p className="text-[10px] text-zinc-500 mt-1.5">Morton et al. 2018 · Slater &amp; Phillips 2011</p>
         </div>
 
+        {/* Fitness goal */}
+        <div>
+          <label className="text-xs font-bold text-muted-foreground uppercase mb-2 block">Voedingsdoel</label>
+          <div className="grid grid-cols-5 gap-1.5">
+            {GOAL_ORDER.map(key => {
+              const cfg = GOAL_CONFIG[key]
+              const active = inputs.fitnessGoal === key
+              return (
+                <button
+                  key={key}
+                  onClick={() => setInputs({...inputs, fitnessGoal: key})}
+                  className={`py-2.5 px-1 rounded-xl text-center transition-colors border ${
+                    active
+                      ? `${cfg.bgActive} ${cfg.borderActive} ${cfg.color}`
+                      : 'bg-white/5 border-white/10 text-muted-foreground hover:bg-white/8'
+                  }`}
+                >
+                  <div className="font-bold text-[11px] leading-tight">{cfg.label}</div>
+                  <div className="text-[8.5px] mt-0.5 opacity-70 leading-tight">{cfg.sublabel.split(' · ')[0]}</div>
+                </button>
+              )
+            })}
+          </div>
+
+          {/* Goal description */}
+          <div className={`mt-2 rounded-xl px-3 py-2 border text-xs ${goalCfg.bgActive} ${goalCfg.borderActive}/30`}>
+            <div className="flex items-center justify-between">
+              <span className={`font-semibold ${goalCfg.color}`}>{goalCfg.label} — {goalCfg.sublabel}</span>
+            </div>
+            <p className="text-muted-foreground mt-0.5">{goalCfg.description}</p>
+          </div>
+
+          <p className="text-[10px] text-zinc-500 mt-1.5">
+            Morton et al. 2018 · Helms et al. 2014 · Barakat et al. 2020 · Slater &amp; Phillips 2011
+          </p>
+        </div>
+
+        {/* Action buttons */}
         <div className="flex gap-3">
           <button
             onClick={calculateMetrics}
@@ -333,11 +483,10 @@ export default function FitnessCalculator() {
           </button>
         </div>
 
-        <p className="text-xs text-muted-foreground text-center mt-2">
-          {userProfile 
-            ? '💾 Je profiel is opgeslagen en wordt automatisch geladen' 
-            : '⚠️ Deze berekeningen zijn schattingen, geen medisch advies'
-          }
+        <p className="text-xs text-muted-foreground text-center">
+          {userProfile
+            ? '💾 Je profiel is opgeslagen en wordt automatisch geladen'
+            : '⚠️ Deze berekeningen zijn schattingen, geen medisch advies'}
         </p>
       </div>
 
@@ -348,27 +497,34 @@ export default function FitnessCalculator() {
           animate={{ opacity: 1, y: 0 }}
           className="space-y-4"
         >
-          {/* BMI Card */}
-          <div className="bg-card border border-white/5 rounded-2xl p-6">
-            <h4 className="text-sm font-bold text-muted-foreground uppercase mb-4 flex items-center gap-2">
-              <Activity size={16} /> Body Mass Index (BMI)
-            </h4>
-            <div className="flex justify-between items-end">
+          {/* Goal target card — most important for the user */}
+          <div className={`rounded-2xl p-5 border ${goalCfg.bgActive} ${goalCfg.borderActive}/40`}>
+            <div className="flex items-center gap-2 mb-3">
+              <Zap size={14} className={goalCfg.color} />
+              <span className={`text-xs font-bold uppercase ${goalCfg.color}`}>Jouw doelstelling · {goalCfg.label}</span>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
               <div>
-                <div className="text-4xl font-black">{results.bmi}</div>
-                <div className={`text-sm font-bold mt-1 ${getBMIColor(results.bmiCategory)}`}>
-                  {results.bmiCategory}
+                <div className="text-3xl font-black">{results.goalCalories}</div>
+                <div className="text-xs text-muted-foreground">kcal/dag</div>
+                <div className="text-[10px] text-muted-foreground mt-1">
+                  {results.goalCalories > results.maintenanceCalories
+                    ? `+${results.goalCalories - results.maintenanceCalories} vs onderhoud`
+                    : results.goalCalories < results.maintenanceCalories
+                      ? `${results.goalCalories - results.maintenanceCalories} vs onderhoud`
+                      : 'Gelijk aan onderhoud'}
                 </div>
               </div>
-              <div className="text-right text-xs text-muted-foreground">
-                <div>Ideaal gewicht:</div>
-                <div className="font-bold text-foreground">{results.idealWeightMin} - {results.idealWeightMax} kg</div>
+              <div>
+                <div className="text-3xl font-black">{results.goalProtein}<span className="text-base font-normal text-muted-foreground"> g</span></div>
+                <div className="text-xs text-muted-foreground">eiwit/dag</div>
+                <div className="text-[10px] text-muted-foreground mt-1">{goalCfg.sublabel.split(' · ')[1]}</div>
               </div>
             </div>
           </div>
 
-          {/* Calories Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Maintenance + BMR */}
+          <div className="grid grid-cols-2 gap-4">
             <div className="bg-card border border-white/5 rounded-2xl p-4">
               <div className="flex items-center gap-2 text-blue-400 text-xs font-bold uppercase mb-2">
                 <Zap size={12} /> Onderhoud
@@ -376,23 +532,31 @@ export default function FitnessCalculator() {
               <div className="text-2xl font-black">{results.maintenanceCalories}</div>
               <div className="text-xs text-muted-foreground">kcal/dag</div>
             </div>
-            <div className="bg-card border border-white/5 rounded-2xl p-4">
-              <div className="flex items-center gap-2 text-green-400 text-xs font-bold uppercase mb-2">
-                <TrendingDown size={12} /> Afvallen
-              </div>
-              <div className="text-2xl font-black">{results.weightLossCalories}</div>
-              <div className="text-xs text-muted-foreground">kcal/dag (-0.5kg/week)</div>
-            </div>
-            <div className="bg-card border border-white/5 rounded-2xl p-4">
-              <div className="flex items-center gap-2 text-amber-400 text-xs font-bold uppercase mb-2">
-                <TrendingUp size={12} /> Aankomen
-              </div>
-              <div className="text-2xl font-black">{results.weightGainCalories}</div>
-              <div className="text-xs text-muted-foreground">kcal/dag (+0.5kg/week)</div>
+            <div className="bg-gradient-to-r from-primary/10 to-transparent border border-primary/20 rounded-2xl p-4">
+              <div className="text-xs font-bold text-muted-foreground uppercase mb-2">BMR (rust)</div>
+              <div className="text-2xl font-black">{results.bmr}</div>
+              <div className="text-xs text-muted-foreground">kcal/dag</div>
             </div>
           </div>
 
-          {/* Additional Metrics */}
+          {/* BMI */}
+          <div className="bg-card border border-white/5 rounded-2xl p-5">
+            <h4 className="text-sm font-bold text-muted-foreground uppercase mb-3 flex items-center gap-2">
+              <Activity size={14} /> BMI
+            </h4>
+            <div className="flex justify-between items-end">
+              <div>
+                <div className="text-4xl font-black">{results.bmi}</div>
+                <div className={`text-sm font-bold mt-1 ${getBMIColor(results.bmiCategory)}`}>{results.bmiCategory}</div>
+              </div>
+              <div className="text-right text-xs text-muted-foreground">
+                <div>Ideaal gewicht</div>
+                <div className="font-bold text-foreground">{results.idealWeightMin}–{results.idealWeightMax} kg</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Body comp */}
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-card border border-white/5 rounded-2xl p-4">
               <div className="flex items-center gap-2 text-pink-400 text-xs font-bold uppercase mb-2">
@@ -404,25 +568,22 @@ export default function FitnessCalculator() {
                   {getBodyFatCategory(results.bodyFatPercentage, inputs.gender).label}
                 </div>
               </div>
+              <div className="text-[10px] text-muted-foreground mt-1">Deurenberg et al. 1991</div>
             </div>
             <div className="bg-card border border-white/5 rounded-2xl p-4">
               <div className="flex items-center gap-2 text-purple-400 text-xs font-bold uppercase mb-2">
-                <Activity size={12} /> Spiermassa
+                <Activity size={12} /> Vetvrije massa
               </div>
               <div className="text-2xl font-black">{results.leanBodyMass}</div>
               <div className="text-xs text-muted-foreground">kg (schatting)</div>
             </div>
           </div>
 
-          {/* BMR Info */}
-          <div className="bg-gradient-to-r from-primary/10 to-accent/10 border border-primary/20 rounded-2xl p-4">
-            <div className="text-xs font-bold text-muted-foreground uppercase mb-2">Rustmetabolisme (BMR)</div>
-            <div className="flex justify-between items-center">
-              <div>
-                <div className="text-2xl font-black">{results.bmr} <span className="text-sm font-normal text-muted-foreground">kcal/dag</span></div>
-                <div className="text-xs text-muted-foreground mt-1">Energie in rust, zonder activiteit</div>
-              </div>
-            </div>
+          {/* Sources */}
+          <div className="text-[10px] text-zinc-600 space-y-0.5 px-1">
+            <p>BMR: Mifflin-St Jeor (1990) · PAL: WHO/FAO/UNU Technical Report 724 (2001)</p>
+            <p>Eiwit: Morton et al. 2018 (meta-analyse) · Helms et al. 2014 · Barakat et al. 2020</p>
+            <p>Surplus/deficit: Slater &amp; Phillips 2011 · Hall et al. 2012 (AJCN)</p>
           </div>
         </motion.div>
       )}
