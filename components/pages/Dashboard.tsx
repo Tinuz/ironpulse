@@ -20,6 +20,7 @@ import DailyCheckInWidget from '@/components/DailyCheckInWidget';
 import ProximityToFailureWidget from '@/components/ProximityToFailureWidget';
 import FrequencyOptimizationWidget from '@/components/FrequencyOptimizationWidget';
 import RecompositionWidget from '@/components/RecompositionWidget';
+import TrainingBlockWidget from '@/components/TrainingBlockWidget';
 
 export default function Dashboard() {
   const { history, nutritionLogs, unlockedAchievement } = useData()
@@ -114,6 +115,7 @@ export default function Dashboard() {
       <WeeklyConsistencyWidget history={history} />
       <ACWRWidget />
       <WeeklySummaryWidget />
+      <TrainingBlockWidget />
       <MuscleGroupVolumeWidget />
       <ProximityToFailureWidget />
       <FrequencyOptimizationWidget />

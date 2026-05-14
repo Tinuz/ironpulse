@@ -200,6 +200,19 @@ export interface RestDay {
   note?: string;
 }
 
+export type TrainingBlockStatus = 'active' | 'completed';
+export type TrainingBlockMuscle = 'chest' | 'back' | 'shoulders' | 'legs' | 'arms' | 'abs' | 'glutes' | 'calves';
+
+export interface TrainingBlock {
+  id: string;
+  name: string;
+  startDate: string; // YYYY-MM-DD
+  durationWeeks: 4 | 5 | 6;
+  focusMuscles: TrainingBlockMuscle[];
+  status: TrainingBlockStatus;
+  createdAt: string;
+}
+
 // ============================================================================
 // CONTEXT INTERFACE
 // ============================================================================
@@ -245,6 +258,11 @@ interface DataContextType {
   restDays: RestDay[];
   addRestDay: (date: string, type: RestDayType, note?: string) => Promise<void>;
   removeRestDay: (date: string) => Promise<void>;
+  trainingBlocks: TrainingBlock[];
+  activeBlock: TrainingBlock | null;
+  createBlock: (data: Omit<TrainingBlock, 'id' | 'status' | 'createdAt'>) => Promise<void>;
+  completeBlock: (id: string) => Promise<void>;
+  deleteBlock: (id: string) => Promise<void>;
 }
 
 // ============================================================================
@@ -306,6 +324,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [supplementStacks, setSupplementStacks] = useState<SupplementStack[]>([]);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [restDays, setRestDays] = useState<RestDay[]>([]);
+  const [trainingBlocks, setTrainingBlocks] = useState<TrainingBlock[]>([]);
   const [achievements, setAchievements] = useState<string[]>([]);
   const [unlockedAchievement, setUnlockedAchievement] = useState<{ id: string; name: string; description: string; icon: string; category: string } | null>(null);
   const [showRecoveryModal, setShowRecoveryModal] = useState(false);
@@ -352,6 +371,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         { data: supplementsData },
         { data: profileData },
         { data: restDaysData },
+        { data: trainingBlocksData },
       ] = await Promise.all([
         supabase.from('schemas').select('*').eq('user_id', USER_ID).order('created_at', { ascending: false }),
         supabase.from('workout_history').select('*').eq('user_id', USER_ID).order('date', { ascending: false }),
@@ -360,6 +380,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         supabase.from('supplements').select('*').eq('user_id', USER_ID).order('date', { ascending: false }),
         supabase.from('user_profile').select('*').eq('user_id', USER_ID).single(),
         supabase.from('user_rest_days').select('*').eq('user_id', USER_ID).order('date', { ascending: false }),
+        supabase.from('training_blocks').select('*').eq('user_id', USER_ID).order('created_at', { ascending: false }),
       ]);
 
       // Supplement stacks (routine templates)
@@ -491,6 +512,19 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           date: r.date,
           type: r.type as RestDayType,
           note: r.note || undefined,
+        })));
+      }
+
+      // Training blocks
+      if (trainingBlocksData) {
+        setTrainingBlocks(trainingBlocksData.map(b => ({
+          id: b.id,
+          name: b.name,
+          startDate: b.start_date,
+          durationWeeks: b.duration_weeks as 4 | 5 | 6,
+          focusMuscles: (b.focus_muscles ?? []) as TrainingBlockMuscle[],
+          status: b.status as TrainingBlockStatus,
+          createdAt: b.created_at,
         })));
       }
 
@@ -1515,6 +1549,62 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // ---------------------------------------------------------------------------
+  // TRAINING BLOCKS CRUD
+  // ---------------------------------------------------------------------------
+
+  const createBlock = async (data: Omit<TrainingBlock, 'id' | 'status' | 'createdAt'>) => {
+    if (!USER_ID) return;
+    const { data: inserted, error } = await supabase
+      .from('training_blocks')
+      .insert({
+        user_id: USER_ID,
+        name: data.name,
+        start_date: data.startDate,
+        duration_weeks: data.durationWeeks,
+        focus_muscles: data.focusMuscles,
+        status: 'active',
+      })
+      .select()
+      .single();
+    if (!error && inserted) {
+      const newBlock: TrainingBlock = {
+        id: inserted.id,
+        name: inserted.name,
+        startDate: inserted.start_date,
+        durationWeeks: inserted.duration_weeks as 4 | 5 | 6,
+        focusMuscles: (inserted.focus_muscles ?? []) as TrainingBlockMuscle[],
+        status: 'active',
+        createdAt: inserted.created_at,
+      };
+      setTrainingBlocks(prev => [newBlock, ...prev]);
+    }
+  };
+
+  const completeBlock = async (id: string) => {
+    if (!USER_ID) return;
+    const { error } = await supabase
+      .from('training_blocks')
+      .update({ status: 'completed' })
+      .eq('id', id)
+      .eq('user_id', USER_ID);
+    if (!error) {
+      setTrainingBlocks(prev => prev.map(b => b.id === id ? { ...b, status: 'completed' } : b));
+    }
+  };
+
+  const deleteBlock = async (id: string) => {
+    if (!USER_ID) return;
+    const { error } = await supabase
+      .from('training_blocks')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', USER_ID);
+    if (!error) {
+      setTrainingBlocks(prev => prev.filter(b => b.id !== id));
+    }
+  };
+
   return (
     <DataContext.Provider value={{
       schemas,
@@ -1531,6 +1621,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       restDays,
       addRestDay,
       removeRestDay,
+      trainingBlocks,
+      activeBlock: trainingBlocks.find(b => b.status === 'active') ?? null,
+      createBlock,
+      completeBlock,
+      deleteBlock,
       addSchema,
       updateSchema,
       deleteSchema,

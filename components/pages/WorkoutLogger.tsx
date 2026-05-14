@@ -6,6 +6,7 @@ import { ArrowLeft, Plus, X, Clock, Play, Trash2, TrendingUp, TrendingDown, Minu
 import { useRouter } from 'next/navigation'
 import clsx from 'clsx'
 import { useData, WorkoutExercise } from '@/components/context/DataContext'
+import type { TrainingBlockMuscle } from '@/components/context/DataContext'
 import { 
   getBest1RM, 
   calculateVolume, 
@@ -23,12 +24,13 @@ import EnhancedSetRow from '@/components/EnhancedSetRow'
 import { REST_TIMES, COMPOUND_KEYWORDS, ACCESSORY_KEYWORDS, PROGRESSIVE_OVERLOAD, DELOAD } from '@/lib/workoutConfig'
 import { generateProgressiveOverloadSuggestion } from '@/components/utils/progressiveOverload'
 import { calculateHypertrophyTargetForExercise, countEffectiveSets, getRPETargetForExercise } from '@/lib/hypertrophyCalculations'
+import { getBlockProgress, isDeloadWeek } from '@/lib/blockAnalytics'
 import CardioExerciseLogger from '@/components/CardioExerciseLogger'
 import { formatDuration, formatDistance } from '@/components/utils/cardioCalculations'
 import { useLanguage } from '@/components/context/LanguageContext'
 import { useWakeLock } from '@/components/utils/useWakeLock'
 import { useWorkoutAutoSave } from '@/components/utils/useWorkoutAutoSave'
-import { type MuscleGroup } from '@/components/utils/volumeAnalytics'
+import { type MuscleGroup, getMuscleGroup } from '@/components/utils/volumeAnalytics'
 import CircuitPlayer from '@/components/CircuitPlayer'
 import { generateSetsFromOneRM, validateOneRM } from '@/components/utils/oneRepMaxCalculations'
 import { getExerciseImages } from '@/lib/exerciseData'
@@ -42,6 +44,7 @@ const ExerciseStats = ({
   previousExercises: WorkoutExercise[];
 }) => {
   const { t } = useLanguage();
+  const { activeBlock, history } = useData();
   const best1RM = getBest1RM(exercise);
   const volume = calculateVolume(exercise);
   
@@ -199,6 +202,29 @@ const ExerciseStats = ({
                 ↑ Gewicht verhoogd: vorige RPE &lt; 6 telde als warming-up
               </p>
             )}
+          </div>
+        )
+      })()}
+
+      {/* Training block hint */}
+      {activeBlock && (() => {
+        const muscleGroup = getMuscleGroup(exercise.name, exercise.muscleGroup)
+        if (!muscleGroup) return null
+        const muscle = muscleGroup as TrainingBlockMuscle
+        if (!activeBlock.focusMuscles.includes(muscle)) return null
+        if (isDeloadWeek(activeBlock)) return null
+        const progress = getBlockProgress(activeBlock, history)
+        const mp = progress.muscles.find(m => m.muscle === muscle)
+        if (!mp) return null
+        return (
+          <div className="rounded-lg px-2.5 py-2 bg-violet-500/8 border border-violet-500/15 flex items-center justify-between text-xs">
+            <span className="text-muted-foreground text-[10px]">Blok focus — week {progress.weekNumber}</span>
+            <span className={clsx(
+              'font-bold text-[11px]',
+              mp.pct >= 1 ? 'text-green-400' : 'text-violet-300'
+            )}>
+              {mp.actualSets} / {mp.targetSets} sets
+            </span>
           </div>
         )
       })()}
