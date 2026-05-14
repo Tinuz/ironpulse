@@ -31,8 +31,7 @@ export default function Settings() {
   const [editedProfile, setEditedProfile] = useState<SocialProfile | null>(null)
   const [usernameError, setUsernameError] = useState('')
   const [saving, setSaving] = useState(false)
-  const [showRIR, setShowRIR] = useState(false)
-  const [showRPE, setShowRPE] = useState(false)
+  // showRIR / showRPE removed: RPE en RIR zijn verplicht voor werksets (hypertrofie-engine)
   const [showWarmupToggle, setShowWarmupToggle] = useState(true)
   const [keepScreenAwake, setKeepScreenAwake] = useState(true)
   const [batterySaverMode, setBatterySaverMode] = useState(false)
@@ -56,14 +55,12 @@ export default function Settings() {
   }, [user])
 
   const loadWorkoutPreferences = () => {
-    const savedRIR = localStorage.getItem('workout_show_rir')
-    const savedRPE = localStorage.getItem('workout_show_rpe')
+    // Legacy localStorage keys (workout_show_rir / workout_show_rpe) zijn niet meer nodig
     const savedWarmup = localStorage.getItem('workout_show_warmup_toggle')
     const savedKeepAwake = localStorage.getItem('workout_keep_screen_awake')
     const savedBatterySaver = localStorage.getItem('battery_saver_mode')
     
-    if (savedRIR !== null) setShowRIR(savedRIR === 'true')
-    if (savedRPE !== null) setShowRPE(savedRPE === 'true')
+    // RPE en RIR worden nu altijd getoond voor werksets
     if (savedWarmup !== null) setShowWarmupToggle(savedWarmup === 'true')
     if (savedKeepAwake !== null) setKeepScreenAwake(savedKeepAwake === 'true')
     else setKeepScreenAwake(true) // Default to true for existing users
@@ -536,47 +533,18 @@ export default function Settings() {
           </div>
           
           <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-4">
-            <label className="flex items-center justify-between cursor-pointer">
+            {/* RPE & RIR zijn nu verplicht voor alle werksets — geen toggle meer nodig */}
+            <div className="flex items-start gap-3 py-1">
+              <div className="mt-0.5 w-2 h-2 rounded-full bg-primary flex-shrink-0" />
               <div>
-                <p className="font-medium text-sm">{t.settings.rirTracking}</p>
-                <p className="text-xs text-muted-foreground">{t.settings.rirTrackingDesc}</p>
+                <p className="font-medium text-sm">RPE &amp; RIR verplicht voor werksets</p>
+                <p className="text-xs text-muted-foreground">
+                  Reps In Reserve (RIR) en Rate of Perceived Exertion (RPE) worden automatisch
+                  getoond bij elke werkset. Beide zijn vereist om een set te voltooien — dit
+                  stelt de hypertrofie-engine in staat om je optimale trainingsgewicht te berekenen.
+                </p>
               </div>
-              <button
-                onClick={() => {
-                  const newValue = !showRIR
-                  setShowRIR(newValue)
-                  localStorage.setItem('workout_show_rir', String(newValue))
-                }}
-                className={`relative w-12 h-6 rounded-full transition-colors border ${
-                  showRIR ? 'bg-primary border-primary' : 'bg-gray-700 border-gray-600'
-                }`}
-              >
-                <div className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-md transition-transform ${
-                  showRIR ? 'translate-x-6' : 'translate-x-0'
-                }`} />
-              </button>
-            </label>
-
-            <label className="flex items-center justify-between cursor-pointer">
-              <div>
-                <p className="font-medium text-sm">{t.settings.rpeTracking}</p>
-                <p className="text-xs text-muted-foreground">{t.settings.rpeTrackingDesc}</p>
-              </div>
-              <button
-                onClick={() => {
-                  const newValue = !showRPE
-                  setShowRPE(newValue)
-                  localStorage.setItem('workout_show_rpe', String(newValue))
-                }}
-                className={`relative w-12 h-6 rounded-full transition-colors border ${
-                  showRPE ? 'bg-primary border-primary' : 'bg-gray-700 border-gray-600'
-                }`}
-              >
-                <div className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-md transition-transform ${
-                  showRPE ? 'translate-x-6' : 'translate-x-0'
-                }`} />
-              </button>
-            </label>
+            </div>
 
             <label className="flex items-center justify-between cursor-pointer">
               <div>

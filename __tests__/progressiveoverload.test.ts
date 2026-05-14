@@ -76,38 +76,45 @@ describe('generateProgressiveOverloadSuggestion', () => {
     expect(generateProgressiveOverloadSuggestion('Bench Press', history)).toBeNull();
   });
 
-  it('suggests an increase when reps consistently match the target', () => {
-    // 3 sessions, 3 working sets per session hitting the same weight/reps → low CV
+  it('returns a suggestion when sufficient history is present', () => {
     const session = (daysAgo: number) =>
       makeWorkout(`w${daysAgo}`, daysAgo, [
         makeExercise('Bench Press', [
-          makeSet(80, 10),
-          makeSet(80, 10),
-          makeSet(80, 10),
+          makeSet(60, 10, true, false, 7),
+          makeSet(60, 10, true, false, 7),
+          makeSet(60, 10, true, false, 8),
         ]),
       ]);
     const history = [session(14), session(7), session(0)];
     const result = generateProgressiveOverloadSuggestion('Bench Press', history);
     expect(result).not.toBeNull();
-    expect(result!.suggestedWeight).toBeGreaterThan(80);
+    // Verify new fields are present
+    expect(result!.estimate1RM).toBeGreaterThan(0);
+    expect(result!.hypertrophyRange.min).toBeGreaterThan(0);
+    expect(result!.hypertrophyRange.max).toBeGreaterThan(result!.hypertrophyRange.min);
+    expect(result!.rpeTarget.min).toBeGreaterThanOrEqual(1);
+    expect(result!.rpeTarget.max).toBeLessThanOrEqual(10);
+    expect(typeof result!.effectiveSets).toBe('number');
   });
 
   it('suggested weight is rounded to nearest 2.5 kg', () => {
     const session = (daysAgo: number) =>
       makeWorkout(`w${daysAgo}`, daysAgo, [
-        makeExercise('Bench Press', [makeSet(80, 10), makeSet(80, 10), makeSet(80, 10)]),
+        makeExercise('Bench Press', [makeSet(60, 10, true, false, 7), makeSet(60, 10, true, false, 7), makeSet(60, 10, true, false, 7)]),
       ]);
     const history = [session(14), session(7), session(0)];
     const result = generateProgressiveOverloadSuggestion('Bench Press', history);
     expect(result!.suggestedWeight % 2.5).toBe(0);
   });
 
-  it('returns higher confidence when sets include low RIR data', () => {
+  it('returns high confidence when sets include RPE data (≥ 3 sets)', () => {
+    // Nieuwe logica: confidence is HIGH wanneer ≥ 3 sets met RPE zijn ingevuld
     const session = (daysAgo: number) =>
       makeWorkout(`w${daysAgo}`, daysAgo, [
         makeExercise('Bench Press', [
-          makeSet(80, 10, true, false, undefined, 1),
-          makeSet(80, 10, true, false, undefined, 1),
+          makeSet(80, 10, true, false, 8),
+          makeSet(80, 10, true, false, 8),
+          makeSet(80, 10, true, false, 8),
         ]),
       ]);
     const history = [session(14), session(7), session(0)];
@@ -116,15 +123,27 @@ describe('generateProgressiveOverloadSuggestion', () => {
     expect(result!.confidence).toBe('high');
   });
 
+  it('returns low confidence when no RPE data is available', () => {
+    // Geen RPE ingevuld → lage confidence
+    const session = (daysAgo: number) =>
+      makeWorkout(`w${daysAgo}`, daysAgo, [
+        makeExercise('Bench Press', [makeSet(80, 10), makeSet(80, 10), makeSet(80, 10)]),
+      ]);
+    const history = [session(14), session(7), session(0)];
+    const result = generateProgressiveOverloadSuggestion('Bench Press', history);
+    expect(result).not.toBeNull();
+    expect(result!.confidence).toBe('low');
+  });
+
   it('warmup sets are excluded from the calculation', () => {
     // Each session has 1 warmup + 3 working sets; result should only use working sets
     const session = (daysAgo: number) =>
       makeWorkout(`w${daysAgo}`, daysAgo, [
         makeExercise('Bench Press', [
           makeSet(40, 15, true, true), // warmup — excluded
-          makeSet(80, 10),
-          makeSet(80, 10),
-          makeSet(80, 10),
+          makeSet(80, 10, true, false, 7),
+          makeSet(80, 10, true, false, 8),
+          makeSet(80, 10, true, false, 8),
         ]),
       ]);
     const history = [session(14), session(7), session(0)];
@@ -134,7 +153,63 @@ describe('generateProgressiveOverloadSuggestion', () => {
     expect(result!.currentWeight).toBeCloseTo(80, 0);
   });
 
-  it('percentage increase is smaller for heavy weights (NSCA guidelines)', () => {
+  it('compound exercises get RPE target 6–9', () => {
+    const session = (daysAgo: number) =>
+      makeWorkout(`w${daysAgo}`, daysAgo, [
+        makeExercise('Squat', [makeSet(100, 5, true, false, 8), makeSet(100, 5, true, false, 8), makeSet(100, 5, true, false, 8)]),
+      ]);
+    const result = generateProgressiveOverloadSuggestion('Squat', [session(14), session(7), session(0)]);
+    expect(result!.rpeTarget.min).toBe(6);
+    expect(result!.rpeTarget.max).toBe(9);
+  });
+
+  it('isolation exercises get RPE target 9–10', () => {
+    const session = (daysAgo: number) =>
+      makeWorkout(`w${daysAgo}`, daysAgo, [
+        makeExercise('Bicep Curl', [makeSet(20, 12, true, false, 9), makeSet(20, 12, true, false, 9), makeSet(20, 12, true, false, 9)]),
+      ]);
+    const result = generateProgressiveOverloadSuggestion('Bicep Curl', [session(14), session(7), session(0)]);
+    expect(result!.rpeTarget.min).toBe(9);
+    expect(result!.rpeTarget.max).toBe(10);
+  });
+
+  it('low prevRPE triggers low-RPE correction (suggestedWeight increases)', () => {
+    // Vorige sessie met RPE 4 (< 6) → gewicht moet omhoog
+    const prevSession = makeWorkout('w1', 14, [
+      makeExercise('Bench Press', [
+        makeSet(60, 10, true, false, 4),
+        makeSet(60, 10, true, false, 4),
+        makeSet(60, 10, true, false, 4),
+      ]),
+    ]);
+    const currentSession = makeWorkout('w2', 7, [
+      makeExercise('Bench Press', [
+        makeSet(60, 10, true, false, 4),
+        makeSet(60, 10, true, false, 4),
+        makeSet(60, 10, true, false, 4),
+      ]),
+    ]);
+    const resultWithLowRPE = generateProgressiveOverloadSuggestion('Bench Press', [currentSession, prevSession]);
+
+    const normalSession = (daysAgo: number) =>
+      makeWorkout(`w${daysAgo}`, daysAgo, [
+        makeExercise('Bench Press', [
+          makeSet(60, 10, true, false, 8),
+          makeSet(60, 10, true, false, 8),
+          makeSet(60, 10, true, false, 8),
+        ]),
+      ]);
+    const resultNormal = generateProgressiveOverloadSuggestion('Bench Press', [normalSession(7), normalSession(14)]);
+
+    expect(resultWithLowRPE).not.toBeNull();
+    expect(resultNormal).not.toBeNull();
+    expect(resultWithLowRPE!.suggestedWeight).toBeGreaterThanOrEqual(resultNormal!.suggestedWeight);
+  });
+
+  it('increasePercentage is larger for lighter weights (sub-hypertrophy zone)', () => {
+    // 40kg × 12 reps → 1RM = 56kg, target = 41.4kg (> 40kg → +)
+    // 150kg × 5 reps → 1RM = 169kg, target = 125kg (< 150kg → -)
+    // Light has positive increase %; heavy may have negative.
     const lightSession = (daysAgo: number) =>
       makeWorkout(`wl${daysAgo}`, daysAgo, [
         makeExercise('Cable Row', [makeSet(40, 12), makeSet(40, 12), makeSet(40, 12)]),
@@ -144,11 +219,8 @@ describe('generateProgressiveOverloadSuggestion', () => {
         makeExercise('Deadlift', [makeSet(150, 5), makeSet(150, 5), makeSet(150, 5)]),
       ]);
 
-    const lightHistory = [lightSession(14), lightSession(7), lightSession(0)];
-    const heavyHistory = [heavySession(14), heavySession(7), heavySession(0)];
-
-    const lightResult = generateProgressiveOverloadSuggestion('Cable Row', lightHistory);
-    const heavyResult = generateProgressiveOverloadSuggestion('Deadlift', heavyHistory);
+    const lightResult = generateProgressiveOverloadSuggestion('Cable Row', [lightSession(14), lightSession(7), lightSession(0)]);
+    const heavyResult = generateProgressiveOverloadSuggestion('Deadlift', [heavySession(14), heavySession(7), heavySession(0)]);
 
     if (lightResult && heavyResult) {
       expect(lightResult.increasePercentage).toBeGreaterThanOrEqual(heavyResult.increasePercentage);

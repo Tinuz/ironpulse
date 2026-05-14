@@ -36,6 +36,27 @@ export const WorkoutSetSchema = z.object({
 
 export type WorkoutSetInput = z.infer<typeof WorkoutSetSchema>;
 
+/**
+ * Stricter schema voor werksets (niet-warmup).
+ * RPE en RIR zijn verplicht zodat de hypertrofie-engine voldoende data heeft.
+ * Gebruik dit schema bij het valideren van het voltooien van een werkset.
+ */
+export const WorkingSetSchema = WorkoutSetSchema.extend({
+  rir: z
+    .number({ error: 'RIR is verplicht voor werksets' })
+    .int('RIR moet een geheel getal zijn')
+    .min(0, 'RIR mag niet negatief zijn')
+    .max(10, 'RIR mag maximaal 10 zijn'),
+
+  rpe: z
+    .number({ error: 'RPE is verplicht voor werksets' })
+    .int('RPE moet een geheel getal zijn')
+    .min(1, 'RPE moet minimaal 1 zijn')
+    .max(10, 'RPE mag maximaal 10 zijn'),
+});
+
+export type WorkingSetInput = z.infer<typeof WorkingSetSchema>;
+
 // ─── Nutrition Log Item ──────────────────────────────────────────────────────
 
 export const NutritionItemSchema = z.object({

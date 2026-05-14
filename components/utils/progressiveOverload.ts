@@ -1,9 +1,24 @@
 /**
  * Progressive Overload Suggestions
- * Analyzes recent performance and suggests weight increases
+ *
+ * Integreert de Hypertrophy Engine: berekent het optimale werkgewicht op basis
+ * van een geschatte 1RM (Brzycki/Epley), RPE-feedback en oefening-type.
+ *
+ * Wetenschappelijke basis:
+ * - Schoenfeld (2010): optimale hypertrofie bij 70–78% 1RM
+ * - Zourdos et al. (2016): effectieve werksets vereisen RPE ≥ 6
+ * - Helms et al. (2016): isolatie richting falen (RPE 9–10); compound max RPE 9
  */
 
 import { WorkoutLog, WorkoutExercise } from '@/components/context/DataContext'
+import {
+  calculateHypertrophyTargetForExercise,
+  isEffectiveWorkingSet,
+  countEffectiveSets,
+  type HypertrophyTarget,
+  type RPETarget,
+} from '@/lib/hypertrophyCalculations'
+import { getBest1RM } from '@/components/utils/workoutCalculations'
 
 export interface OverloadSuggestion {
   exerciseName: string
@@ -12,100 +27,111 @@ export interface OverloadSuggestion {
   increasePercentage: number
   reason: string
   confidence: 'low' | 'medium' | 'high'
+  /** Geschatte 1RM op basis van beste effectieve set */
+  estimate1RM: number
+  /** Hypertrofie doelgewicht bereik (70–78% 1RM) */
+  hypertrophyRange: { min: number; max: number }
+  /** Aanbevolen RPE-bereik voor deze oefening */
+  rpeTarget: RPETarget
+  /** Aantal effectieve werksets (RPE ≥ 6) in de meest recente sessie */
+  effectiveSets: number
 }
 
 /**
- * Generate progressive overload suggestion for an exercise
+ * Generate progressive overload suggestion for an exercise.
+ *
+ * Algoritme:
+ * 1. Verzamel de laatste 3 sessies voor de oefening
+ * 2. Filter effectieve sets (RPE ≥ 6, niet-warmup, voltooid)
+ * 3. Schat de 1RM op basis van de beste effectieve set
+ * 4. Bereken hypertrofie doelgewicht via de HypertrophyEngine
+ * 5. Gebruik de gemiddelde RPE van vorige sessie als correctiefactor
  */
 export function generateProgressiveOverloadSuggestion(
   exerciseName: string,
   history: WorkoutLog[]
 ): OverloadSuggestion | null {
-  // Find last 3 workouts with this exercise
+  // Vind de laatste 3 sessies met deze oefening
   const relevantWorkouts = history
-    .filter(workout => 
+    .filter(workout =>
       workout.exercises.some(ex => ex.name.toLowerCase() === exerciseName.toLowerCase())
     )
     .slice(0, 3)
 
   if (relevantWorkouts.length < 2) {
-    return null // Need at least 2 previous sessions
+    return null // Minimaal 2 vorige sessies nodig
   }
 
-  // Extract working sets (exclude warm-ups)
+  // Meest recente sessie
+  const latestExercise = relevantWorkouts[0].exercises.find(
+    ex => ex.name.toLowerCase() === exerciseName.toLowerCase()
+  )
+  if (!latestExercise) return null
+
+  // Alle werksets uit de 3 recente sessies
   const allSets = relevantWorkouts.flatMap(workout => {
-    const exercise = workout.exercises.find(ex => 
-      ex.name.toLowerCase() === exerciseName.toLowerCase()
-    )
-    return exercise?.sets.filter(s => s.completed && !s.isWarmup) || []
+    const ex = workout.exercises.find(e => e.name.toLowerCase() === exerciseName.toLowerCase())
+    return ex?.sets.filter(s => s.completed && !s.isWarmup) || []
   })
 
   if (allSets.length < 3) {
-    return null // Need at least 3 completed working sets
+    return null // Minimaal 3 voltooide werksets nodig
   }
 
-  // Calculate average weight from recent sets
+  // Effectieve sets in de meest recente sessie (RPE ≥ 6)
+  const latestEffectiveSets = latestExercise.sets.filter(isEffectiveWorkingSet)
+  const effectiveSets = countEffectiveSets(latestExercise.sets)
+
+  // Beste 1RM uit effectieve sets van de laatste sessie
+  const best1RMResult = getBest1RM({
+    ...latestExercise,
+    sets: latestEffectiveSets.length > 0 ? latestEffectiveSets : latestExercise.sets.filter(s => s.completed && !s.isWarmup),
+  })
+
+  // Fallback: gebruik het gemiddelde gewicht van recente werksets
   const recentWeights = allSets.slice(0, 6).map(s => s.weight)
   const avgWeight = recentWeights.reduce((sum, w) => sum + w, 0) / recentWeights.length
 
-  // Check consistency (coefficient of variation)
-  const stdDev = Math.sqrt(
-    recentWeights.reduce((sum, w) => sum + Math.pow(w - avgWeight, 2), 0) / recentWeights.length
+  // Gemiddelde RPE van de vorige sessie (als data beschikbaar)
+  const prevSessionSets = relevantWorkouts.length > 1
+    ? (relevantWorkouts[1].exercises.find(
+        e => e.name.toLowerCase() === exerciseName.toLowerCase()
+      )?.sets.filter(s => s.completed && !s.isWarmup && s.rpe !== undefined) || [])
+    : []
+  const prevAvgRPE = prevSessionSets.length > 0
+    ? prevSessionSets.reduce((sum, s) => sum + (s.rpe ?? 0), 0) / prevSessionSets.length
+    : undefined
+
+  // Representatief gewicht en herhalingen voor 1RM-berekening
+  const refWeight = best1RMResult?.weight ?? avgWeight
+  const refReps = best1RMResult?.reps ?? Math.round(
+    allSets.slice(0, 6).reduce((sum, s) => sum + s.reps, 0) / Math.min(6, allSets.length)
   )
-  const coefficientOfVariation = stdDev / avgWeight
 
-  // Check if user hit target reps consistently
-  // Use the most recent workout's average reps as the target (not historical max, which AMRAP sets skew)
-  const mostRecentExerciseSets = relevantWorkouts[0].exercises
-    .find(ex => ex.name.toLowerCase() === exerciseName.toLowerCase())
-    ?.sets.filter(s => s.completed && !s.isWarmup) || []
-  const targetReps = mostRecentExerciseSets.length > 0
-    ? mostRecentExerciseSets.reduce((sum, s) => sum + s.reps, 0) / mostRecentExerciseSets.length
-    : Math.max(...allSets.slice(0, 6).map(s => s.reps))
-  const recentReps = allSets.slice(0, 6).map(s => s.reps)
-  const avgReps = recentReps.reduce((sum, r) => sum + r, 0) / recentReps.length
+  // Bereken optimale hypertrofie target via de engine
+  const hypertrophyTarget: HypertrophyTarget = calculateHypertrophyTargetForExercise(
+    exerciseName,
+    refWeight,
+    refReps,
+    prevAvgRPE
+  )
 
-  // Check RIR if available
-  const setsWithRIR = allSets.filter(s => s.rir !== undefined)
-  const avgRIR = setsWithRIR.length > 0
-    ? setsWithRIR.reduce((sum, s) => sum + (s.rir || 0), 0) / setsWithRIR.length
-    : null
+  const suggestedWeight = hypertrophyTarget.targetWeight
 
-  // Decision logic
-  let shouldIncrease = false
-  let increasePercentage = 0
-  let reason = ''
-  let confidence: 'low' | 'medium' | 'high' = 'medium'
+  // Bepaal confidence op basis van beschikbaarheid van RPE-data
+  const setsWithRPE = allSets.filter(s => s.rpe !== undefined).length
+  const confidence: 'low' | 'medium' | 'high' =
+    setsWithRPE >= 3 ? 'high' : setsWithRPE >= 1 ? 'medium' : 'low'
 
-  // High confidence: Consistently hitting reps with low RIR
-  if (avgRIR !== null && avgRIR <= 2 && avgReps >= targetReps * 0.9) {
-    shouldIncrease = true
-    increasePercentage = avgWeight < 60 ? 5 : avgWeight < 100 ? 3.5 : 2.5
-    reason = 'Consistent performance with low RIR'
-    confidence = 'high'
-  }
-  // Medium confidence: Hitting reps consistently (no RIR data)
-  else if (avgReps >= targetReps * 0.9 && coefficientOfVariation < 0.1) {
-    shouldIncrease = true
-    increasePercentage = avgWeight < 60 ? 4 : avgWeight < 100 ? 3 : 2.5
-    reason = 'Hitting target reps consistently'
-    confidence = 'medium'
-  }
-  // Low confidence: Slight improvement trend
-  else if (recentWeights[0] > recentWeights[recentWeights.length - 1]) {
-    shouldIncrease = true
-    increasePercentage = 2.5
-    reason = 'Upward trend in weight'
-    confidence = 'low'
+  // Reden voor de suggestie
+  let reason = `1RM ~${hypertrophyTarget.estimate1RM} kg → hypertrofie zone ${hypertrophyTarget.hypertrophyMin}–${hypertrophyTarget.hypertrophyMax} kg`
+  if (hypertrophyTarget.adjustedForLowRPE) {
+    reason += ' (gewicht verhoogd: vorige RPE < 6 telde als warmup)'
   }
 
-  if (!shouldIncrease) {
-    return null
-  }
-
-  // Calculate suggested weight (round to nearest 2.5kg)
-  const rawIncrease = avgWeight * (increasePercentage / 100)
-  const suggestedWeight = Math.ceil((avgWeight + rawIncrease) / 2.5) * 2.5
+  const increasePercentage = avgWeight > 0
+    ? Math.round(((suggestedWeight - avgWeight) / avgWeight) * 100 * 10) / 10
+    : 0
 
   return {
     exerciseName,
@@ -113,7 +139,14 @@ export function generateProgressiveOverloadSuggestion(
     suggestedWeight,
     increasePercentage,
     reason,
-    confidence
+    confidence,
+    estimate1RM: hypertrophyTarget.estimate1RM,
+    hypertrophyRange: {
+      min: hypertrophyTarget.hypertrophyMin,
+      max: hypertrophyTarget.hypertrophyMax,
+    },
+    rpeTarget: hypertrophyTarget.rpeTarget,
+    effectiveSets,
   }
 }
 

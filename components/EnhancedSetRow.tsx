@@ -16,8 +16,6 @@ interface EnhancedSetRowProps {
   onToggleDropset: () => void
   onRemove: () => void
   canRemove: boolean
-  showRIR: boolean
-  showRPE: boolean
   previousBest?: { weight: number; reps: number } | null
   suggestion?: { weight: number; reason: string } | null
 }
@@ -31,13 +29,16 @@ const EnhancedSetRowBase = forwardRef<HTMLDivElement, EnhancedSetRowProps>(({
   onToggleDropset,
   onRemove,
   canRemove,
-  showRIR,
-  showRPE,
   previousBest,
   suggestion
 }, ref) => {
   const [weightError, setWeightError] = useState<string | undefined>();
   const [repsError, setRepsError] = useState<string | undefined>();
+
+  // Werkset validatie: RPE én RIR zijn verplicht voor niet-warmup sets
+  const isMissingEffortData = !set.isWarmup && !set.completed && (
+    set.rpe === undefined || set.rir === undefined
+  );
 
   // onChange: update the value immediately (no validation) and clear stale errors
   const handleChange = (field: 'weight' | 'reps', value: number) => {
@@ -167,10 +168,14 @@ const EnhancedSetRowBase = forwardRef<HTMLDivElement, EnhancedSetRowProps>(({
             {/* Complete button */}
             <button
               onClick={onToggleComplete}
+              disabled={isMissingEffortData}
+              title={isMissingEffortData ? 'Vul RPE en RIR in om de set te voltooien' : undefined}
               className={clsx(
                 "w-9 h-9 rounded-xl flex items-center justify-center transition-all duration-200 self-start",
                 set.completed
                   ? "bg-primary text-background shadow-[0_0_15px_rgba(245,158,11,0.4)] scale-105"
+                  : isMissingEffortData
+                  ? "bg-white/5 text-zinc-600 cursor-not-allowed"
                   : "bg-white/10 text-muted-foreground hover:bg-white/20"
               )}
             >
@@ -224,8 +229,8 @@ const EnhancedSetRowBase = forwardRef<HTMLDivElement, EnhancedSetRowProps>(({
               </button>
             )}
 
-            {/* RIR stepper */}
-            {showRIR && !set.isWarmup && (
+            {/* RIR stepper — altijd zichtbaar voor werksets */}
+            {!set.isWarmup && (
               <div className="flex-shrink-0 flex items-center bg-white/5 border border-white/10 rounded-lg px-1.5 py-1 gap-0.5">
                 <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-wide pr-1">RIR</span>
                 <button
@@ -244,8 +249,8 @@ const EnhancedSetRowBase = forwardRef<HTMLDivElement, EnhancedSetRowProps>(({
               </div>
             )}
 
-            {/* RPE stepper */}
-            {showRPE && !set.isWarmup && (
+            {/* RPE stepper — altijd zichtbaar voor werksets */}
+            {!set.isWarmup && (
               <div className="flex-shrink-0 flex items-center bg-white/5 border border-white/10 rounded-lg px-1.5 py-1 gap-0.5">
                 <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-wide pr-1">RPE</span>
                 <button
@@ -278,6 +283,13 @@ const EnhancedSetRowBase = forwardRef<HTMLDivElement, EnhancedSetRowProps>(({
               <Trash2 size={13} />
             </button>
           </div>
+
+          {/* Validatiehint: verschijnt pas als RPE of RIR nog niet ingevuld zijn */}
+          {isMissingEffortData && (
+            <p className="text-[10px] text-amber-400/80 mt-1.5 text-center leading-tight">
+              Vul RPE en RIR in om de set te voltooien
+            </p>
+          )}
         </div>
       </motion.div>
     </div>

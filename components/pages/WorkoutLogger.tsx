@@ -21,8 +21,8 @@ import ProgressionBadge from '@/components/ProgressionBadge'
 import ExerciseSubstitutionModal from '@/components/ExerciseSubstitutionModal'
 import EnhancedSetRow from '@/components/EnhancedSetRow'
 import { REST_TIMES, COMPOUND_KEYWORDS, ACCESSORY_KEYWORDS, PROGRESSIVE_OVERLOAD, DELOAD } from '@/lib/workoutConfig'
-import { useWorkoutPreferences } from '@/components/utils/useWorkoutPreferences'
 import { generateProgressiveOverloadSuggestion } from '@/components/utils/progressiveOverload'
+import { calculateHypertrophyTargetForExercise, countEffectiveSets, getRPETargetForExercise } from '@/lib/hypertrophyCalculations'
 import CardioExerciseLogger from '@/components/CardioExerciseLogger'
 import { formatDuration, formatDistance } from '@/components/utils/cardioCalculations'
 import { useLanguage } from '@/components/context/LanguageContext'
@@ -155,6 +155,53 @@ const ExerciseStats = ({
           </div>
         </div>
       </div>
+
+      {/* ── Hypertrofie doelgewicht ── */}
+      {best1RM && (() => {
+        const prevRPE = previousExercises.length > 0
+          ? (() => {
+              const prevSets = previousExercises[0].sets.filter(s => s.completed && !s.isWarmup && s.rpe !== undefined)
+              return prevSets.length > 0
+                ? prevSets.reduce((sum, s) => sum + (s.rpe ?? 0), 0) / prevSets.length
+                : undefined
+            })()
+          : undefined
+        const target = calculateHypertrophyTargetForExercise(
+          exercise.name,
+          best1RM.weight,
+          best1RM.reps,
+          prevRPE
+        )
+        const effectiveSetsCount = countEffectiveSets(exercise.sets)
+        const totalWorkingSets = exercise.sets.filter(s => !s.isWarmup).length
+        const rpeTarget = getRPETargetForExercise(exercise.name)
+        return (
+          <div className="rounded-lg p-3 bg-violet-500/10 border border-violet-500/20 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[9px] uppercase tracking-wider font-bold text-violet-400">Hypertrofie doelgewicht</span>
+              <span className="text-[9px] text-muted-foreground">{rpeTarget.label}</span>
+            </div>
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-lg font-black text-violet-300">{target.hypertrophyMin}–{target.hypertrophyMax} kg</span>
+              <span className="text-[10px] text-muted-foreground">(target: {target.targetWeight} kg)</span>
+            </div>
+            <div className="flex items-center justify-between text-[10px]">
+              <span className="text-muted-foreground">1RM ~{target.estimate1RM} kg</span>
+              <span className={clsx(
+                "font-semibold",
+                effectiveSetsCount === totalWorkingSets ? "text-green-400" : "text-amber-400"
+              )}>
+                {effectiveSetsCount}/{totalWorkingSets} effectieve sets (RPE ≥ 6)
+              </span>
+            </div>
+            {target.adjustedForLowRPE && (
+              <p className="text-[9px] text-amber-400/80 leading-tight">
+                ↑ Gewicht verhoogd: vorige RPE &lt; 6 telde als warming-up
+              </p>
+            )}
+          </div>
+        )
+      })()}
     </div>
   );
 };
@@ -285,7 +332,6 @@ RestTimerBar.displayName = 'RestTimerBar';
 export default function WorkoutLogger() {
   const { activeWorkout, updateActiveWorkout, finishWorkout, cancelWorkout, history, bodyStats, userProfile } = useData();
   const router = useRouter();
-  const workoutPreferences = useWorkoutPreferences();
   const { t } = useLanguage();
   const { requestWakeLock, releaseWakeLock } = useWakeLock();
   const [workoutData, setWorkoutData] = useState<typeof activeWorkout>(null);
@@ -1239,8 +1285,6 @@ export default function WorkoutLogger() {
                         }}
                         onRemove={() => removeSet(exerciseIndex, setIndex)}
                         canRemove={exercise.sets.length > 1}
-                        showRIR={workoutPreferences.showRIR}
-                        showRPE={workoutPreferences.showRPE}
                         previousBest={previousBest ? {
                           weight: previousBest.weight,
                           reps: previousBest.reps
