@@ -6,7 +6,7 @@ import { Play, Plus, Edit2, Trash2, RotateCcw, MoreVertical, X, Activity, Batter
 import { useRouter } from 'next/navigation'
 import { useData } from '@/components/context/DataContext'
 import { useLanguage } from '@/components/context/LanguageContext'
-import { format, formatDistance, differenceInDays, subDays } from 'date-fns'
+import { format, formatDistance, differenceInCalendarDays, subDays } from 'date-fns'
 import { nl, enUS } from 'date-fns/locale'
 import PreWorkoutBriefingModal from '@/components/PreWorkoutBriefingModal'
 
@@ -83,7 +83,7 @@ export default function PlayPage() {
       // Find last trained date
       const lastWorkout = muscleWorkouts[0]
       const daysSinceTraining = lastWorkout 
-        ? differenceInDays(now, new Date(lastWorkout.date))
+        ? differenceInCalendarDays(now, new Date(lastWorkout.date))
         : 999
 
       // Helper to check if exercise belongs to muscle
@@ -188,7 +188,7 @@ export default function PlayPage() {
     // Calculate days since last workout for display
     const lastWorkout = history[0]
     const daysSinceLastWorkout = lastWorkout 
-      ? differenceInDays(now, new Date(lastWorkout.date))
+      ? differenceInCalendarDays(now, new Date(lastWorkout.date))
       : 999
     
     return { score, status, label, color, daysSinceLastWorkout }

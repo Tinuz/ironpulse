@@ -287,7 +287,13 @@ export function generatePreWorkoutBriefing(
     );
     const lastWorkout = muscleWorkouts[0]; // history is sorted newest-first
     const daysSince = lastWorkout
-      ? Math.floor((now.getTime() - new Date(lastWorkout.date).getTime()) / 86_400_000)
+      ? (() => {
+          const workoutDay = new Date(lastWorkout.date);
+          workoutDay.setHours(0, 0, 0, 0);
+          const today = new Date(now);
+          today.setHours(0, 0, 0, 0);
+          return Math.round((today.getTime() - workoutDay.getTime()) / 86_400_000);
+        })()
       : 999;
 
     const score = recoveryScore(Math.min(daysSince, 5));

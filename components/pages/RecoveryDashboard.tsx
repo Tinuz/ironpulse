@@ -5,7 +5,7 @@ import { useData } from '@/components/context/DataContext'
 import { motion } from 'framer-motion'
 import { Activity, TrendingUp, AlertCircle, CheckCircle2, Clock, ArrowLeft } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { subDays, differenceInDays } from 'date-fns'
+import { subDays, differenceInCalendarDays } from 'date-fns'
 import MuscleRecoveryMap from '@/components/MuscleRecoveryMap'
 
 // Muscle groups for tracking
@@ -89,7 +89,7 @@ export default function RecoveryDashboard() {
       const lastWorkout = muscleWorkouts[0]
       const lastTrained = lastWorkout?.date || null
       const daysSinceTraining = lastTrained 
-        ? differenceInDays(now, new Date(lastTrained))
+        ? differenceInCalendarDays(now, new Date(lastTrained))
         : 999
 
       // Calculate recent volume (last 7 days)
