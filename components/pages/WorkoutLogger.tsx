@@ -46,12 +46,73 @@ const ExerciseStats = ({
   const { t } = useLanguage();
   const { activeBlock, history } = useData();
   const best1RM = getBest1RM(exercise);
+  // Fall back to previous session when no sets completed yet in this session
+  const prev1RM = previousExercises.length > 0 ? getBest1RM(previousExercises[0]) : null;
+  const ref1RM = best1RM ?? prev1RM;
   const volume = calculateVolume(exercise);
-  
+
+  // ── Hypertrofie doelgewicht — shown immediately using history, even before first set ──
+  const hypertrophyBlock = ref1RM ? (() => {
+    const prevRPE = previousExercises.length > 0
+      ? (() => {
+          const prevSets = previousExercises[0].sets.filter(s => s.completed && !s.isWarmup && s.rpe !== undefined)
+          return prevSets.length > 0
+            ? prevSets.reduce((sum, s) => sum + (s.rpe ?? 0), 0) / prevSets.length
+            : undefined
+        })()
+      : undefined
+    const target = calculateHypertrophyTargetForExercise(
+      exercise.name,
+      ref1RM.weight,
+      ref1RM.reps,
+      prevRPE
+    )
+    const effectiveSetsCount = countEffectiveSets(exercise.sets)
+    const totalWorkingSets = exercise.sets.filter(s => !s.isWarmup).length
+    const rpeTarget = getRPETargetForExercise(exercise.name)
+    const fromHistory = !best1RM
+    return (
+      <div className="rounded-lg p-3 bg-violet-500/10 border border-violet-500/20 space-y-2">
+        <div className="flex items-center justify-between">
+          <span className="text-[9px] uppercase tracking-wider font-bold text-violet-400">Hypertrofie doelgewicht</span>
+          <span className="text-[9px] text-muted-foreground">{rpeTarget.label}</span>
+        </div>
+        <div className="flex items-baseline gap-1.5">
+          <span className="text-lg font-black text-violet-300">{target.hypertrophyMin}–{target.hypertrophyMax} kg</span>
+          <span className="text-[10px] text-muted-foreground">(target: {target.targetWeight} kg)</span>
+        </div>
+        <div className="flex items-center justify-between text-[10px]">
+          <span className="text-muted-foreground">
+            1RM ~{target.estimate1RM} kg
+            {fromHistory && <span className="text-violet-400/70 ml-1">(vorige sessie)</span>}
+          </span>
+          {best1RM && (
+            <span className={clsx(
+              "font-semibold",
+              effectiveSetsCount === totalWorkingSets ? "text-green-400" : "text-amber-400"
+            )}>
+              {effectiveSetsCount}/{totalWorkingSets} effectieve sets (RPE ≥ 6)
+            </span>
+          )}
+        </div>
+        {target.adjustedForLowRPE && (
+          <p className="text-[9px] text-amber-400/80 leading-tight">
+            ↑ Gewicht verhoogd: vorige RPE &lt; 6 telde als warming-up
+          </p>
+        )}
+      </div>
+    )
+  })() : null
+
   if (!best1RM) {
     return (
-      <div className="px-4 pb-2 text-xs text-muted-foreground italic">
-        {t.workout.completeFirstSet}
+      <div className="px-4 pb-3 space-y-2.5">
+        {hypertrophyBlock}
+        {!ref1RM && (
+          <div className="text-xs text-muted-foreground italic">
+            {t.workout.completeFirstSet}
+          </div>
+        )}
       </div>
     );
   }
@@ -61,6 +122,9 @@ const ExerciseStats = ({
 
   return (
     <div className="px-4 pb-3 space-y-2.5">
+      {/* ── Hypertrofie doelgewicht — bovenaan, altijd zichtbaar ── */}
+      {hypertrophyBlock}
+
       {/* 1RM en Volume - Compact */}
       <div className="grid grid-cols-2 gap-2">
         <div className="bg-white/5 rounded-lg p-2">
@@ -158,53 +222,6 @@ const ExerciseStats = ({
           </div>
         </div>
       </div>
-
-      {/* ── Hypertrofie doelgewicht ── */}
-      {best1RM && (() => {
-        const prevRPE = previousExercises.length > 0
-          ? (() => {
-              const prevSets = previousExercises[0].sets.filter(s => s.completed && !s.isWarmup && s.rpe !== undefined)
-              return prevSets.length > 0
-                ? prevSets.reduce((sum, s) => sum + (s.rpe ?? 0), 0) / prevSets.length
-                : undefined
-            })()
-          : undefined
-        const target = calculateHypertrophyTargetForExercise(
-          exercise.name,
-          best1RM.weight,
-          best1RM.reps,
-          prevRPE
-        )
-        const effectiveSetsCount = countEffectiveSets(exercise.sets)
-        const totalWorkingSets = exercise.sets.filter(s => !s.isWarmup).length
-        const rpeTarget = getRPETargetForExercise(exercise.name)
-        return (
-          <div className="rounded-lg p-3 bg-violet-500/10 border border-violet-500/20 space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-[9px] uppercase tracking-wider font-bold text-violet-400">Hypertrofie doelgewicht</span>
-              <span className="text-[9px] text-muted-foreground">{rpeTarget.label}</span>
-            </div>
-            <div className="flex items-baseline gap-1.5">
-              <span className="text-lg font-black text-violet-300">{target.hypertrophyMin}–{target.hypertrophyMax} kg</span>
-              <span className="text-[10px] text-muted-foreground">(target: {target.targetWeight} kg)</span>
-            </div>
-            <div className="flex items-center justify-between text-[10px]">
-              <span className="text-muted-foreground">1RM ~{target.estimate1RM} kg</span>
-              <span className={clsx(
-                "font-semibold",
-                effectiveSetsCount === totalWorkingSets ? "text-green-400" : "text-amber-400"
-              )}>
-                {effectiveSetsCount}/{totalWorkingSets} effectieve sets (RPE ≥ 6)
-              </span>
-            </div>
-            {target.adjustedForLowRPE && (
-              <p className="text-[9px] text-amber-400/80 leading-tight">
-                ↑ Gewicht verhoogd: vorige RPE &lt; 6 telde als warming-up
-              </p>
-            )}
-          </div>
-        )
-      })()}
 
       {/* Training block hint */}
       {activeBlock && (() => {
