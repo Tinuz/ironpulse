@@ -418,11 +418,13 @@ export default function WorkoutLogger() {
     if (savedActive) {
       const parsed = JSON.parse(savedActive);
       setWorkoutData(parsed);
+      if (parsed.isDeload) setIsDeload(true);
       setIsReady(true);
       // Request wake lock when workout is active
       requestWakeLock();
     } else if (activeWorkout) {
       setWorkoutData(activeWorkout);
+      if (activeWorkout.isDeload) setIsDeload(true);
       setIsReady(true);
       // Request wake lock when workout is active
       requestWakeLock();

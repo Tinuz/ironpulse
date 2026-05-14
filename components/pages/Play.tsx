@@ -7,6 +7,8 @@ import { useRouter } from 'next/navigation'
 import { useData } from '@/components/context/DataContext'
 import { useLanguage } from '@/components/context/LanguageContext'
 import { format, formatDistance, differenceInCalendarDays, subDays } from 'date-fns'
+import { DELOAD } from '@/lib/workoutConfig'
+import { roundTo } from '@/components/utils/workoutCalculations'
 import { nl, enUS } from 'date-fns/locale'
 import PreWorkoutBriefingModal from '@/components/PreWorkoutBriefingModal'
 
@@ -204,7 +206,21 @@ export default function PlayPage() {
     if (!schema) return
     const workout = startWorkout(schema)
     if (deloadMode) {
-      updateActiveWorkout({ ...workout, isDeload: true })
+      // Apply weight reduction to all exercises so WorkoutLogger sees reduced weights on load
+      const reducedExercises = workout.exercises.map(exercise => {
+        if (exercise.type === 'cardio') return exercise
+        return {
+          ...exercise,
+          sets: exercise.sets.map(set => ({
+            ...set,
+            weight: roundTo((set.weight ?? 0) * DELOAD.WEIGHT_REDUCTION_FACTOR, 0.5)
+          })),
+          oneRepMax: exercise.oneRepMax
+            ? roundTo(exercise.oneRepMax * DELOAD.WEIGHT_REDUCTION_FACTOR, 0.5)
+            : undefined
+        }
+      })
+      updateActiveWorkout({ ...workout, exercises: reducedExercises, isDeload: true })
     }
     setBriefingSchemaId(null)
     router.push('/workout')
