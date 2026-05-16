@@ -1042,6 +1042,14 @@ export default function WorkoutLogger() {
             workoutData.id
           );
 
+          // Compact hypertrophy target for Row 2 badge
+          const _best1RM = getBest1RM(exercise);
+          const _prev1RM = previousExercises.length > 0 ? getBest1RM(previousExercises[0]) : null;
+          const _ref1RM = _best1RM ?? _prev1RM;
+          const compactTarget = _ref1RM && exercise.type !== 'cardio'
+            ? calculateHypertrophyTargetForExercise(exercise.name, _ref1RM.weight, _ref1RM.reps)
+            : null;
+
           return (
             <motion.div 
               key={exercise.id}
@@ -1099,6 +1107,11 @@ export default function WorkoutLogger() {
                         delta={formatProgressionDelta(progression)}
                         size="sm"
                       />
+                    )}
+                    {compactTarget && (
+                      <span className="text-[10px] font-bold text-violet-300 bg-violet-500/15 border border-violet-500/25 px-1.5 py-0.5 rounded whitespace-nowrap">
+                        🎯 {compactTarget.hypertrophyMin}–{compactTarget.hypertrophyMax} kg
+                      </span>
                     )}
                   </div>
                 )}
