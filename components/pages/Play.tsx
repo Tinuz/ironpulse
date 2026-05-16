@@ -11,6 +11,7 @@ import { DELOAD } from '@/lib/workoutConfig'
 import { roundTo } from '@/components/utils/workoutCalculations'
 import { nl, enUS } from 'date-fns/locale'
 import PreWorkoutBriefingModal from '@/components/PreWorkoutBriefingModal'
+import DailyCheckInWidget from '@/components/DailyCheckInWidget'
 
 const container = {
   hidden: { opacity: 0 },
@@ -306,6 +307,9 @@ export default function PlayPage() {
       </div>
 
       <div className="p-6 max-w-2xl mx-auto space-y-8">
+        {/* Daily check-in & sleep quality */}
+        <DailyCheckInWidget />
+
         {/* Schemas Section */}
         <div className="space-y-4">
           <div className="flex justify-between items-center">

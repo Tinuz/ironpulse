@@ -53,7 +53,7 @@ function trendVsAvg(current: number, avg: number | null): 'up' | 'down' | 'stabl
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export default function DailyCheckInWidget() {
-  const { bodyStats, addBodyStats } = useData();
+  const { bodyStats, addBodyStats, updateBodyStats } = useData();
 
   const todayStr = today();
   const todayStat = useMemo(
@@ -205,6 +205,37 @@ export default function DailyCheckInWidget() {
               </span>
             </div>
           ))}
+        </div>
+
+        {/* Inline sleep quality — altijd zichtbaar, ook zonder edit mode */}
+        <div className="mt-3 pt-3 border-t border-white/5">
+          <div className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider mb-2">Slaapkwaliteit</div>
+          <div className="flex gap-2">
+            {([1, 2, 3, 4, 5] as const).map(v => {
+              const emojis = ['😫', '😞', '😐', '😊', '😴']
+              const active = todayStat?.sleepQuality === v
+              return (
+                <button
+                  key={v}
+                  type="button"
+                  onClick={() => {
+                    if (todayStat) {
+                      updateBodyStats(todayStat.id, { sleepQuality: active ? undefined : v })
+                    }
+                  }}
+                  className={clsx(
+                    'flex-1 flex flex-col items-center gap-0.5 py-1.5 rounded-lg border text-[9px] transition-colors',
+                    active
+                      ? 'bg-green-500/20 border-green-500/50 text-green-300 font-bold'
+                      : 'bg-white/5 border-white/10 text-muted-foreground hover:bg-white/10'
+                  )}
+                >
+                  <span className="text-base leading-none">{emojis[v - 1]}</span>
+                  <span>{v}</span>
+                </button>
+              )
+            })}
+          </div>
         </div>
       </motion.div>
     );

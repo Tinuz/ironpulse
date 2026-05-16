@@ -241,6 +241,7 @@ interface DataContextType {
   updateWorkout: (id: string, workout: Partial<WorkoutLog>) => Promise<void>;
   deleteWorkout: (id: string) => Promise<void>;
   addBodyStats: (stats: BodyStats) => void;
+  updateBodyStats: (id: string, updates: Partial<Pick<BodyStats, 'weight' | 'biceps' | 'waist' | 'chest' | 'sleepQuality'>>) => Promise<void>;
   deleteBodyStats: (id: string) => void;
   addMeal: (date: string, item: Omit<NutritionItem, 'id'>) => void;
   updateMeal: (date: string, itemId: string, item: Omit<NutritionItem, 'id'>) => void;
@@ -1047,6 +1048,28 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const updateBodyStats = async (
+    id: string,
+    updates: Partial<Pick<BodyStats, 'weight' | 'biceps' | 'waist' | 'chest' | 'sleepQuality'>>
+  ) => {
+    const dbUpdates: Record<string, unknown> = {};
+    if (updates.weight !== undefined) dbUpdates.weight = updates.weight;
+    if (updates.biceps !== undefined) dbUpdates.biceps = updates.biceps;
+    if (updates.waist !== undefined) dbUpdates.waist = updates.waist;
+    if (updates.chest !== undefined) dbUpdates.chest = updates.chest;
+    if (updates.sleepQuality !== undefined) dbUpdates.sleep_quality = updates.sleepQuality ?? null;
+
+    const { error } = await supabase
+      .from('body_stats')
+      .update(dbUpdates)
+      .eq('id', id)
+      .eq('user_id', USER_ID);
+
+    if (!error) {
+      setBodyStats(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s));
+    }
+  };
+
   const addMeal = async (date: string, item: Omit<NutritionItem, 'id'>) => {
     const existingLog = nutritionLogs.find(l => l.date === date);
     const newItem = { ...item, id: crypto.randomUUID() };
@@ -1641,6 +1664,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       updateWorkout,
       deleteWorkout,
       addBodyStats,
+      updateBodyStats,
       deleteBodyStats,
       addMeal,
       updateMeal,
