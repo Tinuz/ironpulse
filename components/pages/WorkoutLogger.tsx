@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft, Plus, X, Clock, Play, Trash2, TrendingUp, TrendingDown, Minus, Award, Zap, StickyNote, Flame, RefreshCw, Heart, Dumbbell, Timer, SkipForward, PlusCircle, Image as ImageIcon, ChevronDown, ChevronUp } from 'lucide-react'
+import { ArrowLeft, Plus, X, Clock, Play, Trash2, TrendingUp, TrendingDown, Minus, Award, Zap, StickyNote, RefreshCw, Heart, Dumbbell, Timer, SkipForward, PlusCircle, Image as ImageIcon, ChevronDown, ChevronUp } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import clsx from 'clsx'
 import { useData, WorkoutExercise } from '@/components/context/DataContext'
@@ -16,7 +16,6 @@ import {
   calculateProgression,
   generateOverloadSuggestion
 } from '@/components/utils/workoutCalculations'
-import { calculateBurnedCalories } from '@/components/utils/calorieCalculations'
 import { getExerciseProgression, formatProgressionDelta, findLastWorkoutWithExercise } from '@/components/utils/progressionAnalytics'
 import ProgressionBadge from '@/components/ProgressionBadge'
 import ExerciseSubstitutionModal from '@/components/ExerciseSubstitutionModal'
@@ -816,29 +815,6 @@ export default function WorkoutLogger() {
     return userProfile?.weight || null;
   };
 
-  const updateExerciseDuration = (exerciseIndex: number, durationMinutes: number) => {
-    if (!workoutData) return;
-    const newExercises = [...workoutData.exercises];
-    newExercises[exerciseIndex].durationMinutes = durationMinutes;
-    
-    // Auto-calculate calories if weight is available
-    const weight = getUserWeight();
-    if (weight && durationMinutes > 0) {
-      try {
-        const result = calculateBurnedCalories(weight, durationMinutes, workoutData.metValue || 5);
-        newExercises[exerciseIndex].estimatedCalories = result.kcal;
-      } catch {
-        newExercises[exerciseIndex].estimatedCalories = undefined;
-      }
-    } else {
-      newExercises[exerciseIndex].estimatedCalories = undefined;
-    }
-    
-    const updated = { ...workoutData, exercises: newExercises };
-    setWorkoutData(updated);
-    updateActiveWorkout(updated);
-  };
-
   const updateExerciseName = (exerciseIndex: number, name: string) => {
     if (!workoutData) return;
     const newExercises = [...workoutData.exercises];
@@ -1452,45 +1428,6 @@ export default function WorkoutLogger() {
                         </button>
                       );
                     })}
-                  </div>
-                </div>
-
-                {/* Duration & Calories Section */}
-                <div className="mt-4 pt-4 border-t border-white/5">
-                  <div className="flex items-start gap-3">
-                    <div className="flex-1">
-                      <label className="flex items-center gap-1.5 text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2 px-1">
-                        <Clock size={12} />
-                        {t.workout.durationMinutes}
-                      </label>
-                      <input
-                        type="number"
-                        value={exercise.durationMinutes || ''}
-                        onChange={(e) => updateExerciseDuration(exerciseIndex, Number(e.target.value))}
-                        placeholder="0"
-                        min="0"
-                        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-primary/50 focus:bg-white/10 transition-colors"
-                      />
-                    </div>
-                    {exercise.durationMinutes && exercise.estimatedCalories && getUserWeight() && (
-                      <div className="flex-1">
-                        <div className="flex items-center gap-1.5 text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2 px-1">
-                          <Flame size={12} />
-                          {t.workout.estimatedCalories}
-                        </div>
-                        <div className="bg-primary/10 border border-primary/30 rounded-lg px-3 py-2.5 flex items-baseline gap-1">
-                          <span className="text-primary font-black text-xl">{exercise.estimatedCalories}</span>
-                          <span className="text-primary/60 text-xs font-bold">kcal</span>
-                        </div>
-                      </div>
-                    )}
-                    {exercise.durationMinutes && !getUserWeight() && (
-                      <div className="flex-1">
-                        <div className="text-xs text-muted-foreground/60 italic mt-7 px-1">
-                          {t.workout.caloriesNote}
-                        </div>
-                      </div>
-                    )}
                   </div>
                 </div>
 
