@@ -127,6 +127,8 @@ export interface BodyStats {
   waist?: number;
   thighs?: number;
   shoulders?: number;
+  /** Subjectieve slaapkwaliteit 1–5 (1=erg slecht, 5=uitstekend) */
+  sleepQuality?: number;
 }
 
 export interface NutritionItem {
@@ -458,7 +460,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           biceps: s.biceps || undefined,
           waist: s.waist || undefined,
           thighs: s.thighs || undefined,
-          shoulders: s.shoulders || undefined
+          shoulders: s.shoulders || undefined,
+          sleepQuality: s.sleep_quality || undefined,
         })));
       }
 
@@ -1009,7 +1012,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         biceps: stats.biceps,
         waist: stats.waist,
         thighs: stats.thighs,
-        shoulders: stats.shoulders
+        shoulders: stats.shoulders,
+        sleep_quality: stats.sleepQuality,
       })
       .select()
       .single();
@@ -1025,7 +1029,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         biceps: data.biceps || undefined,
         waist: data.waist || undefined,
         thighs: data.thighs || undefined,
-        shoulders: data.shoulders || undefined
+        shoulders: data.shoulders || undefined,
+        sleepQuality: data.sleep_quality || undefined,
       }].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
     }
   };

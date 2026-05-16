@@ -15,8 +15,10 @@ import {
   calculateHypertrophyTargetForExercise,
   isEffectiveWorkingSet,
   countEffectiveSets,
+  getProgressionReadiness,
   type HypertrophyTarget,
   type RPETarget,
+  type ProgressionReadiness,
 } from '@/lib/hypertrophyCalculations'
 import { getBest1RM } from '@/components/utils/workoutCalculations'
 
@@ -35,6 +37,8 @@ export interface OverloadSuggestion {
   rpeTarget: RPETarget
   /** Aantal effectieve werksets (RPE ≥ 6) in de meest recente sessie */
   effectiveSets: number
+  /** Frank's progressiemodel: is de gebruiker klaar voor gewichtsverhoging? */
+  progressionReadiness: ProgressionReadiness
 }
 
 /**
@@ -133,6 +137,15 @@ export function generateProgressiveOverloadSuggestion(
     ? Math.round(((suggestedWeight - avgWeight) / avgWeight) * 100 * 10) / 10
     : 0
 
+  // Frank's progressiemodel: compound = reverse linear, isolatie = pseudo reverse linear
+  const latestWorkingSets = latestExercise.sets.filter(s => s.completed && !s.isWarmup)
+  const progressionReadiness = getProgressionReadiness(
+    exerciseName,
+    latestWorkingSets,
+    latestExercise.targetMinReps,
+    latestExercise.targetMaxReps,
+  )
+
   return {
     exerciseName,
     currentWeight: Math.round(avgWeight * 10) / 10,
@@ -147,6 +160,7 @@ export function generateProgressiveOverloadSuggestion(
     },
     rpeTarget: hypertrophyTarget.rpeTarget,
     effectiveSets,
+    progressionReadiness,
   }
 }
 

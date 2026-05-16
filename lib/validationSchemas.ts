@@ -118,6 +118,7 @@ export const BodyStatsSchema = z.object({
   waist: z.number().min(0).max(300).optional(),
   thighs: z.number().min(0).max(200).optional(),
   shoulders: z.number().min(0).max(300).optional(),
+  sleepQuality: z.number().int().min(1).max(5).optional(),
 });
 
 export type BodyStatsInput = z.infer<typeof BodyStatsSchema>;

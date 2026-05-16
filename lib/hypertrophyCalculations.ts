@@ -16,6 +16,7 @@
 import { calculate1RM } from '@/components/utils/workoutCalculations';
 import { isCompoundExercise } from '@/components/utils/exerciseClassification';
 import type { WorkoutSet } from '@/components/context/DataContext';
+import { COMPOUND_PROGRESSION, ISOLATION_PROGRESSION } from '@/lib/workoutConfig';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -178,4 +179,122 @@ export function getRPETarget(isCompound: boolean): RPETarget {
  */
 export function getRPETargetForExercise(exerciseName: string): RPETarget {
   return getRPETarget(isCompoundExercise(exerciseName));
+}
+
+// ─── Progression Readiness ────────────────────────────────────────────────────
+//
+// Frank's dual-model:
+//   Compound  → Reverse Linear:          verhoog gewicht zodra bovengrens rep range gehaald op RPE ≤ 9
+//   Isolation → Pseudo Reverse Linear:   verhoog gewicht pas als ALLE werksets max reps halen
+
+export interface ProgressionReadiness {
+  /** Of de gebruiker klaar is om gewicht te verhogen volgende sessie */
+  ready: boolean;
+  /** Welk progressiemodel van toepassing is */
+  model: 'compound' | 'isolation';
+  /** Aanbevolen actie */
+  action: 'increase-weight' | 'add-reps' | 'maintain';
+  /** Korte, actiegerichte boodschap voor de gebruiker */
+  message: string;
+  /** Hoeveel kg erbij (0 als nog niet klaar) */
+  suggestedWeightIncrease: number;
+  /** Detail voor isolatie: hoeveel sets de max reps al halen */
+  detail?: {
+    setsAtMaxReps: number;
+    totalWorkingSets: number;
+    maxReps: number;
+  };
+}
+
+/**
+ * Bepaalt of de gebruiker klaar is voor gewichtsverhoging op basis van Frank's progressiemodellen.
+ *
+ * @param exerciseName   Naam van de oefening (voor compound/isolatie classificatie)
+ * @param recentSets     Werksets van de meest recente sessie (niet-warmup, voltooid)
+ * @param repRangeMin    Ondergrens rep range uit schema (optioneel, gebruikt default als niet opgegeven)
+ * @param repRangeMax    Bovengrens rep range uit schema (optioneel)
+ */
+export function getProgressionReadiness(
+  exerciseName: string,
+  recentSets: WorkoutSet[],
+  repRangeMin?: number,
+  repRangeMax?: number,
+): ProgressionReadiness {
+  const compound = isCompoundExercise(exerciseName);
+
+  // Filter: alleen voltooide werksets met RPE ≥ 6 (Frank: effectieve sets)
+  const workingSets = recentSets.filter(
+    s => s.completed && !s.isWarmup && s.reps > 0 && s.weight > 0
+  );
+
+  if (workingSets.length === 0) {
+    return {
+      ready: false,
+      model: compound ? 'compound' : 'isolation',
+      action: 'maintain',
+      message: 'Geen vorige sessie data — start met een comfortabel gewicht',
+      suggestedWeightIncrease: 0,
+    };
+  }
+
+  if (compound) {
+    // ── Reverse Linear (compound) ──────────────────────────────────────────
+    // Verhoog gewicht als een set de bovengrens van de rep range haalde op RPE ≤ 9
+    const maxReps = repRangeMax ?? COMPOUND_PROGRESSION.REP_RANGE_MAX;
+    const minReps = repRangeMin ?? COMPOUND_PROGRESSION.REP_RANGE_MIN;
+    const rpeCeiling = COMPOUND_PROGRESSION.RPE_CEILING;
+
+    const topRepsSet = workingSets.find(
+      s => s.reps >= maxReps && (s.rpe === undefined || s.rpe <= rpeCeiling)
+    );
+
+    if (topRepsSet) {
+      return {
+        ready: true,
+        model: 'compound',
+        action: 'increase-weight',
+        message: `${maxReps} herh. gehaald op RPE ≤ ${rpeCeiling} → verhoog gewicht met ${COMPOUND_PROGRESSION.WEIGHT_INCREMENT_KG} kg`,
+        suggestedWeightIncrease: COMPOUND_PROGRESSION.WEIGHT_INCREMENT_KG,
+      };
+    }
+
+    // Nog reps toevoegen binnen de range
+    const avgReps = Math.round(workingSets.reduce((s, w) => s + w.reps, 0) / workingSets.length);
+    return {
+      ready: false,
+      model: 'compound',
+      action: 'add-reps',
+      message: `Vorige gem. ${avgReps} herh. — werk naar ${maxReps} herh. in ${minReps}–${maxReps} range (RPE ≤ ${rpeCeiling})`,
+      suggestedWeightIncrease: 0,
+    };
+  } else {
+    // ── Pseudo Reverse Linear (isolatie) ──────────────────────────────────
+    // Verhoog gewicht pas als ALLE werksets de maximale reps halen (Schoenfeld double progression)
+    const maxReps = repRangeMax ?? ISOLATION_PROGRESSION.REP_RANGE_MAX;
+    const minRequired = ISOLATION_PROGRESSION.MIN_SETS_FOR_READINESS;
+
+    const setsAtMaxReps = workingSets.filter(s => s.reps >= maxReps).length;
+    const totalWorkingSets = workingSets.length;
+
+    if (totalWorkingSets >= minRequired && setsAtMaxReps >= totalWorkingSets) {
+      return {
+        ready: true,
+        model: 'isolation',
+        action: 'increase-weight',
+        message: `Alle ${totalWorkingSets} sets op ${maxReps} herh. → verhoog gewicht met ${ISOLATION_PROGRESSION.WEIGHT_INCREMENT_KG} kg`,
+        suggestedWeightIncrease: ISOLATION_PROGRESSION.WEIGHT_INCREMENT_KG,
+        detail: { setsAtMaxReps, totalWorkingSets, maxReps },
+      };
+    }
+
+    const remaining = totalWorkingSets - setsAtMaxReps;
+    return {
+      ready: false,
+      model: 'isolation',
+      action: 'add-reps',
+      message: `${setsAtMaxReps}/${totalWorkingSets} sets op ${maxReps} herh. — nog ${remaining} set${remaining !== 1 ? 's' : ''} naar ${maxReps} herh.`,
+      suggestedWeightIncrease: 0,
+      detail: { setsAtMaxReps, totalWorkingSets, maxReps },
+    };
+  }
 }

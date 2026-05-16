@@ -213,11 +213,11 @@ function ExerciseRow({ ex }: { ex: ExerciseBriefing }) {
 // ────────────────────────────────────────────────────────────
 
 export default function PreWorkoutBriefingModal({ schema, onStart, onCancel }: Props) {
-  const { history } = useData()
+  const { history, bodyStats } = useData()
 
   const briefing: PreWorkoutBriefing = useMemo(
-    () => generatePreWorkoutBriefing(history, schema),
-    [history, schema]
+    () => generatePreWorkoutBriefing(history, schema, bodyStats),
+    [history, schema, bodyStats]
   )
 
   // Only show insights up to a reasonable number to avoid overwhelming

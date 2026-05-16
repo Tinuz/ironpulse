@@ -1,4 +1,4 @@
-import { WorkoutLog } from '@/components/context/DataContext';
+import { WorkoutLog, BodyStats } from '@/components/context/DataContext';
 import { calculateWeeklySummary } from './weeklyAnalytics';
 import { detectAllPlateaus } from './plateauDetection';
 import { isCompoundExercise } from './exerciseClassification';
@@ -16,7 +16,7 @@ export interface DeloadRecommendation {
 }
 
 export interface DeloadSignal {
-  type: 'volume_decline' | 'performance_decline' | 'accumulated_fatigue' | 'multiple_plateaus' | 'overreaching' | 'muscle_group_overload';
+  type: 'volume_decline' | 'performance_decline' | 'accumulated_fatigue' | 'multiple_plateaus' | 'overreaching' | 'muscle_group_overload' | 'sleep_fatigue';
   severity: 'low' | 'medium' | 'high';
   description: string;
   muscleGroup?: string; // Specific muscle group affected
@@ -36,7 +36,8 @@ export interface DeloadProtocol {
  */
 export function detectDeloadNeed(
   workouts: WorkoutLog[],
-  weeksToAnalyze: number = 6
+  weeksToAnalyze: number = 6,
+  bodyStats: BodyStats[] = []
 ): DeloadRecommendation {
   // Exclude deload workouts from fatigue analysis
   const nonDeloadWorkouts = workouts.filter(w => !w.isDeload);
@@ -73,6 +74,10 @@ export function detectDeloadNeed(
   // Signal 6: Muscle group specific overload (NEW - uses granular muscle groups!)
   const muscleGroupSignals = detectMuscleGroupOverload(nonDeloadWorkouts, weeksToAnalyze);
   signals.push(...muscleGroupSignals);
+
+  // Signal 7: Poor sleep quality (Frank: slaap = herstel proxy — Dattilo et al. 2011)
+  const sleepSignal = detectSleepFatigue(bodyStats);
+  if (sleepSignal) signals.push(sleepSignal);
   
   // Calculate urgency based on signals
   const { shouldDeload, urgency } = calculateUrgency(signals);
@@ -629,4 +634,45 @@ export function isCurrentlyDeloading(workouts: WorkoutLog[], restDayDates: strin
   
   // If volume is down 30%+ from last week, likely deloading
   return volumeReduction >= 30 && currentWeek.stats.totalWorkouts >= 2;
+}
+
+/**
+ * Detecteert slaap-gerelateerde vermoeidheid op basis van gelogde slaapkwaliteit.
+ *
+ * Wetenschappelijke basis: Dattilo et al. (2011) — slaapgebrek verhoogt cortisol,
+ * verlaagt testosteron en remt spiereiwitsynthese met dezelfde markers als overtraining.
+ *
+ * Drempelwaarden:
+ *   - gemiddelde ≤ 2 over 5 dagen: high severity (structureel slaaptekort)
+ *   - gemiddelde ≤ 3 over 5 dagen: medium severity (suboptimale slaap)
+ */
+export function detectSleepFatigue(bodyStats: BodyStats[]): DeloadSignal | null {
+  if (bodyStats.length < 3) return null;
+
+  // Laatste 5 entries met een slaapkwaliteitscore
+  const recentWithSleep = bodyStats
+    .filter(s => s.sleepQuality != null)
+    .slice(0, 5);
+
+  if (recentWithSleep.length < 3) return null;
+
+  const avg = recentWithSleep.reduce((sum, s) => sum + (s.sleepQuality ?? 0), 0) / recentWithSleep.length;
+
+  if (avg <= 2) {
+    return {
+      type: 'sleep_fatigue',
+      severity: 'high',
+      description: `Gemiddelde slaapkwaliteit ${avg.toFixed(1)}/5 over ${recentWithSleep.length} dagen — herstel sterk belemmerd. Verlaag volume of plan deload.`,
+    };
+  }
+
+  if (avg <= 3) {
+    return {
+      type: 'sleep_fatigue',
+      severity: 'medium',
+      description: `Gemiddelde slaapkwaliteit ${avg.toFixed(1)}/5 over ${recentWithSleep.length} dagen — suboptimaal herstel. Overweeg volume te verlagen.`,
+    };
+  }
+
+  return null;
 }

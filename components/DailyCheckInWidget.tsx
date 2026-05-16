@@ -4,6 +4,7 @@ import React, { useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Scale, ChevronDown, ChevronUp, TrendingUp, TrendingDown, Minus, Check, Pencil } from 'lucide-react'
 import { format } from 'date-fns'
+import clsx from 'clsx'
 import { useData, BodyStats } from '@/components/context/DataContext'
 import { BodyStatsSchema } from '@/lib/validationSchemas'
 
@@ -14,6 +15,7 @@ interface CheckInState {
   biceps: string;
   waist: string;
   chest: string;
+  sleepQuality: number | null;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -65,6 +67,7 @@ export default function DailyCheckInWidget() {
     biceps: todayStat?.biceps?.toString() ?? '',
     waist: todayStat?.waist?.toString() ?? '',
     chest: todayStat?.chest?.toString() ?? '',
+    sleepQuality: todayStat?.sleepQuality ?? null,
   });
   const [showExtras, setShowExtras] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -111,6 +114,7 @@ export default function DailyCheckInWidget() {
       id: crypto.randomUUID(),
       date: new Date().toISOString(),
       ...result.data,
+      sleepQuality: form.sleepQuality ?? undefined,
     };
 
     addBodyStats(newStats);
@@ -125,6 +129,7 @@ export default function DailyCheckInWidget() {
       biceps: todayStat?.biceps?.toString() ?? '',
       waist: todayStat?.waist?.toString() ?? '',
       chest: todayStat?.chest?.toString() ?? '',
+      sleepQuality: todayStat?.sleepQuality ?? null,
     });
     setError(null);
     setIsEditing(true);
@@ -171,6 +176,11 @@ export default function DailyCheckInWidget() {
                 {trend === 'stable' && avgWeight != null && (
                   <span className="flex items-center gap-0.5 text-zinc-500">
                     <Minus size={11} /> stabiel vs 7d gem.
+                  </span>
+                )}
+                {todayStat?.sleepQuality != null && (
+                  <span className="text-[10px]">
+                    {['😫','😞','😐','😊','😴'][todayStat.sleepQuality - 1]} slaap {todayStat.sleepQuality}/5
                   </span>
                 )}
               </div>
@@ -261,6 +271,35 @@ export default function DailyCheckInWidget() {
         >
           Sla op
         </button>
+      </div>
+
+      {/* Sleep quality selector */}
+      <div className="mb-3">
+        <div className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider mb-2">Hoe heb je geslapen?</div>
+        <div className="flex gap-2">
+          {([1,2,3,4,5] as const).map(v => {
+            const emojis = ['😫','😞','😐','😊','😴']
+            const labels = ['Erg slecht','Slecht','Matig','Goed','Super']
+            const active = form.sleepQuality === v
+            return (
+              <button
+                key={v}
+                type="button"
+                onClick={() => setForm(f => ({ ...f, sleepQuality: active ? null : v }))}
+                className={clsx(
+                  'flex-1 flex flex-col items-center gap-0.5 py-1.5 rounded-lg border text-[9px] transition-colors',
+                  active
+                    ? 'bg-blue-500/20 border-blue-500/50 text-blue-300 font-bold'
+                    : 'bg-white/5 border-white/10 text-muted-foreground hover:bg-white/10'
+                )}
+                title={labels[v-1]}
+              >
+                <span className="text-base leading-none">{emojis[v-1]}</span>
+                <span>{v}</span>
+              </button>
+            )
+          })}
+        </div>
       </div>
 
       {/* Error */}

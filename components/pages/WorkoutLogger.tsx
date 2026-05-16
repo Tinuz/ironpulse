@@ -23,7 +23,7 @@ import ExerciseSubstitutionModal from '@/components/ExerciseSubstitutionModal'
 import EnhancedSetRow from '@/components/EnhancedSetRow'
 import { REST_TIMES, COMPOUND_KEYWORDS, ACCESSORY_KEYWORDS, PROGRESSIVE_OVERLOAD, DELOAD } from '@/lib/workoutConfig'
 import { generateProgressiveOverloadSuggestion } from '@/components/utils/progressiveOverload'
-import { calculateHypertrophyTargetForExercise, countEffectiveSets, getRPETargetForExercise } from '@/lib/hypertrophyCalculations'
+import { calculateHypertrophyTargetForExercise, countEffectiveSets, getRPETargetForExercise, getProgressionReadiness } from '@/lib/hypertrophyCalculations'
 import { getBlockProgress, isDeloadWeek } from '@/lib/blockAnalytics'
 import CardioExerciseLogger from '@/components/CardioExerciseLogger'
 import { formatDuration, formatDistance } from '@/components/utils/cardioCalculations'
@@ -71,16 +71,46 @@ const ExerciseStats = ({
     const totalWorkingSets = exercise.sets.filter(s => !s.isWarmup).length
     const rpeTarget = getRPETargetForExercise(exercise.name)
     const fromHistory = !best1RM
+
+    // Frank's progressiemodel: gebruik vorige sessie werksets voor readiness
+    const prevWorkingSets = (previousExercises[0]?.sets ?? []).filter(
+      s => s.completed && !s.isWarmup
+    )
+    const readiness = getProgressionReadiness(
+      exercise.name,
+      prevWorkingSets,
+      exercise.targetMinReps,
+      exercise.targetMaxReps,
+    )
+
     return (
       <div className="rounded-lg p-3 bg-violet-500/10 border border-violet-500/20 space-y-2">
+        {/* Header row */}
         <div className="flex items-center justify-between">
           <span className="text-[9px] uppercase tracking-wider font-bold text-violet-400">Hypertrofie doelgewicht</span>
           <span className="text-[9px] text-muted-foreground">{rpeTarget.label}</span>
         </div>
+
+        {/* Primary action — wat moet ik vandaag doen */}
         <div className="flex items-baseline gap-1.5">
           <span className="text-lg font-black text-violet-300">{target.hypertrophyMin}–{target.hypertrophyMax} kg</span>
           <span className="text-[10px] text-muted-foreground">(target: {target.targetWeight} kg)</span>
         </div>
+
+        {/* Progression readiness chip — Frank's model */}
+        <div className={clsx(
+          'rounded-md px-2.5 py-1.5 text-[10px] font-semibold flex items-center gap-1.5',
+          readiness.ready
+            ? 'bg-green-500/15 text-green-300 border border-green-500/25'
+            : readiness.action === 'add-reps'
+              ? 'bg-amber-500/12 text-amber-300 border border-amber-500/20'
+              : 'bg-white/5 text-muted-foreground'
+        )}>
+          <span>{readiness.ready ? '✅' : readiness.action === 'add-reps' ? '🔄' : '📊'}</span>
+          <span>{readiness.message}</span>
+        </div>
+
+        {/* Secondary info row */}
         <div className="flex items-center justify-between text-[10px]">
           <span className="text-muted-foreground">
             1RM ~{target.estimate1RM} kg
@@ -88,13 +118,14 @@ const ExerciseStats = ({
           </span>
           {best1RM && (
             <span className={clsx(
-              "font-semibold",
-              effectiveSetsCount === totalWorkingSets ? "text-green-400" : "text-amber-400"
+              'font-semibold',
+              effectiveSetsCount === totalWorkingSets ? 'text-green-400' : 'text-amber-400'
             )}>
               {effectiveSetsCount}/{totalWorkingSets} effectieve sets (RPE ≥ 6)
             </span>
           )}
         </div>
+
         {target.adjustedForLowRPE && (
           <p className="text-[9px] text-amber-400/80 leading-tight">
             ↑ Gewicht verhoogd: vorige RPE &lt; 6 telde als warming-up
