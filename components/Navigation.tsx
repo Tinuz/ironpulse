@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { LayoutDashboard, User, Dumbbell, Play, Users } from 'lucide-react'
@@ -9,12 +9,20 @@ import clsx from 'clsx'
 import { useLanguage } from '@/components/context/LanguageContext'
 import { useAuth } from '@/components/context/AuthContext'
 import { supabase } from '@/lib/supabase'
+import { useData } from '@/components/context/DataContext'
+import { calculateVolumeLandmarks } from '@/components/utils/volumeLandmarksAnalytics'
 
 export default function Navigation() {
   const pathname = usePathname()
   const { language } = useLanguage()
   const { user } = useAuth()
+  const { history } = useData()
   const [unreadCount, setUnreadCount] = useState(0)
+
+  const hasVolumeConcern = useMemo(() => {
+    const { muscles } = calculateVolumeLandmarks(history)
+    return muscles.some(m => m.weeklySets > 0 && (m.status === 'below_mv' || m.status === 'mv_to_mev'))
+  }, [history])
 
   useEffect(() => {
     if (!user) return
@@ -172,7 +180,7 @@ export default function Navigation() {
                 )}>
                   <item.icon size={22} strokeWidth={isActive ? 2.5 : 2} />
                   
-                  {/* Notification Badge */}
+                  {/* Notification Badge (social) */}
                   {isSocial && unreadCount > 0 && (
                     <motion.div
                       initial={{ scale: 0 }}
@@ -183,6 +191,15 @@ export default function Navigation() {
                         {unreadCount > 9 ? '9+' : unreadCount}
                       </span>
                     </motion.div>
+                  )}
+
+                  {/* Volume alert badge on Me icon */}
+                  {item.path === '/progress' && hasVolumeConcern && (
+                    <motion.div
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-amber-500 rounded-full border-2 border-background"
+                    />
                   )}
                 </div>
                 <span className="text-[10px] uppercase tracking-wider mt-1.5 font-semibold">

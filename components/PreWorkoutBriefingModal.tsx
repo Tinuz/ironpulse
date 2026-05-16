@@ -24,6 +24,7 @@ import {
   ExerciseBriefing,
   MuscleRecovery,
 } from '@/components/utils/preWorkoutBriefingAnalytics'
+import { calculateVolumeLandmarks } from '@/components/utils/volumeLandmarksAnalytics'
 
 // ────────────────────────────────────────────────────────────
 // Props
@@ -220,6 +221,19 @@ export default function PreWorkoutBriefingModal({ schema, onStart, onCancel }: P
     [history, schema, bodyStats]
   )
 
+  const { muscles: volumeMuscles } = useMemo(
+    () => calculateVolumeLandmarks(history),
+    [history]
+  )
+  const relevantMuscles = useMemo(() => {
+    const workoutGroups = new Set(
+      briefing.exercises
+        .filter(e => e.muscleGroup && e.muscleGroup !== 'cardio')
+        .map(e => e.muscleGroup as string)
+    )
+    return volumeMuscles.filter(m => workoutGroups.has(m.group))
+  }, [briefing.exercises, volumeMuscles])
+
   // Only show insights up to a reasonable number to avoid overwhelming
   const topInsights = briefing.insights.slice(0, 5)
   const strengthExercises = briefing.exercises.filter(e => e.muscleGroup !== 'cardio')
@@ -297,6 +311,50 @@ export default function PreWorkoutBriefingModal({ schema, onStart, onCancel }: P
                   ))}
                 </div>
                 <p className="text-[9px] text-zinc-600 mt-2">Herstelcurve: Zatsiorsky &amp; Kraemer 2006</p>
+              </section>
+            )}
+
+            {/* Wekelijks volume status — MEV/MAV/MRV voor de spiergroepen van vandaag */}
+            {relevantMuscles.length > 0 && (
+              <section>
+                <h3 className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2.5">
+                  Wekelijks volume · nu
+                </h3>
+                <div className="space-y-2">
+                  {relevantMuscles.map(m => (
+                    <div key={m.group} className="bg-white/[0.04] rounded-xl p-3 border border-white/[0.06]">
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className="text-xs font-semibold">{m.label}</span>
+                        <span className={clsx('text-[10px] font-bold', m.statusColor)}>{m.statusLabel}</span>
+                      </div>
+                      <div className="relative h-1.5 bg-white/10 rounded-full overflow-hidden mb-1">
+                        <div className="absolute top-0 bottom-0 w-px bg-blue-400/60" style={{ left: `${Math.round((m.landmarks.mev / m.landmarks.mrv) * 100)}%` }} />
+                        <div className="absolute top-0 bottom-0 w-px bg-green-400/60" style={{ left: `${Math.round((m.landmarks.mavLow / m.landmarks.mrv) * 100)}%` }} />
+                        <div
+                          className={clsx('h-full rounded-full',
+                            m.status === 'mav' || m.status === 'approaching_mrv' ? 'bg-green-500' :
+                            m.status === 'at_mrv' ? 'bg-red-500' : 'bg-amber-500'
+                          )}
+                          style={{ width: `${m.fillPct}%` }}
+                        />
+                      </div>
+                      <div className="flex justify-between text-[9px] text-zinc-500">
+                        <span>{m.weeklySets} sets deze week</span>
+                        <span>MEV {m.landmarks.mev} · MAV {m.landmarks.mavLow}–{m.landmarks.mavHigh} · MRV {m.landmarks.mrv}</span>
+                      </div>
+                      {(m.status === 'below_mv' || m.status === 'mv_to_mev') && (
+                        <p className="text-[9px] text-amber-400 mt-1">
+                          Haal vandaag MEV: nog {Math.max(0, m.landmarks.mev - m.weeklySets)} sets nodig
+                        </p>
+                      )}
+                      {m.status === 'at_mrv' && (
+                        <p className="text-[9px] text-red-400 mt-1">
+                          Maximum bereikt — geen extra sets toevoegen
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </section>
             )}
 

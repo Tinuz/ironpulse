@@ -3,8 +3,11 @@
 import React from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Award, Clock, TrendingUp, Check, Flame } from 'lucide-react'
-import { WorkoutLog } from '@/components/context/DataContext'
+import { WorkoutLog, useData } from '@/components/context/DataContext'
 import { useLanguage } from '@/components/context/LanguageContext'
+import clsx from 'clsx'
+import { calculateVolumeLandmarks } from '@/components/utils/volumeLandmarksAnalytics'
+import { getMuscleGroup } from '@/components/utils/volumeAnalytics'
 
 const formatTime = (seconds: number) => {
   const mins = Math.floor(seconds / 60);
@@ -28,6 +31,17 @@ export default function WorkoutSummaryModal({
   onConfirm,
 }: WorkoutSummaryModalProps) {
   const { t } = useLanguage();
+  const { history } = useData()
+
+  // Compute which muscle groups were trained in this workout
+  const trainedMuscleGroups = new Set(
+    workoutData.exercises
+      .filter(ex => ex.type !== 'cardio' && ex.sets.some(s => s.completed && !s.isWarmup))
+      .map(ex => getMuscleGroup(ex.name, ex.muscleGroup))
+      .filter((mg): mg is NonNullable<typeof mg> => mg !== null)
+  )
+  const { muscles } = calculateVolumeLandmarks([...history, workoutData])
+  const trainedMuscles = muscles.filter(m => trainedMuscleGroups.has(m.group))
 
   const totalCalories = workoutData.exercises.reduce(
     (sum, ex) => sum + (ex.estimatedCalories || 0),
@@ -137,6 +151,43 @@ export default function WorkoutSummaryModal({
                 </div>
               )}
             </div>
+
+            {/* Volume Targets — MEV/MAV/MRV per spiergroep na deze workout */}
+            {trainedMuscles.length > 0 && (
+              <div className="px-6 pb-4">
+                <div className="border-t border-white/5 pt-4">
+                  <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2.5">
+                    Wekelijks volume
+                  </div>
+                  <div className="space-y-2">
+                    {trainedMuscles.map(m => (
+                      <div key={m.group} className="flex items-center gap-3">
+                        <span className="text-xs text-muted-foreground w-20 flex-shrink-0">{m.label}</span>
+                        <div className="flex-1 relative h-1.5 bg-white/10 rounded-full overflow-hidden">
+                          <div className="absolute top-0 bottom-0 w-px bg-blue-400/50" style={{ left: `${Math.round((m.landmarks.mev / m.landmarks.mrv) * 100)}%` }} />
+                          <div className="absolute top-0 bottom-0 w-px bg-green-400/50" style={{ left: `${Math.round((m.landmarks.mavLow / m.landmarks.mrv) * 100)}%` }} />
+                          <div
+                            className={clsx('h-full rounded-full',
+                              m.status === 'mav' || m.status === 'approaching_mrv' ? 'bg-green-500' :
+                              m.status === 'at_mrv' ? 'bg-red-500' : 'bg-amber-500'
+                            )}
+                            style={{ width: `${m.fillPct}%` }}
+                          />
+                        </div>
+                        <span className={clsx('text-[10px] font-semibold flex-shrink-0', m.statusColor)}>
+                          {m.weeklySets} sets · {m.statusLabel}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                  {trainedMuscles.some(m => m.status === 'below_mv' || m.status === 'mv_to_mev') && (
+                    <p className="text-[10px] text-amber-400/80 mt-2 leading-tight">
+                      ⚠️ Spiergroepen onder MEV groeien minder snel deze week
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Actions */}
             <div className="p-6 pt-0 flex gap-3">
