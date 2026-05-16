@@ -40,10 +40,12 @@ const ExerciseStats = ({
   exercise,
   previousExercises,
   workoutId,
+  allLiveExercises,
 }: { 
   exercise: WorkoutExercise;
   previousExercises: WorkoutExercise[];
   workoutId: string;
+  allLiveExercises: WorkoutExercise[];
 }) => {
   const { t } = useLanguage();
   const { activeBlock, history } = useData();
@@ -54,7 +56,14 @@ const ExerciseStats = ({
   const volume = calculateVolume(exercise);
 
   // ── Wekelijks volume status (MEV / MAV / MRV) ─────────────────────────────
-  const liveSetsCount = exercise.sets.filter(s => s.completed && !s.isWarmup).length;
+  // Count ALL completed non-warmup sets from ALL exercises in the active workout
+  // that target the same muscle group — not just this exercise.
+  const targetMg = getMuscleGroup(exercise.name, exercise.muscleGroup);
+  const liveSetsCount = targetMg
+    ? allLiveExercises
+        .filter(ex => ex.type !== 'cardio' && getMuscleGroup(ex.name, ex.muscleGroup) === targetMg)
+        .reduce((sum, ex) => sum + ex.sets.filter(s => s.completed && !s.isWarmup).length, 0)
+    : exercise.sets.filter(s => s.completed && !s.isWarmup).length;
   const volumeStatus = getExerciseWeeklyVolume(
     exercise.name,
     exercise.muscleGroup,
@@ -1525,6 +1534,7 @@ export default function WorkoutLogger() {
                   exercise={exercise}
                   previousExercises={previousExercises}
                   workoutId={workoutData.id}
+                  allLiveExercises={workoutData.exercises}
                 />
               </div>
               )}
