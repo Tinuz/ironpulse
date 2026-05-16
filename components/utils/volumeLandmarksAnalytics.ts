@@ -118,3 +118,85 @@ export function calculateVolumeLandmarks(workouts: WorkoutLog[]): VolumeLandmark
 }
 
 export { LANDMARKS, STATUS_META };
+
+// ---------------------------------------------------------------------------
+// Per-exercise weekly volume status (used in WorkoutLogger ExerciseStats)
+// ---------------------------------------------------------------------------
+
+export interface ExerciseVolumeStatus {
+  muscleGroup: MuscleGroup;
+  muscleLabel: string;
+  /** Completed non-warmup sets for this muscle in the current week (history only, excl. live workout) */
+  historySets: number;
+  /** Sets completed so far in the live workout for this exercise */
+  liveSets: number;
+  /** Total = historySets + liveSets */
+  weeklySets: number;
+  landmarks: VolumeLandmark;
+  status: VolumeStatus;
+  statusLabel: string;
+  statusColor: string;
+  /** How many more sets to reach MEV (0 if already at/above MEV) */
+  setsToMEV: number;
+  /** How many more sets to reach MAV lower bound (0 if already there) */
+  setsToMAV: number;
+}
+
+/**
+ * Returns the current-week volume status for the muscle group targeted by an exercise.
+ *
+ * @param exerciseName  Exercise name (used for muscle group lookup)
+ * @param muscleGroup   Optional override from exercise metadata
+ * @param workouts      Full workout history (already-saved workouts)
+ * @param currentWorkoutId  ID of the in-progress workout so it isn't double-counted
+ * @param liveSets      Completed non-warmup sets logged in the live workout for this exercise
+ */
+export function getExerciseWeeklyVolume(
+  exerciseName: string,
+  muscleGroup: string | undefined,
+  workouts: WorkoutLog[],
+  currentWorkoutId: string | undefined,
+  liveSets: number,
+): ExerciseVolumeStatus | null {
+  const mg = getMuscleGroup(exerciseName, muscleGroup);
+  if (!mg) return null;
+
+  const lm = LANDMARKS[mg];
+
+  // Count completed non-warmup sets for this muscle group in the past 7 days,
+  // excluding the current in-progress workout (not saved yet).
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - 6);
+  cutoff.setHours(0, 0, 0, 0);
+
+  let historySets = 0;
+  for (const w of workouts) {
+    if (w.id === currentWorkoutId) continue;
+    if (new Date(w.date) < cutoff) continue;
+    for (const ex of w.exercises) {
+      if (ex.type === 'cardio') continue;
+      const exMg = getMuscleGroup(ex.name, ex.muscleGroup);
+      if (exMg !== mg) continue;
+      for (const s of ex.sets) {
+        if (s.completed && !s.isWarmup) historySets++;
+      }
+    }
+  }
+
+  const weeklySets = historySets + liveSets;
+  const status = getStatus(weeklySets, lm);
+
+  return {
+    muscleGroup: mg,
+    muscleLabel: MUSCLE_GROUPS[mg],
+    historySets,
+    liveSets,
+    weeklySets,
+    landmarks: lm,
+    status,
+    statusLabel: STATUS_META[status].label,
+    statusColor: STATUS_META[status].color,
+    setsToMEV: Math.max(0, lm.mev - weeklySets),
+    setsToMAV: Math.max(0, lm.mavLow - weeklySets),
+  };
+}

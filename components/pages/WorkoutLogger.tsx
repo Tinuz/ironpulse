@@ -23,6 +23,7 @@ import EnhancedSetRow from '@/components/EnhancedSetRow'
 import { REST_TIMES, COMPOUND_KEYWORDS, ACCESSORY_KEYWORDS, PROGRESSIVE_OVERLOAD, DELOAD } from '@/lib/workoutConfig'
 import { generateProgressiveOverloadSuggestion } from '@/components/utils/progressiveOverload'
 import { calculateHypertrophyTargetForExercise, countEffectiveSets, getRPETargetForExercise, getProgressionReadiness } from '@/lib/hypertrophyCalculations'
+import { getExerciseWeeklyVolume } from '@/components/utils/volumeLandmarksAnalytics'
 import { getBlockProgress, isDeloadWeek } from '@/lib/blockAnalytics'
 import CardioExerciseLogger from '@/components/CardioExerciseLogger'
 import { formatDuration, formatDistance } from '@/components/utils/cardioCalculations'
@@ -37,10 +38,12 @@ import WorkoutSummaryModal from '@/components/workout/WorkoutSummaryModal'
 
 const ExerciseStats = ({ 
   exercise,
-  previousExercises
+  previousExercises,
+  workoutId,
 }: { 
   exercise: WorkoutExercise;
   previousExercises: WorkoutExercise[];
+  workoutId: string;
 }) => {
   const { t } = useLanguage();
   const { activeBlock, history } = useData();
@@ -49,6 +52,16 @@ const ExerciseStats = ({
   const prev1RM = previousExercises.length > 0 ? getBest1RM(previousExercises[0]) : null;
   const ref1RM = best1RM ?? prev1RM;
   const volume = calculateVolume(exercise);
+
+  // ── Wekelijks volume status (MEV / MAV / MRV) ─────────────────────────────
+  const liveSetsCount = exercise.sets.filter(s => s.completed && !s.isWarmup).length;
+  const volumeStatus = getExerciseWeeklyVolume(
+    exercise.name,
+    exercise.muscleGroup,
+    history,
+    workoutId,
+    liveSetsCount,
+  );
 
   // ── Hypertrofie doelgewicht — shown immediately using history, even before first set ──
   const hypertrophyBlock = ref1RM ? (() => {
@@ -129,6 +142,69 @@ const ExerciseStats = ({
           <p className="text-[9px] text-amber-400/80 leading-tight">
             ↑ Gewicht verhoogd: vorige RPE &lt; 6 telde als warming-up
           </p>
+        )}
+
+        {/* Volume landmarks (MEV / MAV / MRV) — Frank: volume is de primaire hypertrofie stimulus */}
+        {volumeStatus && (
+          <div className="pt-2 border-t border-violet-500/15">
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-[9px] uppercase tracking-wider font-bold text-muted-foreground">
+                Wekelijks volume · {volumeStatus.muscleLabel}
+              </span>
+              <span className={clsx('text-[9px] font-bold', volumeStatus.statusColor)}>
+                {volumeStatus.statusLabel}
+              </span>
+            </div>
+
+            {/* Progress bar: 0 → MRV */}
+            <div className="relative h-2 bg-white/10 rounded-full overflow-hidden">
+              {/* MEV marker */}
+              <div
+                className="absolute top-0 bottom-0 w-px bg-blue-400/60"
+                style={{ left: `${Math.round((volumeStatus.landmarks.mev / volumeStatus.landmarks.mrv) * 100)}%` }}
+              />
+              {/* MAV lower marker */}
+              <div
+                className="absolute top-0 bottom-0 w-px bg-green-400/60"
+                style={{ left: `${Math.round((volumeStatus.landmarks.mavLow / volumeStatus.landmarks.mrv) * 100)}%` }}
+              />
+              {/* Fill */}
+              <div
+                className={clsx(
+                  'h-full rounded-full transition-all',
+                  volumeStatus.status === 'below_mv' || volumeStatus.status === 'mv_to_mev'
+                    ? 'bg-zinc-500'
+                    : volumeStatus.status === 'mav'
+                      ? 'bg-green-500'
+                      : 'bg-amber-500',
+                )}
+                style={{ width: `${Math.min(100, Math.round((volumeStatus.weeklySets / volumeStatus.landmarks.mrv) * 100))}%` }}
+              />
+            </div>
+
+            {/* Numbers row */}
+            <div className="flex items-center justify-between mt-1 text-[9px] text-muted-foreground">
+              <span>{volumeStatus.weeklySets} sets deze week</span>
+              <span>MEV {volumeStatus.landmarks.mev} · MAV {volumeStatus.landmarks.mavLow}–{volumeStatus.landmarks.mavHigh} · MRV {volumeStatus.landmarks.mrv}</span>
+            </div>
+
+            {/* Action message */}
+            {volumeStatus.setsToMEV > 0 && (
+              <p className="text-[9px] text-amber-400 mt-1 leading-tight">
+                ⚠️ Nog {volumeStatus.setsToMEV} sets nodig voor minimaal effectief volume (MEV)
+              </p>
+            )}
+            {volumeStatus.setsToMEV === 0 && volumeStatus.setsToMAV > 0 && (
+              <p className="text-[9px] text-blue-400 mt-1 leading-tight">
+                📈 Nog {volumeStatus.setsToMAV} sets voor optimaal volume (MAV)
+              </p>
+            )}
+            {volumeStatus.status === 'at_mrv' && (
+              <p className="text-[9px] text-red-400 mt-1 leading-tight">
+                🛑 Maximum herstelbaar volume bereikt — voeg geen sets meer toe
+              </p>
+            )}
+          </div>
         )}
       </div>
     )
@@ -1448,6 +1524,7 @@ export default function WorkoutLogger() {
                 <ExerciseStats 
                   exercise={exercise}
                   previousExercises={previousExercises}
+                  workoutId={workoutData.id}
                 />
               </div>
               )}
