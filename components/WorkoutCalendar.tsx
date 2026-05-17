@@ -217,6 +217,7 @@ export default function WorkoutCalendar({ onDateClick }: WorkoutCalendarProps) {
             const isCurrentMonth = isSameMonth(day, currentMonth)
             const isDayToday = isToday(day)
             const hasWorkouts = dayWorkouts.length > 0
+            const isDeloadDay = hasWorkouts && dayWorkouts.some(w => w.isDeload)
             const isInPicker = pickerDate === dateKey
             const isFutureDay = isFuture(day)
 
@@ -243,7 +244,9 @@ export default function WorkoutCalendar({ onDateClick }: WorkoutCalendarProps) {
                   ${isDayToday ? 'ring-2 ring-primary' : ''}
                   ${isInPicker ? 'ring-2 ring-white/60' : ''}
                   ${hasWorkouts 
-                    ? 'bg-primary/20 hover:bg-primary/30 border border-primary/30 cursor-pointer' 
+                    ? isDeloadDay
+                      ? 'bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/30 cursor-pointer'
+                      : 'bg-primary/20 hover:bg-primary/30 border border-primary/30 cursor-pointer' 
                     : restMeta
                       ? `${restMeta.bg} ${restMeta.border} border cursor-pointer hover:opacity-80`
                       : isFutureDay
@@ -258,16 +261,20 @@ export default function WorkoutCalendar({ onDateClick }: WorkoutCalendarProps) {
                 
                 {hasWorkouts && (
                   <div className="mt-0.5 space-y-0.5">
-                    <div className="flex justify-center gap-1">
-                      {dayWorkouts.map((_, i) => (
-                        <div 
-                          key={i} 
-                          className="w-1 h-1 bg-accent-primary rounded-full"
-                        />
-                      ))}
-                    </div>
+                    {isDeloadDay ? (
+                      <div className="text-[11px]">🔻</div>
+                    ) : (
+                      <div className="flex justify-center gap-1">
+                        {dayWorkouts.map((_, i) => (
+                          <div 
+                            key={i} 
+                            className="w-1 h-1 bg-accent-primary rounded-full"
+                          />
+                        ))}
+                      </div>
+                    )}
                     {totalVolume > 0 && (
-                      <div className="text-[8px] font-bold text-primary/80">
+                      <div className={`text-[8px] font-bold ${isDeloadDay ? 'text-amber-400/80' : 'text-primary/80'}`}>
                         {totalVolume >= 1000 
                           ? `${(totalVolume / 1000).toFixed(1)}k` 
                           : totalVolume.toFixed(0)
