@@ -35,6 +35,11 @@ export const SETS_PER_BUILD_WEEK = 3;
 /** Fraction of last build week used for the deload week. */
 export const DELOAD_FRACTION = 0.5;
 
+/** All muscle groups that can be tracked in a block (focus or maintenance). */
+export const ALL_BLOCK_MUSCLES: TrainingBlockMuscle[] = [
+  'chest', 'back', 'shoulders', 'legs', 'arms', 'abs', 'glutes', 'calves',
+];
+
 // ---------------------------------------------------------------------------
 // Core calculations
 // ---------------------------------------------------------------------------
@@ -113,10 +118,24 @@ export interface MuscleProgress {
   pct: number;
 }
 
+/** Status of a maintenance (non-focus) muscle relative to its MEV target. */
+export type MaintenanceMuscleStatus = 'under' | 'ok' | 'over';
+
+export interface MaintenanceMuscleProgress {
+  muscle: TrainingBlockMuscle;
+  /** MEV target for this week (halved during deload). */
+  mevTarget: number;
+  actualSets: number;
+  /** under: below MEV (risk of muscle loss) | ok: MEV to MEV+3 | over: excess volume spending recovery capacity */
+  status: MaintenanceMuscleStatus;
+}
+
 export interface BlockProgress {
   weekNumber: number;
   isDeload: boolean;
   muscles: MuscleProgress[];
+  /** Maintenance progress for all non-focus muscle groups. */
+  maintenanceMuscles: MaintenanceMuscleProgress[];
   /** Weeks left until the block ends (0 on the last week) */
   weeksRemaining: number;
 }
@@ -150,7 +169,7 @@ export function getBlockProgress(
     return d >= weekStart && d < weekEnd && !w.isDeload;
   });
 
-  // Count effective sets per focus muscle
+  // Count effective sets per ALL tracked muscle groups (focus and maintenance)
   const setCounts = new Map<TrainingBlockMuscle, number>();
 
   for (const workout of weekWorkouts) {
@@ -158,7 +177,7 @@ export function getBlockProgress(
       const resolved = getMuscleGroup(ex.name, ex.muscleGroup);
       if (!resolved) continue;
       const muscle = resolved as TrainingBlockMuscle;
-      if (!block.focusMuscles.includes(muscle)) continue;
+      if (!ALL_BLOCK_MUSCLES.includes(muscle)) continue;
 
       for (const set of ex.sets) {
         if (set.completed && !set.isWarmup) {
@@ -179,10 +198,24 @@ export function getBlockProgress(
     };
   });
 
+  const maintenanceMuscles: MaintenanceMuscleProgress[] = ALL_BLOCK_MUSCLES
+    .filter(m => !block.focusMuscles.includes(m))
+    .map(m => {
+      const mevFull = BLOCK_START_SETS[m];
+      const mevTarget = deload ? Math.max(1, Math.round(mevFull * DELOAD_FRACTION)) : mevFull;
+      const actualSets = setCounts.get(m) ?? 0;
+      const status: MaintenanceMuscleStatus =
+        actualSets < mevTarget ? 'under' :
+        actualSets <= mevTarget + SETS_PER_BUILD_WEEK ? 'ok' :
+        'over';
+      return { muscle: m, mevTarget, actualSets, status };
+    });
+
   return {
     weekNumber: week,
     isDeload: deload,
     muscles,
+    maintenanceMuscles,
     weeksRemaining: block.durationWeeks - week,
   };
 }

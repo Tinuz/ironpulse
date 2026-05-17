@@ -17,6 +17,7 @@ export default function TrainingBlockWidget() {
   const [expanded, setExpanded] = useState(true)
   const [confirmComplete, setConfirmComplete] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [expandedMaintenance, setExpandedMaintenance] = useState(false)
 
   // Empty state
   if (!activeBlock) {
@@ -115,6 +116,8 @@ export default function TrainingBlockWidget() {
         {/* Muscle progress (collapsible) */}
         {expanded && (
           <div className="px-5 pb-4 space-y-3">
+            {/* Focus muscles */}
+            <p className="text-[10px] uppercase font-bold text-violet-400 tracking-wider">Focus — progressief volume</p>
             {progress.muscles.map(m => {
               const label = MUSCLE_LABEL[m.muscle]
               const pctNum = m.targetSets > 0 ? Math.min(1, m.actualSets / m.targetSets) : 0
@@ -140,6 +143,61 @@ export default function TrainingBlockWidget() {
                 </div>
               )
             })}
+
+            {/* Maintenance muscles */}
+            {(() => {
+              const overCount = progress.maintenanceMuscles.filter(m => m.status === 'over').length
+              const underCount = progress.maintenanceMuscles.filter(m => m.status === 'under').length
+              return (
+                <div className="pt-2 border-t border-white/5">
+                  <button
+                    onClick={() => setExpandedMaintenance(e => !e)}
+                    className="flex items-center justify-between w-full"
+                  >
+                    <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">
+                      Onderhoud — MEV
+                    </p>
+                    <div className="flex items-center gap-1.5">
+                      {overCount > 0 && (
+                        <span className="text-[10px] text-orange-400 font-bold">{overCount} te hoog</span>
+                      )}
+                      {underCount > 0 && (
+                        <span className="text-[10px] text-amber-400 font-bold">{underCount} te laag</span>
+                      )}
+                      {overCount === 0 && underCount === 0 && (
+                        <span className="text-[10px] text-green-400 font-bold">✓ alles OK</span>
+                      )}
+                      {expandedMaintenance ? <ChevronUp size={12} className="text-muted-foreground ml-1" /> : <ChevronDown size={12} className="text-muted-foreground ml-1" />}
+                    </div>
+                  </button>
+                  {expandedMaintenance && (
+                    <div className="mt-2 space-y-1.5">
+                      {progress.maintenanceMuscles.map(m => {
+                        const label = MUSCLE_LABEL[m.muscle]
+                        const dotColor = m.status === 'ok' ? 'bg-green-500' : m.status === 'over' ? 'bg-orange-500' : 'bg-amber-500'
+                        const textColor = m.status === 'ok' ? 'text-green-400' : m.status === 'over' ? 'text-orange-400' : 'text-amber-400'
+                        return (
+                          <div key={m.muscle} className="flex items-center justify-between">
+                            <div className="flex items-center gap-1.5">
+                              <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${dotColor}`} />
+                              <span className="text-xs text-muted-foreground">{label}</span>
+                            </div>
+                            <span className={`text-xs font-bold ${textColor}`}>
+                              {m.actualSets} / {m.mevTarget} MEV
+                            </span>
+                          </div>
+                        )
+                      })}
+                      {overCount > 0 && (
+                        <div className="mt-2 bg-orange-500/10 border border-orange-500/20 rounded-lg px-3 py-2 text-[11px] text-orange-300 leading-snug">
+                          ⚡ {overCount} spier{overCount > 1 ? 'groepen' : 'groep'} boven MEV — dit verbruikt herstelcapaciteit die je focusspieren nodig hebben
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )
+            })()}
           </div>
         )}
 

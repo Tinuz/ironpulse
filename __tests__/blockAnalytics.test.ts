@@ -297,4 +297,57 @@ describe('getBlockProgress', () => {
     expect(result.isDeload).toBe(false);
     expect(result.weeksRemaining).toBe(block.durationWeeks - 1);
   });
+
+  // ── maintenance muscles ───────────────────────────────────────────────────
+
+  it('includes all non-focus muscles in maintenanceMuscles', () => {
+    const block = makeBlock({ focusMuscles: ['chest', 'back'] });
+    const result = getBlockProgress(block, []);
+    const mainMuscles = result.maintenanceMuscles.map(m => m.muscle);
+    expect(mainMuscles).not.toContain('chest');
+    expect(mainMuscles).not.toContain('back');
+    expect(mainMuscles).toContain('shoulders');
+    expect(mainMuscles).toContain('legs');
+    expect(mainMuscles).toHaveLength(6); // 8 total - 2 focus
+  });
+
+  it('status is "under" when no sets done for maintenance muscle', () => {
+    const block = makeBlock({ focusMuscles: ['chest'] });
+    const result = getBlockProgress(block, []);
+    result.maintenanceMuscles.forEach(m => {
+      expect(m.status).toBe('under');
+      expect(m.actualSets).toBe(0);
+    });
+  });
+
+  it('status is "ok" when maintenance muscle is at MEV', () => {
+    const block = makeBlock({ focusMuscles: ['chest'] });
+    const mev = BLOCK_START_SETS.back; // 10
+    const sets = Array.from({ length: mev }, () => makeSet());
+    const workout = makeWorkout(0, [makeExercise('Barbell Row', sets, 'back')]);
+    const result = getBlockProgress(block, [workout]);
+    const back = result.maintenanceMuscles.find(m => m.muscle === 'back')!;
+    expect(back.status).toBe('ok');
+    expect(back.actualSets).toBe(mev);
+  });
+
+  it('status is "over" when maintenance muscle exceeds MEV + SETS_PER_BUILD_WEEK', () => {
+    const block = makeBlock({ focusMuscles: ['chest'] });
+    const tooMany = BLOCK_START_SETS.back + SETS_PER_BUILD_WEEK + 1; // > MEV + 3
+    const sets = Array.from({ length: tooMany }, () => makeSet());
+    const workout = makeWorkout(0, [makeExercise('Barbell Row', sets, 'back')]);
+    const result = getBlockProgress(block, [workout]);
+    const back = result.maintenanceMuscles.find(m => m.muscle === 'back')!;
+    expect(back.status).toBe('over');
+  });
+
+  it('uses halved MEV target for maintenance muscles during deload week', () => {
+    const start = new Date();
+    start.setDate(start.getDate() - 28); // week 5 = deload
+    const block = makeBlock({ startDate: start.toISOString().split('T')[0], durationWeeks: 5, focusMuscles: ['chest'] });
+    const result = getBlockProgress(block, []);
+    const back = result.maintenanceMuscles.find(m => m.muscle === 'back')!;
+    const expectedTarget = Math.max(1, Math.round(BLOCK_START_SETS.back * 0.5));
+    expect(back.mevTarget).toBe(expectedTarget);
+  });
 });
