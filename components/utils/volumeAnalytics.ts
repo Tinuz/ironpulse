@@ -68,10 +68,15 @@ export function getMuscleGroup(exerciseName: string, muscleGroupField?: string):
     const mapping: Record<string, MuscleGroup> = {
       'chest': 'chest',
       'back': 'back',
+      'lats': 'back',
+      'traps': 'back',
+      'middle-back': 'back',
+      'lower-back': 'back',
       'shoulders': 'shoulders',
       'biceps': 'arms',
       'triceps': 'arms',
       'arms': 'arms',
+      'forearms': 'arms',
       'legs': 'legs',
       'quadriceps': 'legs',
       'quads': 'legs',
@@ -83,6 +88,7 @@ export function getMuscleGroup(exerciseName: string, muscleGroupField?: string):
       'calf': 'calves',
       'core': 'abs',
       'abs': 'abs',
+      'obliques': 'abs',
       'full-body': 'chest', // Default to chest for full-body (could be split later)
       'cardio': 'abs' // Default to abs for cardio (core work)
     };
