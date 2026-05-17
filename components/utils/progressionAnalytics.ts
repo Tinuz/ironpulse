@@ -270,7 +270,7 @@ export function formatProgressionDelta(result: ProgressionResult): string {
   
   switch (result.metric) {
     case 'weight':
-      return `${sign}${result.delta}kg`;
+      return `${sign}${Math.round(result.delta * 10) / 10}kg`;
     case 'reps':
       return `${sign}${result.delta} reps`;
     case 'volume':

@@ -71,8 +71,18 @@ export function getMuscleGroup(exerciseName: string, muscleGroupField?: string):
       'shoulders': 'shoulders',
       'biceps': 'arms',
       'triceps': 'arms',
+      'arms': 'arms',
       'legs': 'legs',
+      'quadriceps': 'legs',
+      'quads': 'legs',
+      'hamstrings': 'legs',
+      'hamstring': 'legs',
+      'glutes': 'glutes',
+      'glute': 'glutes',
+      'calves': 'calves',
+      'calf': 'calves',
       'core': 'abs',
+      'abs': 'abs',
       'full-body': 'chest', // Default to chest for full-body (could be split later)
       'cardio': 'abs' // Default to abs for cardio (core work)
     };
