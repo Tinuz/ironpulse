@@ -81,6 +81,7 @@ export function calculateVolumeLandmarks(workouts: WorkoutLog[]): VolumeLandmark
   const setCounts: Partial<Record<MuscleGroup, number>> = {};
 
   for (const w of workouts) {
+    if (w.isDeload) continue;
     if (new Date(w.date) < cutoff) continue;
     for (const ex of w.exercises) {
       if (ex.type === 'cardio') continue;
@@ -172,6 +173,7 @@ export function getExerciseWeeklyVolume(
   let historySets = 0;
   for (const w of workouts) {
     if (w.id === currentWorkoutId) continue;
+    if (w.isDeload) continue;
     if (new Date(w.date) < cutoff) continue;
     for (const ex of w.exercises) {
       if (ex.type === 'cardio') continue;
