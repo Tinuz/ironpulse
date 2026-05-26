@@ -31,7 +31,12 @@ const DURATION_OPTIONS: { weeks: 4 | 5 | 6; label: string; description: string }
 export default function CreateTrainingBlockModal({ isOpen, onClose }: CreateTrainingBlockModalProps) {
   const { createBlock } = useData()
 
-  const today = new Date().toISOString().split('T')[0]
+  // Default start date = Monday of the current week so block weeks always
+  // align with calendar weeks (same as Volume Targets widget).
+  const d = new Date();
+  const daysFromMon = d.getDay() === 0 ? 6 : d.getDay() - 1;
+  d.setDate(d.getDate() - daysFromMon);
+  const today = d.toISOString().split('T')[0];
   const [name, setName] = useState('')
   const [duration, setDuration] = useState<4 | 5 | 6>(5)
   const [focusMuscles, setFocusMuscles] = useState<TrainingBlockMuscle[]>([])

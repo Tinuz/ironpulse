@@ -156,10 +156,17 @@ export function getBlockProgress(
   const week = getCurrentBlockWeek(block, today);
   const deload = week === block.durationWeeks;
 
-  // Compute this week's date window [weekStart, weekEnd)
+  // Compute this week's date window aligned to the calendar week (Mon–Sun).
+  // Snapping to Monday ensures the block window matches Volume Targets and
+  // other widgets that also use calendar weeks.
   const blockStart = new Date(block.startDate);
-  const weekStart = new Date(blockStart);
-  weekStart.setDate(blockStart.getDate() + (week - 1) * 7);
+  const weekMidpoint = new Date(blockStart);
+  weekMidpoint.setDate(blockStart.getDate() + (week - 1) * 7);
+  const dayOfWeek = weekMidpoint.getDay(); // 0=Sun, 1=Mon, …, 6=Sat
+  const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+  const weekStart = new Date(weekMidpoint);
+  weekStart.setDate(weekMidpoint.getDate() - daysFromMonday);
+  weekStart.setHours(0, 0, 0, 0);
   const weekEnd = new Date(weekStart);
   weekEnd.setDate(weekStart.getDate() + 7);
 
