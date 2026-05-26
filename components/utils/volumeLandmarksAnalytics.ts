@@ -1,3 +1,4 @@
+import { startOfWeek } from 'date-fns';
 import { WorkoutLog } from '@/components/context/DataContext';
 import { getMuscleGroup, MuscleGroup, MUSCLE_GROUPS } from './volumeAnalytics';
 
@@ -71,12 +72,10 @@ const STATUS_META: Record<VolumeStatus, { label: string; color: string }> = {
 };
 
 /**
- * Count completed non-warmup sets per muscle group in the last 7 days (current week).
+ * Count completed non-warmup sets per muscle group in the current calendar week (Mon–Sun).
  */
 export function calculateVolumeLandmarks(workouts: WorkoutLog[]): VolumeLandmarksResult {
-  const cutoff = new Date();
-  cutoff.setDate(cutoff.getDate() - 6);
-  cutoff.setHours(0, 0, 0, 0);
+  const cutoff = startOfWeek(new Date(), { weekStartsOn: 1 });
 
   const setCounts: Partial<Record<MuscleGroup, number>> = {};
 
@@ -164,11 +163,9 @@ export function getExerciseWeeklyVolume(
 
   const lm = LANDMARKS[mg];
 
-  // Count completed non-warmup sets for this muscle group in the past 7 days,
-  // excluding the current in-progress workout (not saved yet).
-  const cutoff = new Date();
-  cutoff.setDate(cutoff.getDate() - 6);
-  cutoff.setHours(0, 0, 0, 0);
+  // Count completed non-warmup sets for this muscle group in the current calendar week
+  // (Mon–Sun), excluding the current in-progress workout (not saved yet).
+  const cutoff = startOfWeek(new Date(), { weekStartsOn: 1 });
 
   let historySets = 0;
   for (const w of workouts) {
