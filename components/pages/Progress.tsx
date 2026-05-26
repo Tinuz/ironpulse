@@ -39,6 +39,8 @@ export default function Progress() {
   const [chest, setChest] = useState('');
   const [biceps, setBiceps] = useState('');
   const [waist, setWaist] = useState('');
+  const [thighs, setThighs] = useState('');
+  const [calves, setCalves] = useState('');
 
   const handleSave = () => {
     const candidate = {
@@ -48,6 +50,8 @@ export default function Progress() {
       chest: chest ? Number(chest) : undefined,
       biceps: biceps ? Number(biceps) : undefined,
       waist: waist ? Number(waist) : undefined,
+      thighs: thighs ? Number(thighs) : undefined,
+      calves: calves ? Number(calves) : undefined,
     };
 
     const validation = BodyStatsSchema.safeParse(candidate);
@@ -75,6 +79,8 @@ export default function Progress() {
     setChest('');
     setBiceps('');
     setWaist('');
+    setThighs('');
+    setCalves('');
   };
 
   const chartData = [...bodyStats].reverse().map(stat => ({
@@ -93,6 +99,50 @@ export default function Progress() {
   }, [bodyStats, chartData]);
 
   const latestStats = bodyStats[0];
+
+  const referenceStats4to6Weeks = useMemo(() => {
+    if (!latestStats) return null;
+    const latestDate = new Date(latestStats.date).getTime();
+    const minAgeMs = 28 * 24 * 60 * 60 * 1000;
+    const maxAgeMs = 42 * 24 * 60 * 60 * 1000;
+
+    // Prefer a measurement from 4-6 weeks ago. If unavailable, use the closest older entry.
+    const inWindow = bodyStats.find(s => {
+      if (s.id === latestStats.id) return false;
+      const ageMs = latestDate - new Date(s.date).getTime();
+      return ageMs >= minAgeMs && ageMs <= maxAgeMs;
+    });
+
+    if (inWindow) return inWindow;
+
+    return bodyStats.find(s => {
+      if (s.id === latestStats.id) return false;
+      const ageMs = latestDate - new Date(s.date).getTime();
+      return ageMs > maxAgeMs;
+    }) || null;
+  }, [bodyStats, latestStats]);
+
+  const circumferenceTrend = useMemo(() => {
+    if (!latestStats || !referenceStats4to6Weeks) return [] as Array<{ key: string; label: string; latest: number; previous: number; diff: number }>;
+
+    const rows = [
+      { key: 'biceps', label: t.progress.biceps, latest: latestStats.biceps, previous: referenceStats4to6Weeks.biceps },
+      { key: 'chest', label: t.progress.chest, latest: latestStats.chest, previous: referenceStats4to6Weeks.chest },
+      { key: 'waist', label: t.progress.waist, latest: latestStats.waist, previous: referenceStats4to6Weeks.waist },
+      { key: 'thighs', label: t.progress.thighs, latest: latestStats.thighs, previous: referenceStats4to6Weeks.thighs },
+      { key: 'calves', label: t.progress.calves, latest: latestStats.calves, previous: referenceStats4to6Weeks.calves },
+    ];
+
+    return rows
+      .filter(r => r.latest != null && r.previous != null)
+      .map(r => ({
+        key: r.key,
+        label: r.label,
+        latest: r.latest as number,
+        previous: r.previous as number,
+        diff: Number(((r.latest as number) - (r.previous as number)).toFixed(1)),
+      }));
+  }, [latestStats, referenceStats4to6Weeks, t.progress.biceps, t.progress.calves, t.progress.chest, t.progress.thighs, t.progress.waist]);
 
   const frequentExercises = useMemo(() => 
     getMostFrequentExercises(history, 6), 
@@ -522,6 +572,31 @@ export default function Progress() {
               </div>
             )}
 
+            {circumferenceTrend.length > 0 && (
+              <div className="bg-card border border-white/5 rounded-2xl p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground">
+                    Omtrek progressie (4-6 weken)
+                  </h3>
+                  <span className="text-[11px] text-muted-foreground">
+                    vs {format(new Date(referenceStats4to6Weeks!.date), 'dd MMM')}
+                  </span>
+                </div>
+                <div className="space-y-2">
+                  {circumferenceTrend.map(item => (
+                    <div key={item.key} className="flex items-center justify-between bg-white/5 rounded-lg px-3 py-2">
+                      <div className="text-sm font-semibold">{item.label}</div>
+                      <div className={`text-sm font-black ${
+                        item.diff > 0 ? 'text-green-400' : item.diff < 0 ? 'text-red-400' : 'text-zinc-300'
+                      }`}>
+                        {item.diff > 0 ? '+' : ''}{item.diff} cm
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {chartData.length > 1 && (
               <div className="space-y-6">
                 <div className="h-64 w-full">
@@ -604,6 +679,9 @@ export default function Progress() {
                         {stat.weight && <span className="flex items-center gap-1"><Scale size={10} /> {stat.weight}kg</span>}
                         {stat.chest && <span className="flex items-center gap-1">Chest: {stat.chest}cm</span>}
                         {stat.biceps && <span className="flex items-center gap-1">Biceps: {stat.biceps}cm</span>}
+                        {stat.waist && <span className="flex items-center gap-1">Waist: {stat.waist}cm</span>}
+                        {stat.thighs && <span className="flex items-center gap-1">Thighs: {stat.thighs}cm</span>}
+                        {stat.calves && <span className="flex items-center gap-1">Calves: {stat.calves}cm</span>}
                       </div>
                     </div>
                     <button 
@@ -699,6 +777,26 @@ export default function Progress() {
                     />
                   </div>
                   <div className="space-y-2">
+                    <label className="text-xs uppercase font-bold text-muted-foreground">{t.progress.thighs} (cm)</label>
+                    <input
+                      type="number"
+                      value={thighs}
+                      onChange={(e) => setThighs(e.target.value)}
+                      className="w-full bg-white/5 rounded-lg px-3 py-3 font-mono font-bold focus:outline-none focus:ring-1 focus:ring-primary"
+                      placeholder="0"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs uppercase font-bold text-muted-foreground">{t.progress.calves} (cm)</label>
+                    <input
+                      type="number"
+                      value={calves}
+                      onChange={(e) => setCalves(e.target.value)}
+                      className="w-full bg-white/5 rounded-lg px-3 py-3 font-mono font-bold focus:outline-none focus:ring-1 focus:ring-primary"
+                      placeholder="0"
+                    />
+                  </div>
+                  <div className="space-y-2">
                     <label className="text-xs uppercase font-bold text-muted-foreground">{t.progress.age}</label>
                     <input
                       type="number"
@@ -712,7 +810,7 @@ export default function Progress() {
 
                 <button
                   onClick={handleSave}
-                  disabled={!weight && !height && !chest}
+                  disabled={!weight && !height && !age && !chest && !biceps && !waist && !thighs && !calves}
                   className="w-full py-4 bg-primary text-background font-black text-lg uppercase tracking-widest rounded-xl shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:scale-100"
                 >
                   {t.common.save}

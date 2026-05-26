@@ -142,6 +142,8 @@ export const generateUserContext = (
     if (latest.chest) context += `  - Borst: ${latest.chest}cm\n`;
     if (latest.biceps) context += `  - Biceps: ${latest.biceps}cm\n`;
     if (latest.waist) context += `  - Taille: ${latest.waist}cm\n`;
+    if (latest.thighs) context += `  - Bovenbenen: ${latest.thighs}cm\n`;
+    if (latest.calves) context += `  - Kuiten: ${latest.calves}cm\n`;
     
     // Trends
     if (bodyStats.length > 1) {

@@ -117,6 +117,7 @@ export const BodyStatsSchema = z.object({
   biceps: z.number().min(0).max(100).optional(),
   waist: z.number().min(0).max(300).optional(),
   thighs: z.number().min(0).max(200).optional(),
+  calves: z.number().min(0).max(120).optional(),
   shoulders: z.number().min(0).max(300).optional(),
   sleepQuality: z.number().int().min(1).max(5).optional(),
 });

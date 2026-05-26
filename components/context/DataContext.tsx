@@ -126,6 +126,7 @@ export interface BodyStats {
   biceps?: number;
   waist?: number;
   thighs?: number;
+  calves?: number;
   shoulders?: number;
   /** Subjectieve slaapkwaliteit 1–5 (1=erg slecht, 5=uitstekend) */
   sleepQuality?: number;
@@ -241,7 +242,7 @@ interface DataContextType {
   updateWorkout: (id: string, workout: Partial<WorkoutLog>) => Promise<void>;
   deleteWorkout: (id: string) => Promise<void>;
   addBodyStats: (stats: BodyStats) => void;
-  updateBodyStats: (id: string, updates: Partial<Pick<BodyStats, 'weight' | 'biceps' | 'waist' | 'chest' | 'sleepQuality'>>) => Promise<void>;
+  updateBodyStats: (id: string, updates: Partial<Pick<BodyStats, 'weight' | 'biceps' | 'waist' | 'chest' | 'thighs' | 'calves' | 'shoulders' | 'sleepQuality'>>) => Promise<void>;
   deleteBodyStats: (id: string) => void;
   addMeal: (date: string, item: Omit<NutritionItem, 'id'>) => void;
   updateMeal: (date: string, itemId: string, item: Omit<NutritionItem, 'id'>) => void;
@@ -461,6 +462,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           biceps: s.biceps || undefined,
           waist: s.waist || undefined,
           thighs: s.thighs || undefined,
+          calves: s.calves || undefined,
           shoulders: s.shoulders || undefined,
           sleepQuality: s.sleep_quality || undefined,
         })));
@@ -1013,6 +1015,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         biceps: stats.biceps,
         waist: stats.waist,
         thighs: stats.thighs,
+        calves: stats.calves,
         shoulders: stats.shoulders,
         sleep_quality: stats.sleepQuality,
       })
@@ -1030,6 +1033,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         biceps: data.biceps || undefined,
         waist: data.waist || undefined,
         thighs: data.thighs || undefined,
+        calves: data.calves || undefined,
         shoulders: data.shoulders || undefined,
         sleepQuality: data.sleep_quality || undefined,
       }].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
@@ -1050,13 +1054,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const updateBodyStats = async (
     id: string,
-    updates: Partial<Pick<BodyStats, 'weight' | 'biceps' | 'waist' | 'chest' | 'sleepQuality'>>
+    updates: Partial<Pick<BodyStats, 'weight' | 'biceps' | 'waist' | 'chest' | 'thighs' | 'calves' | 'shoulders' | 'sleepQuality'>>
   ) => {
     const dbUpdates: Record<string, unknown> = {};
     if (updates.weight !== undefined) dbUpdates.weight = updates.weight;
     if (updates.biceps !== undefined) dbUpdates.biceps = updates.biceps;
     if (updates.waist !== undefined) dbUpdates.waist = updates.waist;
     if (updates.chest !== undefined) dbUpdates.chest = updates.chest;
+    if (updates.thighs !== undefined) dbUpdates.thighs = updates.thighs;
+    if (updates.calves !== undefined) dbUpdates.calves = updates.calves;
+    if (updates.shoulders !== undefined) dbUpdates.shoulders = updates.shoulders;
     if (updates.sleepQuality !== undefined) dbUpdates.sleep_quality = updates.sleepQuality ?? null;
 
     const { error } = await supabase

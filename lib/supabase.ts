@@ -119,6 +119,7 @@ export type Database = {
           biceps: number | null
           waist: number | null
           thighs: number | null
+          calves: number | null
           shoulders: number | null
           created_at: string
         }
@@ -133,6 +134,7 @@ export type Database = {
           biceps?: number | null
           waist?: number | null
           thighs?: number | null
+          calves?: number | null
           shoulders?: number | null
           created_at?: string
         }
@@ -147,6 +149,7 @@ export type Database = {
           biceps?: number | null
           waist?: number | null
           thighs?: number | null
+          calves?: number | null
           shoulders?: number | null
           created_at?: string
         }
