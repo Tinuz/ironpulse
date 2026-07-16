@@ -864,6 +864,15 @@ export default function WorkoutLogger() {
     updateActiveWorkout(updated);
   };
 
+  const updateExerciseNextSessionNote = (exerciseIndex: number, note: string) => {
+    if (!workoutData) return;
+    const newExercises = [...workoutData.exercises];
+    newExercises[exerciseIndex].nextSessionNote = note || undefined;
+    const updated = { ...workoutData, exercises: newExercises };
+    setWorkoutData(updated);
+    updateActiveWorkout(updated);
+  };
+
   const toggleExerciseTag = (exerciseIndex: number, tag: string) => {
     if (!workoutData) return;
     const newExercises = [...workoutData.exercises];
@@ -1200,6 +1209,13 @@ export default function WorkoutLogger() {
                     )}
                   </div>
                 )}
+                {/* Previous-session focus reminder — surfaced at the top so you see it before you start */}
+                {previousExercises[0]?.nextSessionNote && (
+                  <div className="mt-2.5 mx-1 px-3 py-2 bg-amber-500/10 border border-amber-500/25 rounded-lg flex items-start gap-2">
+                    <span className="text-sm leading-none mt-0.5 shrink-0">📌</span>
+                    <p className="text-xs text-amber-300 leading-relaxed">{previousExercises[0].nextSessionNote}</p>
+                  </div>
+                )}
               </div>
               
               {/* Anatomy Image Section - Collapsible */}
@@ -1491,6 +1507,33 @@ export default function WorkoutLogger() {
 
                 {/* Notes Section */}
                 <div className="mt-4 pt-4 border-t border-white/5">
+                  {/* Previous session context — only shown when there's something to show */}
+                  {(previousExercises[0]?.notes || (previousExercises[0]?.tags && previousExercises[0].tags.length > 0)) && (
+                    <div className="mb-3 px-3 py-2.5 bg-white/[0.03] border border-white/8 rounded-lg">
+                      <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5">
+                        {t.workout.previousSessionNotes}
+                      </p>
+                      {previousExercises[0]?.tags && previousExercises[0].tags.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mb-1.5">
+                          {previousExercises[0].tags.map(tag => {
+                            const tagMap: Record<string, string> = {
+                              'Makkelijk': '💪 Makkelijk', 'Vermoeid': '😓 Vermoeid',
+                              'Pijn': '⚠️ Pijn', 'PR': '🏆 PR', 'Top set': '🔥 Top set',
+                            };
+                            return (
+                              <span key={tag} className="text-[10px] px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-muted-foreground/60">
+                                {tagMap[tag] ?? tag}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      )}
+                      {previousExercises[0]?.notes && (
+                        <p className="text-xs text-muted-foreground/70 italic leading-relaxed">{previousExercises[0].notes}</p>
+                      )}
+                    </div>
+                  )}
+
                   <label className="flex items-center gap-2 text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2 px-1">
                     <StickyNote size={14} />
                     {t.workout.notes}
@@ -1500,7 +1543,7 @@ export default function WorkoutLogger() {
                     onChange={(e) => updateExerciseNotes(exerciseIndex, e.target.value)}
                     placeholder={t.workout.notesPlaceholder}
                     className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-sm placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/50 focus:bg-white/10 transition-colors resize-none"
-                    rows={3}
+                    rows={2}
                   />
                   {/* Quick condition tags */}
                   <div className="mt-2 flex flex-wrap gap-1.5">
@@ -1526,6 +1569,21 @@ export default function WorkoutLogger() {
                         </button>
                       );
                     })}
+                  </div>
+
+                  {/* Next-session focus — saved here, surfaced prominently at the top next time */}
+                  <div className="mt-3 pt-3 border-t border-white/5">
+                    <label className="flex items-center gap-1.5 text-[10px] font-bold text-amber-400/80 uppercase tracking-wider mb-1.5 px-1">
+                      <span>📌</span>
+                      {t.workout.nextSessionFocus}
+                    </label>
+                    <input
+                      type="text"
+                      value={exercise.nextSessionNote || ''}
+                      onChange={(e) => updateExerciseNextSessionNote(exerciseIndex, e.target.value)}
+                      placeholder={t.workout.nextSessionFocusPlaceholder}
+                      className="w-full bg-amber-500/5 border border-amber-500/15 rounded-lg px-3 py-2 text-sm placeholder:text-muted-foreground/35 focus:outline-none focus:border-amber-500/40 focus:bg-amber-500/10 transition-colors"
+                    />
                   </div>
                 </div>
 

@@ -82,6 +82,8 @@ export interface WorkoutExercise {
   sets: WorkoutSet[]; // for strength exercises
   cardioData?: CardioData; // for cardio exercises
   notes?: string;
+  /** One-liner note surfaced prominently at the START of the *next* workout for this exercise. */
+  nextSessionNote?: string;
   tags?: string[]; // Quick-tap condition tags (e.g. 'Makkelijk', 'Vermoeid', 'Pijn', 'PR', 'Top set')
   durationMinutes?: number; // Duration of exercise in minutes (deprecated, use cardioData.duration)
   estimatedCalories?: number; // Calculated calories for this exercise
