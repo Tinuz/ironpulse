@@ -2,15 +2,23 @@ import { WorkoutLog } from '@/components/context/DataContext';
 import exercisesData from '@/exercisesv3.json';
 
 // Muscle group mapping (Engels → Nederlands voor UI)
+// Specific sub-muscles are listed alongside broad fallback buckets ('legs', 'arms').
+// Exercises whose muscleGroup field is already specific (hamstrings, biceps …)
+// are tracked at the sub-muscle level; generic 'legs'/'arms' remain as fallbacks.
 export const MUSCLE_GROUPS = {
-  chest: 'Borst',
-  back: 'Rug',
-  shoulders: 'Schouders',
-  legs: 'Benen',
-  arms: 'Armen',
-  abs: 'Buik',
-  glutes: 'Billen',
-  calves: 'Kuiten'
+  chest:      'Borst',
+  back:       'Rug',
+  shoulders:  'Schouders',
+  legs:       'Benen',        // broad fallback
+  quadriceps: 'Quadriceps',
+  hamstrings: 'Hamstrings',
+  arms:       'Armen',        // broad fallback
+  biceps:     'Biceps',
+  triceps:    'Triceps',
+  forearms:   'Onderarmen',
+  abs:        'Buik',
+  glutes:     'Billen',
+  calves:     'Kuiten',
 } as const;
 
 export type MuscleGroup = keyof typeof MUSCLE_GROUPS;
@@ -39,22 +47,28 @@ interface ExerciseData {
 const CUSTOM_MAPPINGS: Record<string, MuscleGroup> = {
   'bench press': 'chest',
   'bankdrukken': 'chest',
-  'squat': 'legs',
+  'squat': 'quadriceps',
   'deadlift': 'back',
   'pull up': 'back',
   'pullup': 'back',
   'lat pulldown': 'back',
   'overhead press': 'shoulders',
   'shoulder press': 'shoulders',
-  'bicep curl': 'arms',
-  'tricep': 'arms',
-  'leg press': 'legs',
-  'leg curl': 'legs',
-  'leg extension': 'legs',
+  'bicep curl': 'biceps',
+  'bicep': 'biceps',
+  'tricep': 'triceps',
+  'leg press': 'quadriceps',
+  'leg curl': 'hamstrings',
+  'leg extension': 'quadriceps',
   'calf raise': 'calves',
   'plank': 'abs',
   'crunch': 'abs',
-  'glute bridge': 'glutes'
+  'glute bridge': 'glutes',
+  'lunge': 'quadriceps',
+  'romanian deadlift': 'hamstrings',
+  'rdl': 'hamstrings',
+  'nordic': 'hamstrings',
+  'hip thrust': 'glutes',
 };
 
 /**
@@ -64,7 +78,9 @@ const CUSTOM_MAPPINGS: Record<string, MuscleGroup> = {
 export function getMuscleGroup(exerciseName: string, muscleGroupField?: string): MuscleGroup | null {
   // PRIORITY 1: Use muscleGroup field if available (direct from user selection)
   if (muscleGroupField) {
-    // Map new muscle group categories to analytics categories
+    // Map muscleGroup field values to analytics MuscleGroup keys.
+    // Specific sub-muscles (hamstrings, biceps …) map to their own key so volume
+    // is tracked at the granular level; broad aliases fall back to 'legs'/'arms'.
     const mapping: Record<string, MuscleGroup> = {
       'chest': 'chest',
       'back': 'back',
@@ -73,15 +89,21 @@ export function getMuscleGroup(exerciseName: string, muscleGroupField?: string):
       'middle-back': 'back',
       'lower-back': 'back',
       'shoulders': 'shoulders',
-      'biceps': 'arms',
-      'triceps': 'arms',
-      'arms': 'arms',
-      'forearms': 'arms',
-      'legs': 'legs',
-      'quadriceps': 'legs',
-      'quads': 'legs',
-      'hamstrings': 'legs',
-      'hamstring': 'legs',
+      // specific arm sub-muscles
+      'biceps': 'biceps',
+      'bicep': 'biceps',
+      'triceps': 'triceps',
+      'tricep': 'triceps',
+      'forearms': 'forearms',
+      'forearm': 'forearms',
+      'arms': 'arms',           // broad fallback
+      // specific leg sub-muscles
+      'quadriceps': 'quadriceps',
+      'quads': 'quadriceps',
+      'quad': 'quadriceps',
+      'hamstrings': 'hamstrings',
+      'hamstring': 'hamstrings',
+      'legs': 'legs',           // broad fallback
       'glutes': 'glutes',
       'glute': 'glutes',
       'calves': 'calves',
@@ -89,8 +111,8 @@ export function getMuscleGroup(exerciseName: string, muscleGroupField?: string):
       'core': 'abs',
       'abs': 'abs',
       'obliques': 'abs',
-      'full-body': 'chest', // Default to chest for full-body (could be split later)
-      'cardio': 'abs' // Default to abs for cardio (core work)
+      'full-body': 'chest',
+      'cardio': 'abs',
     };
     
     const mapped = mapping[muscleGroupField.toLowerCase()];

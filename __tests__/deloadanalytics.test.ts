@@ -103,6 +103,65 @@ describe('detectDeloadNeed — structure', () => {
   });
 });
 
+// ─── detectDeloadNeed — post-deload grace period ──────────────────────────────
+
+describe('detectDeloadNeed — post-deload grace period', () => {
+  it('does NOT recommend deload when isDeload=true workouts exist in the last 14 days', () => {
+    const heavyEx = makeExercise('Bench Press', [
+      makeSet(100, 10), makeSet(100, 10), makeSet(100, 10),
+    ]);
+    // 4 weeks of heavy training followed by a deload 3 days ago
+    const workouts: WorkoutLog[] = [
+      ...spreadWorkouts(8, 28, [heavyEx]),   // 4 weeks of heavy training
+      makeWorkout('d1', 5, [makeExercise('Bench Press', [makeSet(50, 10)])], true), // deload
+      makeWorkout('d2', 3, [makeExercise('Bench Press', [makeSet(50, 10)])], true), // deload
+      makeWorkout('b1', 1, [makeExercise('Bench Press', [makeSet(70, 8)])]),        // back to training
+    ];
+    const result = detectDeloadNeed(workouts);
+    expect(result.shouldDeload).toBe(false);
+    expect(result.signals).toHaveLength(0);
+    expect(result.recommendation).toContain('recent een deload gehad');
+  });
+
+  it('does NOT recommend deload when a single isDeload workout was done 13 days ago', () => {
+    const heavyEx = makeExercise('Bench Press', [
+      makeSet(100, 10), makeSet(100, 10), makeSet(100, 10),
+    ]);
+    const workouts: WorkoutLog[] = [
+      ...spreadWorkouts(8, 42, [heavyEx]),
+      makeWorkout('d1', 13, [makeExercise('Bench Press', [makeSet(50, 10)])], true),
+    ];
+    const result = detectDeloadNeed(workouts);
+    expect(result.shouldDeload).toBe(false);
+    expect(result.recommendation).toContain('recent een deload gehad');
+  });
+
+  it('DOES recommend deload when isDeload workout was 15+ days ago and signals are present', () => {
+    const heavyEx = makeExercise('Bench Press', [
+      makeSet(100, 10), makeSet(100, 10), makeSet(100, 10),
+    ]);
+    // Deload 15 days ago, then heavy training resumed → signals should fire again
+    const workouts: WorkoutLog[] = [
+      makeWorkout('d1', 15, [makeExercise('Bench Press', [makeSet(50, 10)])], true),
+      ...spreadWorkouts(6, 14, [heavyEx]),
+    ];
+    // Grace period is expired (15 days > 14 day window)
+    const result = detectDeloadNeed(workouts);
+    expect(result.recommendation).not.toContain('recent een deload gehad');
+  });
+
+  it('DOES recommend deload when no recent deload and signals are present', () => {
+    const heavyEx = makeExercise('Bench Press', [
+      makeSet(100, 10), makeSet(100, 10), makeSet(100, 10),
+    ]);
+    // 6 weeks of continuous heavy training, no deload
+    const workouts = spreadWorkouts(12, 42, [heavyEx]);
+    const result = detectDeloadNeed(workouts);
+    // Just check that the grace period doesn't incorrectly suppress signals here
+    expect(result.recommendation).not.toContain('recent een deload gehad');
+  });
+});
+
 // ─── detectDeloadNeed — volume_decline signal ─────────────────────────────────
 
 describe('detectDeloadNeed — volume decline signal', () => {
@@ -210,10 +269,11 @@ describe('detectDeloadNeed — performance decline signal', () => {
 // ─── detectDeloadNeed — multiple_plateaus signal ──────────────────────────────
 
 describe('detectDeloadNeed — multiple plateaus signal', () => {
-  it('fires multiple_plateaus when 3+ COMPOUND exercises are stagnant', () => {
+  it('fires multiple_plateaus when 4+ COMPOUND exercises are stagnant', () => {
     const stagnantSet = [makeSet(80, 5)];
-    // Bench Press, Squat, Deadlift are all recognised as compound
-    const exercises = ['Bench Press', 'Squat', 'Deadlift'];
+    // Bench Press, Squat, Deadlift, Overhead Press — all compound
+    // Threshold is ≥4 (raised from 3 to avoid false positives with long training histories)
+    const exercises = ['Bench Press', 'Squat', 'Deadlift', 'Overhead Press'];
 
     const workouts = Array.from({ length: 4 }, (_, i) =>
       makeWorkout(`w${i}`, (3 - i) * 7, exercises.map(n => makeExercise(n, stagnantSet))),

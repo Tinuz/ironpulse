@@ -39,6 +39,28 @@ export function detectDeloadNeed(
   weeksToAnalyze: number = 6,
   bodyStats: BodyStats[] = []
 ): DeloadRecommendation {
+  // ── Post-deload grace period ──────────────────────────────────────────────
+  // After completing a deload the analysis window still contains the heavy
+  // pre-deload weeks, which would immediately re-trigger a deload recommendation.
+  // Suppress the recommendation for 14 days after the last isDeload=true workout.
+  const fourteenDaysAgo = new Date();
+  fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
+
+  const hasRecentExplicitDeload = workouts.some(
+    w => w.isDeload && new Date(w.date) >= fourteenDaysAgo,
+  );
+
+  if (hasRecentExplicitDeload) {
+    return {
+      shouldDeload: false,
+      urgency: 'low',
+      weeksOfHighVolume: 0,
+      signals: [],
+      recommendation: 'Je hebt recent een deload gehad. Bouw het volume rustig weer op! 💪',
+    };
+  }
+  // ─────────────────────────────────────────────────────────────────────────
+
   // Exclude deload workouts from fatigue analysis
   const nonDeloadWorkouts = workouts.filter(w => !w.isDeload);
   

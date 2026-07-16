@@ -25,16 +25,23 @@ export interface VolumeLandmark {
   mrv: number;  // Maximum Recoverable Volume
 }
 
-// Muscle-specific landmarks (some muscles recover faster/need more volume)
+// Muscle-specific landmarks (RP Strength / Israetel & Hoffman 2019)
+// Broad buckets ('legs', 'arms') are kept as fallbacks for exercises that
+// only carry a generic muscle group tag.
 const LANDMARKS: Record<MuscleGroup, VolumeLandmark> = {
-  chest:     { mv: 6, mev: 8,  mavLow: 10, mavHigh: 18, mrv: 22 },
-  back:      { mv: 6, mev: 10, mavLow: 12, mavHigh: 20, mrv: 25 },
-  shoulders: { mv: 6, mev: 8,  mavLow: 10, mavHigh: 20, mrv: 26 },
-  legs:      { mv: 6, mev: 8,  mavLow: 12, mavHigh: 20, mrv: 25 },
-  arms:      { mv: 4, mev: 6,  mavLow: 8,  mavHigh: 18, mrv: 26 },
-  abs:       { mv: 4, mev: 6,  mavLow: 8,  mavHigh: 16, mrv: 20 },
-  glutes:    { mv: 4, mev: 6,  mavLow: 8,  mavHigh: 16, mrv: 20 },
-  calves:    { mv: 6, mev: 8,  mavLow: 10, mavHigh: 16, mrv: 20 },
+  chest:      { mv: 6, mev: 8,  mavLow: 10, mavHigh: 18, mrv: 22 },
+  back:       { mv: 6, mev: 10, mavLow: 12, mavHigh: 20, mrv: 25 },
+  shoulders:  { mv: 6, mev: 8,  mavLow: 10, mavHigh: 20, mrv: 26 },
+  legs:       { mv: 6, mev: 8,  mavLow: 12, mavHigh: 20, mrv: 25 }, // broad fallback
+  quadriceps: { mv: 6, mev: 8,  mavLow: 12, mavHigh: 20, mrv: 25 },
+  hamstrings: { mv: 4, mev: 6,  mavLow: 10, mavHigh: 16, mrv: 20 },
+  arms:       { mv: 4, mev: 6,  mavLow: 8,  mavHigh: 18, mrv: 26 }, // broad fallback
+  biceps:     { mv: 4, mev: 6,  mavLow: 8,  mavHigh: 18, mrv: 26 },
+  triceps:    { mv: 4, mev: 6,  mavLow: 10, mavHigh: 18, mrv: 26 },
+  forearms:   { mv: 2, mev: 4,  mavLow: 6,  mavHigh: 14, mrv: 20 },
+  abs:        { mv: 4, mev: 6,  mavLow: 8,  mavHigh: 16, mrv: 20 },
+  glutes:     { mv: 4, mev: 6,  mavLow: 8,  mavHigh: 16, mrv: 20 },
+  calves:     { mv: 6, mev: 8,  mavLow: 10, mavHigh: 16, mrv: 20 },
 };
 
 export type VolumeStatus = 'below_mv' | 'mv_to_mev' | 'mav' | 'approaching_mrv' | 'at_mrv';
