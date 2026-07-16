@@ -28,7 +28,7 @@ const item = {
 }
 
 export default function PlayPage() {
-  const { schemas, history, startWorkout, updateActiveWorkout, deleteSchema } = useData()
+  const { schemas, history, startWorkout, updateActiveWorkout, deleteSchema, isDataLoaded } = useData()
   const { t, language } = useLanguage()
   const router = useRouter()
   const [schemaMenuOpen, setSchemaMenuOpen] = useState<string | null>(null)
@@ -202,6 +202,8 @@ export default function PlayPage() {
   }
 
   const handleBriefingStart = (deloadMode: boolean) => {
+    // Guard against race condition: history may not have loaded yet
+    if (!isDataLoaded) return
     const schema = schemas.find(s => s.id === briefingSchemaId!)
     if (!schema) return
     const workout = startWorkout(schema)
@@ -227,6 +229,7 @@ export default function PlayPage() {
   }
 
   const handleQuickStart = () => {
+    if (!isDataLoaded) return
     startWorkout()
     router.push('/workout')
   }
@@ -331,7 +334,8 @@ export default function PlayPage() {
             <motion.button
               variants={item}
               onClick={handleQuickStart}
-              className="bg-gradient-to-br from-primary/20 to-accent/20 border-2 border-dashed border-primary/40 rounded-2xl p-4 hover:border-primary transition-all group"
+              disabled={!isDataLoaded}
+              className="bg-gradient-to-br from-primary/20 to-accent/20 border-2 border-dashed border-primary/40 rounded-2xl p-4 hover:border-primary transition-all group disabled:opacity-60 disabled:cursor-wait"
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">

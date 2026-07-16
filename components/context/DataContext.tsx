@@ -232,6 +232,8 @@ interface DataContextType {
   userProfile: UserProfile | null;
   achievements: string[]; // Array of unlocked achievement IDs
   unlockedAchievement: { id: string; name: string; description: string; icon: string; category: string } | null;
+  /** True once the initial Supabase data load has completed. Use this to guard startWorkout calls. */
+  isDataLoaded: boolean;
   addSchema: (schema: Schema) => void;
   updateSchema: (id: string, schema: Schema) => Promise<void>;
   deleteSchema: (id: string) => void;
@@ -334,6 +336,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [showRecoveryModal, setShowRecoveryModal] = useState(false);
   const [incompleteWorkout, setIncompleteWorkout] = useState<WorkoutLog | null>(null);
   const [hasCheckedIncomplete, setHasCheckedIncomplete] = useState(false); // Track if we've checked for incomplete workout
+  // True once loadAllData() has finished — used to gate startWorkout so set pre-fill uses real history
+  const [isDataLoaded, setIsDataLoaded] = useState(false);
   
   // Session flag - set in sessionStorage to detect app restarts
   const isNewSession = typeof window !== 'undefined' && !sessionStorage.getItem('ft_session_active');
@@ -563,8 +567,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setActiveWorkout(parsedWorkout);
       }
 
+      // Mark data as fully loaded so UI can enable the start-workout buttons
+      setIsDataLoaded(true);
+
     } catch (error) {
       console.error('Error loading data:', error);
+      // Still mark as loaded so the UI doesn't stay blocked on error
+      setIsDataLoaded(true);
     }
   };
 
@@ -818,8 +827,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }));
           } else {
             // Use last logged weights if available (consistent across schemas),
-            // otherwise fall back to the schema's startWeight
-            const lastCompletedSets = lastExercise?.sets.filter(s => s.completed && !s.isWarmup) ?? [];
+            // otherwise fall back to the schema's startWeight.
+            // Prefer completed non-warmup sets; if none were marked completed
+            // (e.g. user forgot to check them off), fall back to ALL non-warmup sets
+            // so the weight data from the previous session is never silently discarded.
+            const lastWorkingSets = (lastExercise?.sets ?? []).filter(s => !s.isWarmup);
+            const lastCompletedSets = lastWorkingSets.some(s => s.completed)
+              ? lastWorkingSets.filter(s => s.completed)
+              : lastWorkingSets;
             sets = Array(e.targetSets).fill(null).map((_, i) => {
               const lastSet = lastCompletedSets[i] ?? lastCompletedSets[lastCompletedSets.length - 1];
               return {
@@ -1653,6 +1668,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       userProfile,
       achievements,
       unlockedAchievement,
+      isDataLoaded,
       restDays,
       addRestDay,
       removeRestDay,
