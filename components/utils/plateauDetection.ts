@@ -37,7 +37,16 @@ export function detectAllPlateaus(
   const plateaus: EnhancedPlateauDetection[] = [];
   
   exerciseNames.forEach(exerciseName => {
-    const detection = detectPlateau(exerciseName, nonDeloadWorkouts, threshold);
+    const isCompound = isCompoundExercise(exerciseName);
+    // Evidence-based session thresholds (Schoenfeld et al. 2017):
+    // 3 sessions at 2×/week ≈ 10–15 days — far too short to call a plateau.
+    // Compound lifts: min 4 sessions (high neural complexity, slower adaptation).
+    // Isolation lifts: min 5 sessions (higher natural variance; local fatigue clears faster).
+    const exerciseThreshold = isCompound
+      ? Math.max(threshold + 1, 4)
+      : Math.max(threshold + 2, 5);
+
+    const detection = detectPlateau(exerciseName, nonDeloadWorkouts, exerciseThreshold);
     
     if (detection.isPlateaued) {
       const relevantWorkouts = nonDeloadWorkouts
@@ -56,6 +65,12 @@ export function detectAllPlateaus(
             / (1000 * 60 * 60 * 24 * 7)
           ))
         : 1;
+      
+      // Minimum calendar-time guard: natural weekly variance makes any window shorter
+      // than this meaningless as a plateau signal (Haff & Triplett 2015).
+      // Compounds need ≥3 weeks; isolation ≥4 weeks (more local variance / accommodation).
+      const minWeeks = isCompound ? 3 : 4;
+      if (weeksStagnant < minWeeks) return; // skip — not enough time to be a true plateau
       
       // Get muscle group from most recent workout with this exercise
       const muscleGroup = relevantWorkouts[0]?.exercises.find(ex => ex.name === exerciseName)?.muscleGroup;
@@ -232,9 +247,13 @@ export async function getAISuggestionsForPlateau(
 export type PlateauSeverity = 'mild' | 'moderate' | 'severe';
 
 export function getPlateauSeverity(weeksStagnant: number): PlateauSeverity {
-  if (weeksStagnant >= 4) return 'severe';
-  if (weeksStagnant >= 2) return 'moderate';
-  return 'mild';
+  // Thresholds calibrated to Schoenfeld (2017) and Zatsiorsky & Kraemer (2006):
+  //  3–4 weeks: accommodation — consider variation (mild)
+  //  5–7 weeks: prolonged stagnation — intervention needed (moderate)
+  //  8+  weeks: chronic plateau — major programming change required (severe)
+  if (weeksStagnant >= 8) return 'severe';
+  if (weeksStagnant >= 5) return 'moderate';
+  return 'mild'; // 3–4 weeks
 }
 
 /**

@@ -4,7 +4,7 @@ vi.mock('@/components/context/DataContext', () => ({}));
 // plateauDetection imports strengthAnalytics which imports workoutCalculations.
 // workoutCalculations imports DataContext for types only — mock prevents module execution issues.
 
-import { detectAllPlateaus } from '@/components/utils/plateauDetection';
+import { detectAllPlateaus, getPlateauSeverity } from '@/components/utils/plateauDetection';
 import type { WorkoutLog, WorkoutExercise, WorkoutSet } from '@/components/context/DataContext';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -49,7 +49,7 @@ describe('detectAllPlateaus', () => {
       makeWorkout('w1', 14, [makeExercise('Bench Press', [makeSet(80, 5)])]),
       makeWorkout('w2', 7, [makeExercise('Bench Press', [makeSet(80, 5)])]),
     ];
-    // threshold defaults to 3; only 2 workouts → no plateau detection
+    // Bench Press is a compound → internal threshold = 4; only 2 workouts → no plateau
     expect(detectAllPlateaus(workouts)).toEqual([]);
   });
 
@@ -102,5 +102,66 @@ describe('detectAllPlateaus', () => {
     if (plateaus.length > 1) {
       expect(plateaus[0].weeksStagnant).toBeGreaterThanOrEqual(plateaus[1].weeksStagnant);
     }
+  });
+
+  // ─── Compound vs isolation thresholds ────────────────────────────────────
+
+  it('does NOT flag compound with 4 stagnant sessions spanning only 2 calendar weeks', () => {
+    // 2× per week training: 4 sessions but only 2 weeks — minimum is 3 weeks for compounds
+    const sameWeightSet = [makeSet(80, 5)];
+    const workouts = [
+      makeWorkout('w1', 14, [makeExercise('Bench Press', sameWeightSet)]),
+      makeWorkout('w2', 9,  [makeExercise('Bench Press', sameWeightSet)]),
+      makeWorkout('w3', 5,  [makeExercise('Bench Press', sameWeightSet)]),
+      makeWorkout('w4', 0,  [makeExercise('Bench Press', sameWeightSet)]),
+    ];
+    // 4 sessions ≥ compound threshold (4) but weeksStagnant = 2 < minimum 3 weeks
+    expect(detectAllPlateaus(workouts)).toEqual([]);
+  });
+
+  it('does NOT flag isolation exercise with only 4 sessions (below threshold of 5)', () => {
+    const sameWeightSet = [makeSet(15, 15)];
+    const workouts = [
+      makeWorkout('w1', 28, [makeExercise('Lateral Raise', sameWeightSet)]),
+      makeWorkout('w2', 21, [makeExercise('Lateral Raise', sameWeightSet)]),
+      makeWorkout('w3', 14, [makeExercise('Lateral Raise', sameWeightSet)]),
+      makeWorkout('w4', 7,  [makeExercise('Lateral Raise', sameWeightSet)]),
+    ];
+    // 4 sessions < isolation threshold (5) → no plateau, even with 3 weeks span
+    expect(detectAllPlateaus(workouts)).toEqual([]);
+  });
+
+  it('detects plateau for isolation exercise with 5 sessions spanning 4+ weeks', () => {
+    const sameWeightSet = [makeSet(15, 15)];
+    const workouts = [
+      makeWorkout('w1', 35, [makeExercise('Lateral Raise', sameWeightSet)]),
+      makeWorkout('w2', 28, [makeExercise('Lateral Raise', sameWeightSet)]),
+      makeWorkout('w3', 21, [makeExercise('Lateral Raise', sameWeightSet)]),
+      makeWorkout('w4', 14, [makeExercise('Lateral Raise', sameWeightSet)]),
+      makeWorkout('w5', 7,  [makeExercise('Lateral Raise', sameWeightSet)]),
+    ];
+    // 5 sessions ≥ isolation threshold (5), 35 days ≥ 4-week minimum → plateau detected
+    const plateaus = detectAllPlateaus(workouts);
+    expect(plateaus.length).toBeGreaterThan(0);
+    expect(plateaus[0].exerciseName).toBe('Lateral Raise');
+  });
+});
+
+// ─── getPlateauSeverity ───────────────────────────────────────────────────────
+
+describe('getPlateauSeverity', () => {
+  it('mild for 3–4 weeks stagnant', () => {
+    expect(getPlateauSeverity(3)).toBe('mild');
+    expect(getPlateauSeverity(4)).toBe('mild');
+  });
+
+  it('moderate for 5–7 weeks stagnant', () => {
+    expect(getPlateauSeverity(5)).toBe('moderate');
+    expect(getPlateauSeverity(7)).toBe('moderate');
+  });
+
+  it('severe for 8+ weeks stagnant', () => {
+    expect(getPlateauSeverity(8)).toBe('severe');
+    expect(getPlateauSeverity(12)).toBe('severe');
   });
 });
