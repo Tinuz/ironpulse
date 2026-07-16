@@ -10,7 +10,7 @@ export default function DeloadRecommendationWidget() {
   const { history, restDays, bodyStats } = useData()
   
   const restDayDates = restDays.map(r => r.date)
-  const recommendation = detectDeloadNeed(history, 6, bodyStats)
+  const recommendation = detectDeloadNeed(history, 6, bodyStats, restDays)
   const currentlyDeloading = isCurrentlyDeloading(history, restDayDates)
   
   // Don't show if not enough data

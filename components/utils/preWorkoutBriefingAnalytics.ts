@@ -1,4 +1,4 @@
-import { WorkoutLog, Schema, BodyStats } from '@/components/context/DataContext';
+import { WorkoutLog, Schema, BodyStats, RestDay } from '@/components/context/DataContext';
 import { calculateACWR } from './acwrAnalytics';
 import { detectDeloadNeed } from './deloadAnalytics';
 import { calculateVolumeLandmarks } from './volumeLandmarksAnalytics';
@@ -138,7 +138,8 @@ const MUSCLE_LABEL: Record<string, string> = {
 export function generatePreWorkoutBriefing(
   history: WorkoutLog[],
   schema: Schema,
-  bodyStats: BodyStats[] = []
+  bodyStats: BodyStats[] = [],
+  restDays: RestDay[] = []
 ): PreWorkoutBriefing {
   const insights: BriefingInsight[] = [];
   let readiness = 100;
@@ -177,7 +178,7 @@ export function generatePreWorkoutBriefing(
   }
 
   // ── 2. Deload detection ───────────────────────────────────
-  const deloadRec = detectDeloadNeed(history, 6, bodyStats);
+  const deloadRec = detectDeloadNeed(history, 6, bodyStats, restDays);
   if (deloadRec.shouldDeload) {
     if (deloadRec.urgency === 'critical' || deloadRec.urgency === 'high') {
       readiness -= 25;

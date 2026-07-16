@@ -16,7 +16,7 @@ import { describe, it, expect, vi } from 'vitest';
 vi.mock('@/components/context/DataContext', () => ({}));
 
 import { detectDeloadNeed } from '@/components/utils/deloadAnalytics';
-import type { WorkoutLog, WorkoutExercise, WorkoutSet } from '@/components/context/DataContext';
+import type { WorkoutLog, WorkoutExercise, WorkoutSet, RestDay } from '@/components/context/DataContext';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -158,6 +158,57 @@ describe('detectDeloadNeed — post-deload grace period', () => {
     const workouts = spreadWorkouts(12, 42, [heavyEx]);
     const result = detectDeloadNeed(workouts);
     // Just check that the grace period doesn't incorrectly suppress signals here
+    expect(result.recommendation).not.toContain('recent een deload gehad');
+  });
+
+  it('does NOT recommend deload when deload REST DAYS (type=deload) exist in the last 14 days', () => {
+    const heavyEx = makeExercise('Bench Press', [
+      makeSet(100, 10), makeSet(100, 10), makeSet(100, 10),
+    ]);
+    const workouts = spreadWorkouts(8, 56, [heavyEx]);
+    // No isDeload=true workouts — user deloaded purely via rest days
+    const makeRestDay = (daysAgo: number): RestDay => {
+      const d = new Date();
+      d.setDate(d.getDate() - daysAgo);
+      return { id: `rd${daysAgo}`, date: d.toISOString().split('T')[0], type: 'deload' };
+    };
+    const restDays: RestDay[] = [makeRestDay(3), makeRestDay(4), makeRestDay(5), makeRestDay(6)];
+    const result = detectDeloadNeed(workouts, 6, [], restDays);
+    expect(result.shouldDeload).toBe(false);
+    expect(result.recommendation).toContain('recent een deload gehad');
+  });
+
+  it('DOES recommend deload when deload rest days were 15+ days ago and signals are present', () => {
+    const heavyEx = makeExercise('Bench Press', [
+      makeSet(100, 10), makeSet(100, 10), makeSet(100, 10),
+    ]);
+    const makeRestDay = (daysAgo: number): RestDay => {
+      const d = new Date();
+      d.setDate(d.getDate() - daysAgo);
+      return { id: `rd${daysAgo}`, date: d.toISOString().split('T')[0], type: 'deload' };
+    };
+    const restDays: RestDay[] = [makeRestDay(15), makeRestDay(16), makeRestDay(17)];
+    // Heavy training resumed after the rest days
+    const workouts = spreadWorkouts(6, 14, [heavyEx]);
+    const result = detectDeloadNeed(workouts, 6, [], restDays);
+    // Grace period expired — signals should be able to fire again
+    expect(result.recommendation).not.toContain('recent een deload gehad');
+  });
+
+  it('does NOT recommend deload when rest days have type=rest (not deload) — only deload type triggers grace', () => {
+    const heavyEx = makeExercise('Bench Press', [
+      makeSet(100, 10), makeSet(100, 10), makeSet(100, 10),
+    ]);
+    const workouts = spreadWorkouts(12, 42, [heavyEx]);
+    const makeRestDay = (daysAgo: number, type: RestDay['type']): RestDay => {
+      const d = new Date();
+      d.setDate(d.getDate() - daysAgo);
+      return { id: `rd${daysAgo}`, date: d.toISOString().split('T')[0], type };
+    };
+    // These are type='rest', not type='deload' — should NOT trigger the grace period
+    const restDays: RestDay[] = [makeRestDay(3, 'rest'), makeRestDay(4, 'rest')];
+    const result = detectDeloadNeed(workouts, 6, [], restDays);
+    // Grace period should NOT fire — recommendation should not be the deload-suppressed message
     expect(result.recommendation).not.toContain('recent een deload gehad');
   });
 });

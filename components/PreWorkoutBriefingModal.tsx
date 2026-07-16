@@ -214,11 +214,11 @@ function ExerciseRow({ ex }: { ex: ExerciseBriefing }) {
 // ────────────────────────────────────────────────────────────
 
 export default function PreWorkoutBriefingModal({ schema, onStart, onCancel }: Props) {
-  const { history, bodyStats } = useData()
+  const { history, bodyStats, restDays } = useData()
 
   const briefing: PreWorkoutBriefing = useMemo(
-    () => generatePreWorkoutBriefing(history, schema, bodyStats),
-    [history, schema, bodyStats]
+    () => generatePreWorkoutBriefing(history, schema, bodyStats, restDays),
+    [history, schema, bodyStats, restDays]
   )
 
   const { muscles: volumeMuscles } = useMemo(

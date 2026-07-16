@@ -1,4 +1,4 @@
-import { WorkoutLog, BodyStats } from '@/components/context/DataContext';
+import { WorkoutLog, BodyStats, RestDay } from '@/components/context/DataContext';
 import { calculateWeeklySummary } from './weeklyAnalytics';
 import { detectAllPlateaus } from './plateauDetection';
 import { isCompoundExercise } from './exerciseClassification';
@@ -37,7 +37,8 @@ export interface DeloadProtocol {
 export function detectDeloadNeed(
   workouts: WorkoutLog[],
   weeksToAnalyze: number = 6,
-  bodyStats: BodyStats[] = []
+  bodyStats: BodyStats[] = [],
+  restDays: RestDay[] = []
 ): DeloadRecommendation {
   // ── Post-deload grace period ──────────────────────────────────────────────
   // After completing a deload the analysis window still contains the heavy
@@ -49,8 +50,13 @@ export function detectDeloadNeed(
   const hasRecentExplicitDeload = workouts.some(
     w => w.isDeload && new Date(w.date) >= fourteenDaysAgo,
   );
+  // Also suppress when the user marked rest days of type 'deload' in the last 14 days
+  // (deload via full rest, without any isDeload=true workout log)
+  const hasRecentDeloadRestDays = restDays.some(
+    r => r.type === 'deload' && new Date(r.date) >= fourteenDaysAgo,
+  );
 
-  if (hasRecentExplicitDeload) {
+  if (hasRecentExplicitDeload || hasRecentDeloadRestDays) {
     return {
       shouldDeload: false,
       urgency: 'low',
