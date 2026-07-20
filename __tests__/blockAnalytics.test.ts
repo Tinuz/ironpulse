@@ -28,6 +28,10 @@ import {
   isDeloadWeek,
   getBlockWeekLabel,
   getBlockProgress,
+  getCurrentCycle,
+  getCurrentPhase,
+  getBlockPhaseLabel,
+  isFailurePermitted,
   BLOCK_START_SETS,
   SETS_PER_BUILD_WEEK,
 } from '@/lib/blockAnalytics';
@@ -58,11 +62,13 @@ function dateAgo(daysAgo: number): string {
 function makeWorkout(
   daysAgo: number,
   exercises: WorkoutExercise[],
-  isDeload = false,
+  isDeloadOrSchemaId: boolean | string = false,
 ): WorkoutLog {
+  const isDeload = typeof isDeloadOrSchemaId === 'boolean' ? isDeloadOrSchemaId : false;
+  const schemaId = typeof isDeloadOrSchemaId === 'string' ? isDeloadOrSchemaId : null;
   return {
     id: `w-${daysAgo}`,
-    schemaId: null,
+    schemaId,
     name: 'Test',
     date: dateAgo(daysAgo),
     startTime: Date.now(),
@@ -349,5 +355,201 @@ describe('getBlockProgress', () => {
     const back = result.maintenanceMuscles.find(m => m.muscle === 'back')!;
     const expectedTarget = Math.max(1, Math.round(BLOCK_START_SETS.back * 0.5));
     expect(back.mevTarget).toBe(expectedTarget);
+  });
+});
+
+// ─── getCurrentCycle ──────────────────────────────────────────────────────────
+
+describe('getCurrentCycle', () => {
+  it('returns 1 when no workouts logged yet (schemaRotation)', () => {
+    const block = makeBlock({
+      totalCycles: 7,
+      schemaRotation: ['schema-upper-a'],
+    });
+    expect(getCurrentCycle(block, [])).toBe(1);
+  });
+
+  it('counts occurrences of first schema as cycle number', () => {
+    const schemaId = 'schema-upper-a';
+    const block = makeBlock({
+      totalCycles: 7,
+      schemaRotation: [schemaId, 'schema-lower-a', 'schema-upper-b', 'schema-lower-b'],
+      startDate: dateAgo(30).split('T')[0], // block started 30 days ago so workouts fit within
+    });
+    const workouts: WorkoutLog[] = [
+      makeWorkout(10, [], schemaId),
+      makeWorkout(7,  [], 'schema-lower-a'),
+      makeWorkout(4,  [], 'schema-upper-b'),
+      makeWorkout(1,  [], schemaId),   // second Upper A = cycle 2
+    ];
+    // Two Upper A sessions → cycle 2
+    expect(getCurrentCycle(block, workouts)).toBe(2);
+  });
+
+  it('clamps to totalCycles when more sessions exist than cycles', () => {
+    const schemaId = 'schema-upper-a';
+    const block = makeBlock({
+      totalCycles: 3,
+      schemaRotation: [schemaId],
+      startDate: dateAgo(30).split('T')[0],
+    });
+    const workouts: WorkoutLog[] = [
+      makeWorkout(20, [], schemaId),
+      makeWorkout(15, [], schemaId),
+      makeWorkout(10, [], schemaId),
+      makeWorkout(5,  [], schemaId), // 4 sessions but max 3 cycles
+    ];
+    expect(getCurrentCycle(block, workouts)).toBe(3);
+  });
+
+  it('falls back to calendar estimate when no schemaRotation', () => {
+    // 12 days in → floor(12 / 6) + 1 = 3
+    const start = new Date();
+    start.setDate(start.getDate() - 12);
+    const block = makeBlock({
+      totalCycles: 7,
+      startDate: start.toISOString().split('T')[0],
+      // No schemaRotation
+    });
+    expect(getCurrentCycle(block, [])).toBe(3);
+  });
+
+  it('calendar fallback clamps to 1 on day 0', () => {
+    const block = makeBlock({ totalCycles: 7 });
+    // startDate is today, so daysDiff = 0 → floor(0 / 6) + 1 = 1
+    expect(getCurrentCycle(block, [])).toBe(1);
+  });
+});
+
+// ─── getCurrentPhase ──────────────────────────────────────────────────────────
+
+const SAMPLE_PHASES = [
+  { name: 'Instapfase', emoji: '🌱', cycleStart: 1, cycleEnd: 2, targetRIR: '2', isDeload: false },
+  { name: 'Opbouwfase', emoji: '📈', cycleStart: 3, cycleEnd: 4, targetRIR: '1-2', isDeload: false, failurePermittedExercises: ['machine chest press'] },
+  { name: 'Piekfase',   emoji: '🔥', cycleStart: 5, cycleEnd: 6, targetRIR: '0-1', isDeload: false, failurePermittedExercises: ['machine chest press', 'pec fly'] },
+  { name: 'Deload',     emoji: '😴', cycleStart: 7, cycleEnd: 7, targetRIR: '3-4', isDeload: true },
+];
+
+describe('getCurrentPhase', () => {
+  it('returns null when block has no phases', () => {
+    const block = makeBlock({ totalCycles: 7 });
+    expect(getCurrentPhase(block, [])).toBeNull();
+  });
+
+  it('returns Instapfase for cycle 1', () => {
+    const block = makeBlock({
+      totalCycles: 7,
+      phases: SAMPLE_PHASES,
+      schemaRotation: ['upper-a'],
+    });
+    // 0 upper-a sessions → cycle 1
+    const result = getCurrentPhase(block, [])!;
+    expect(result).not.toBeNull();
+    expect(result.name).toBe('Instapfase');
+  });
+
+  it('returns Opbouwfase for cycle 3', () => {
+    const block = makeBlock({
+      totalCycles: 7,
+      phases: SAMPLE_PHASES,
+      schemaRotation: ['upper-a'],
+      startDate: dateAgo(30).split('T')[0],
+    });
+    const workouts: WorkoutLog[] = [
+      makeWorkout(14, [], 'upper-a'),
+      makeWorkout(7,  [], 'upper-a'),
+      makeWorkout(1,  [], 'upper-a'), // 3 upper-a → cycle 3
+    ];
+    const result = getCurrentPhase(block, workouts)!;
+    expect(result.name).toBe('Opbouwfase');
+  });
+
+  it('returns Piekfase for cycle 5', () => {
+    const block = makeBlock({
+      totalCycles: 7,
+      phases: SAMPLE_PHASES,
+      schemaRotation: ['upper-a'],
+      startDate: dateAgo(40).split('T')[0],
+    });
+    const workouts = Array.from({ length: 5 }, (_, i) =>
+      makeWorkout((5 - i) * 5, [], 'upper-a'),
+    );
+    const result = getCurrentPhase(block, workouts)!;
+    expect(result.name).toBe('Piekfase');
+  });
+
+  it('returns Deload for cycle 7', () => {
+    const block = makeBlock({
+      totalCycles: 7,
+      phases: SAMPLE_PHASES,
+      schemaRotation: ['upper-a'],
+      startDate: dateAgo(50).split('T')[0],
+    });
+    const workouts = Array.from({ length: 7 }, (_, i) =>
+      makeWorkout((7 - i) * 5, [], 'upper-a'),
+    );
+    const result = getCurrentPhase(block, workouts)!;
+    expect(result.name).toBe('Deload');
+    expect(result.isDeload).toBe(true);
+  });
+});
+
+// ─── getBlockPhaseLabel ───────────────────────────────────────────────────────
+
+describe('getBlockPhaseLabel', () => {
+  it('returns week label for legacy block without phases', () => {
+    const block = makeBlock({ durationWeeks: 5 });
+    const label = getBlockPhaseLabel(block, []);
+    // Uses getBlockWeekLabel internally
+    expect(label).toMatch(/week/i);
+  });
+
+  it('returns phase label with cycle counter for phase-aware block', () => {
+    const block = makeBlock({
+      totalCycles: 7,
+      phases: SAMPLE_PHASES,
+      schemaRotation: ['upper-a'],
+      startDate: dateAgo(30).split('T')[0],
+    });
+    const workouts: WorkoutLog[] = [
+      makeWorkout(14, [], 'upper-a'),
+      makeWorkout(7,  [], 'upper-a'),
+      makeWorkout(1,  [], 'upper-a'), // 3 sessions → cycle 3 → Opbouwfase
+    ];
+    const label = getBlockPhaseLabel(block, workouts);
+    expect(label).toContain('Opbouwfase');
+    expect(label).toContain('3/7');
+  });
+});
+
+// ─── isFailurePermitted ───────────────────────────────────────────────────────
+
+describe('isFailurePermitted', () => {
+  const peakPhase = SAMPLE_PHASES[2]; // Piekfase: pec fly, machine chest press
+
+  it('returns false for null phase', () => {
+    expect(isFailurePermitted(null, 'Machine Chest Press')).toBe(false);
+  });
+
+  it('returns false when no failurePermittedExercises', () => {
+    expect(isFailurePermitted(SAMPLE_PHASES[0], 'Machine Chest Press')).toBe(false);
+  });
+
+  it('returns true for permitted exercise (case insensitive)', () => {
+    expect(isFailurePermitted(peakPhase, 'MACHINE CHEST PRESS')).toBe(true);
+  });
+
+  it('returns true for partial name match', () => {
+    // "pec fly" substring in "Low Cable Pec Fly"
+    expect(isFailurePermitted(peakPhase, 'Low Cable Pec Fly')).toBe(true);
+  });
+
+  it('returns false for non-permitted exercise', () => {
+    // Dumbbell bench is not in the failure-permitted list for Piekfase
+    expect(isFailurePermitted(peakPhase, 'Incline Dumbbell Press')).toBe(false);
+  });
+
+  it('returns false for deload phase (empty list)', () => {
+    expect(isFailurePermitted(SAMPLE_PHASES[3], 'Machine Chest Press')).toBe(false);
   });
 });

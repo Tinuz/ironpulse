@@ -208,6 +208,34 @@ export interface RestDay {
 export type TrainingBlockStatus = 'active' | 'completed';
 export type TrainingBlockMuscle = 'chest' | 'back' | 'shoulders' | 'legs' | 'arms' | 'abs' | 'glutes' | 'calves';
 
+/**
+ * A named training phase within a mesocyclus block.
+ * Based on RIR-autoregulation (Zourdos et al. 2016) and MEV→MAV→MRV
+ * volume progression (Israetel, RP Strength 2019).
+ */
+export interface BlockPhase {
+  /** Display name, e.g. "Instapfase", "Piekfase", "Deload" */
+  name: string;
+  /** Single emoji shown in the workout logger and widget */
+  emoji: string;
+  /** 1-indexed first cycle of this phase */
+  cycleStart: number;
+  /** 1-indexed last cycle of this phase (inclusive) */
+  cycleEnd: number;
+  /** RIR target shown to the user, e.g. "2", "1-2", "0-1", "3-4" */
+  targetRIR: string;
+  /** True only for the recovery/deload phase */
+  isDeload: boolean;
+  /**
+   * Exercise names (case-insensitive substring match) for which
+   * approaching technical failure is permitted in this phase.
+   * Schoenfeld (2010): machines allow safer approaches than free weights.
+   */
+  failurePermittedExercises?: string[];
+  /** Short coaching hint shown below the phase banner in the workout logger */
+  coachNote?: string;
+}
+
 export interface TrainingBlock {
   id: string;
   name: string;
@@ -216,6 +244,13 @@ export interface TrainingBlock {
   focusMuscles: TrainingBlockMuscle[];
   status: TrainingBlockStatus;
   createdAt: string;
+  // ── Enhanced cycle/phase tracking (optional — backward compatible) ──────
+  /** Total number of training cycles in the block (e.g. 7 for a chest mesocyclus) */
+  totalCycles?: number;
+  /** Schema IDs in rotation order used to count cycles from workout history */
+  schemaRotation?: string[];
+  /** Named phases with RIR targets and failure permissions */
+  phases?: BlockPhase[];
 }
 
 // ============================================================================
@@ -537,6 +572,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           focusMuscles: (b.focus_muscles ?? []) as TrainingBlockMuscle[],
           status: b.status as TrainingBlockStatus,
           createdAt: b.created_at,
+          totalCycles: b.total_cycles ?? undefined,
+          schemaRotation: (b.schema_rotation && b.schema_rotation.length > 0) ? b.schema_rotation : undefined,
+          phases: b.phases ?? undefined,
         })));
       }
 
@@ -1616,6 +1654,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         duration_weeks: data.durationWeeks,
         focus_muscles: data.focusMuscles,
         status: 'active',
+        total_cycles: data.totalCycles ?? null,
+        schema_rotation: data.schemaRotation ?? [],
+        phases: data.phases ?? null,
       })
       .select()
       .single();
@@ -1628,6 +1669,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         focusMuscles: (inserted.focus_muscles ?? []) as TrainingBlockMuscle[],
         status: 'active',
         createdAt: inserted.created_at,
+        totalCycles: inserted.total_cycles ?? undefined,
+        schemaRotation: (inserted.schema_rotation && inserted.schema_rotation.length > 0) ? inserted.schema_rotation : undefined,
+        phases: inserted.phases ?? undefined,
       };
       setTrainingBlocks(prev => [newBlock, ...prev]);
     }

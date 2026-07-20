@@ -10,7 +10,7 @@
  *   W1=10, W2=13, W3=16, W4=19, W5=10 (deload)
  */
 
-import type { TrainingBlock, TrainingBlockMuscle, WorkoutLog } from '@/components/context/DataContext';
+import type { TrainingBlock, TrainingBlockMuscle, WorkoutLog, BlockPhase, BodyStats } from '@/components/context/DataContext';
 import { getMuscleGroup } from '@/components/utils/volumeAnalytics';
 
 // ---------------------------------------------------------------------------
@@ -225,4 +225,207 @@ export function getBlockProgress(
     maintenanceMuscles,
     weeksRemaining: block.durationWeeks - week,
   };
+}
+
+// ============================================================================
+// Phase-aware analytics (cycle-based periodization)
+// ============================================================================
+
+/**
+ * Returns the current training cycle number (1-indexed).
+ *
+ * Cycle-based periodization (Poliquin 1988; Bompa & Haff 2009):
+ * Adaptation follows the training stimulus, not the calendar clock.
+ * Counting cycles via workout history is more accurate than counting days.
+ *
+ * @param block    The training block
+ * @param history  Full workout history (used when schemaRotation is set)
+ * @param today    Override for the current date (used in tests / calendar fallback)
+ */
+export function getCurrentCycle(
+  block: TrainingBlock,
+  history: WorkoutLog[],
+  today?: Date,
+): number {
+  if (!block.totalCycles) {
+    // Legacy block without cycle tracking: fall back to week number
+    return getCurrentBlockWeek(block, today);
+  }
+
+  const blockStart = new Date(block.startDate);
+  blockStart.setHours(0, 0, 0, 0);
+
+  if (block.schemaRotation && block.schemaRotation.length > 0) {
+    // Count how many times the first schema in the rotation was done since block start.
+    // Each occurrence of the first schema = the start of a new cycle.
+    const firstSchemaId = block.schemaRotation[0];
+    const count = history.filter(w =>
+      w.schemaId === firstSchemaId &&
+      new Date(w.date) >= blockStart,
+    ).length;
+    // If no Upper-A workouts logged yet, we're still in cycle 1
+    return Math.max(1, Math.min(count === 0 ? 1 : count, block.totalCycles));
+  }
+
+  // No schemaRotation: estimate via calendar days.
+  // Assume a 6-day cycle (4 training sessions + 2 rest days).
+  const now = today ?? new Date();
+  const daysDiff = Math.floor(
+    (now.getTime() - blockStart.getTime()) / (1000 * 60 * 60 * 24),
+  );
+  return Math.max(1, Math.min(Math.floor(daysDiff / 6) + 1, block.totalCycles));
+}
+
+/**
+ * Returns the phase the user is currently in, or null when the block has no phases.
+ */
+export function getCurrentPhase(
+  block: TrainingBlock,
+  history: WorkoutLog[],
+  today?: Date,
+): BlockPhase | null {
+  if (!block.phases || block.phases.length === 0) return null;
+  const cycle = getCurrentCycle(block, history, today);
+  return block.phases.find(p => cycle >= p.cycleStart && cycle <= p.cycleEnd) ?? null;
+}
+
+/**
+ * Returns a human-readable phase label for display.
+ *
+ * Examples:
+ *  - "🔥 Piekfase · Cyclus 5/7"
+ *  - "😴 Deload · Cyclus 7/7"
+ *  - "Week 3 van 5"  (legacy block without phases)
+ */
+export function getBlockPhaseLabel(
+  block: TrainingBlock,
+  history: WorkoutLog[],
+  today?: Date,
+): string {
+  if (!block.phases || !block.totalCycles) {
+    return getBlockWeekLabel(block, today);
+  }
+  const cycle = getCurrentCycle(block, history, today);
+  const phase = getCurrentPhase(block, history, today);
+  if (phase) {
+    return `${phase.emoji} ${phase.name} · Cyclus ${cycle}/${block.totalCycles}`;
+  }
+  return `Cyclus ${cycle}/${block.totalCycles}`;
+}
+
+/**
+ * Returns true when the given exercise is allowed to approach technical failure
+ * in the supplied phase.
+ *
+ * Schoenfeld (2010): training to failure with free weights carries higher injury
+ * risk; machine exercises allow safer approaches to momentary failure.
+ * Match is case-insensitive substring to handle name variations.
+ */
+export function isFailurePermitted(
+  phase: BlockPhase | null,
+  exerciseName: string,
+): boolean {
+  if (!phase || !phase.failurePermittedExercises || phase.failurePermittedExercises.length === 0) {
+    return false;
+  }
+  const name = exerciseName.toLowerCase();
+  return phase.failurePermittedExercises.some(e => name.includes(e.toLowerCase()));
+}
+
+// ── Phase readiness check ────────────────────────────────────────────────────
+
+export interface PhaseReadinessItem {
+  id: string;
+  label: string;
+  /** true = ok, false = concern, null = cannot determine automatically */
+  passed: boolean | null;
+  note?: string;
+}
+
+export interface PhaseReadinessCheck {
+  /** Overall automated verdict (null when no automated data available) */
+  ready: boolean | null;
+  items: PhaseReadinessItem[];
+}
+
+/**
+ * Evaluates whether biofeedback data suggests the user is ready to advance
+ * to the next phase.
+ *
+ * Automated checks:
+ *  - Sleep quality ≥ 3.5 / 5 averaged over last 5 logged days
+ *    (Dattilo et al. 2011: sleep deprivation impairs muscle protein synthesis)
+ *
+ * Manual checks (shown to user, not automatable):
+ *  - Reps or weight still increasing
+ *  - Focus muscle recovered before next upper session
+ *  - Joints (shoulders, elbows) comfortable
+ *  - Motivation and sleep feel good
+ */
+export function checkPhaseReadiness(
+  _block: TrainingBlock,
+  _history: WorkoutLog[],
+  bodyStats: BodyStats[],
+): PhaseReadinessCheck {
+  // Sleep quality check (automated)
+  const recentSleep = bodyStats
+    .filter(s => s.sleepQuality != null)
+    .slice(0, 5);
+
+  let sleepPassed: boolean | null = null;
+  let sleepNote: string | undefined;
+
+  if (recentSleep.length >= 3) {
+    const avg = recentSleep.reduce((s, b) => s + (b.sleepQuality ?? 0), 0) / recentSleep.length;
+    sleepPassed = avg >= 3.5;
+    if (!sleepPassed) {
+      sleepNote = `Gemiddeld ${avg.toFixed(1)}/5 — suboptimaal herstel`;
+    }
+  } else {
+    sleepNote = 'Log slaapkwaliteit voor automatische check';
+  }
+
+  const items: PhaseReadinessItem[] = [
+    {
+      id: 'progression',
+      label: 'Gewicht of reps stijgen nog',
+      passed: null,
+      note: 'Controleer zelf: zijn de laatste 2 cycli verbeterd?',
+    },
+    {
+      id: 'sleep',
+      label: 'Slaapkwaliteit ≥ 3.5/5 (laatste 5 dagen)',
+      passed: sleepPassed,
+      note: sleepNote,
+    },
+    {
+      id: 'recovery',
+      label: 'Focusspier hersteld voor de volgende uppersessie',
+      passed: null,
+      note: 'Controleer zelf: geen aanhoudende spierpijn',
+    },
+    {
+      id: 'joints',
+      label: 'Schouders en ellebogen rustig',
+      passed: null,
+      note: 'Subjectieve beoordeling vereist',
+    },
+    {
+      id: 'motivation',
+      label: 'Motivatie en energie goed',
+      passed: null,
+      note: 'Bij twee slechte trainingen achter elkaar: wacht een cyclus',
+    },
+  ];
+
+  // Overall: only give a verdict if we have at least one automated result
+  const automatedPassed = items
+    .filter(i => i.id === 'sleep' && i.passed !== null)
+    .map(i => i.passed as boolean);
+
+  const ready = automatedPassed.length > 0
+    ? automatedPassed.every(p => p)
+    : null;
+
+  return { ready, items };
 }

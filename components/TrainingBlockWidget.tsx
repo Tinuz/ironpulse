@@ -4,7 +4,7 @@ import React, { useState } from 'react'
 import { motion } from 'framer-motion'
 import { Plus, CheckCircle, Flame, TrendingDown, Trophy, ChevronDown, ChevronUp, Trash2 } from 'lucide-react'
 import { useData } from '@/components/context/DataContext'
-import { getBlockProgress, getBlockWeekLabel, isDeloadWeek } from '@/lib/blockAnalytics'
+import { getBlockProgress, getBlockWeekLabel, isDeloadWeek, getCurrentPhase, getCurrentCycle, getBlockPhaseLabel } from '@/lib/blockAnalytics'
 import { MUSCLE_GROUPS } from '@/components/utils/volumeAnalytics'
 import type { TrainingBlockMuscle } from '@/components/context/DataContext'
 import CreateTrainingBlockModal from '@/components/CreateTrainingBlockModal'
@@ -52,8 +52,10 @@ export default function TrainingBlockWidget() {
   }
 
   const progress = getBlockProgress(activeBlock, history)
-  const weekLabel = getBlockWeekLabel(activeBlock)
+  const weekLabel = getBlockPhaseLabel(activeBlock, history)
   const deload = isDeloadWeek(activeBlock)
+  const phase = getCurrentPhase(activeBlock, history)
+  const currentCycle = activeBlock.totalCycles ? getCurrentCycle(activeBlock, history) : null
 
   const blockProgressPct = Math.round(((activeBlock.durationWeeks - progress.weeksRemaining) / activeBlock.durationWeeks) * 100)
 
@@ -79,17 +81,35 @@ export default function TrainingBlockWidget() {
             </button>
           </div>
 
-          {/* Week label */}
+          {/* Phase label + cycle counter */}
           <div className="flex items-center justify-between mb-3">
-            <span className={`text-xs font-semibold ${deload ? 'text-blue-400' : 'text-violet-400'}`}>
+            <span className={`text-xs font-semibold ${deload || phase?.isDeload ? 'text-blue-400' : 'text-violet-400'}`}>
               {weekLabel}
             </span>
-            {!deload && progress.weeksRemaining > 0 && (
+            {currentCycle && activeBlock.totalCycles ? (
+              <span className="text-[10px] text-muted-foreground">
+                Cyclus {currentCycle}/{activeBlock.totalCycles}
+              </span>
+            ) : (!deload && progress.weeksRemaining > 0 && (
               <span className="text-[10px] text-muted-foreground">
                 Deload over {progress.weeksRemaining} {progress.weeksRemaining === 1 ? 'week' : 'weken'}
               </span>
-            )}
+            ))}
           </div>
+
+          {/* Phase RIR target (only for blocks with phases) */}
+          {phase && !phase.isDeload && (
+            <div className="mb-3 flex items-center gap-2 px-3 py-2 bg-violet-500/8 border border-violet-500/20 rounded-lg">
+              <span className="text-sm">{phase.emoji}</span>
+              <div className="flex-1">
+                <p className="text-[11px] font-bold text-violet-300">{phase.name}</p>
+                <p className="text-[10px] text-violet-400/70">RIR doel: {phase.targetRIR}</p>
+              </div>
+              {phase.coachNote && (
+                <p className="text-[9px] text-muted-foreground max-w-[120px] leading-snug text-right">{phase.coachNote.slice(0, 60)}…</p>
+              )}
+            </div>
+          )}
 
           {/* Block progress bar */}
           <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">

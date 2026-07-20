@@ -24,7 +24,7 @@ import { REST_TIMES, COMPOUND_KEYWORDS, ACCESSORY_KEYWORDS, PROGRESSIVE_OVERLOAD
 import { generateProgressiveOverloadSuggestion } from '@/components/utils/progressiveOverload'
 import { calculateHypertrophyTargetForExercise, countEffectiveSets, getRPETargetForExercise, getProgressionReadiness } from '@/lib/hypertrophyCalculations'
 import { getExerciseWeeklyVolume } from '@/components/utils/volumeLandmarksAnalytics'
-import { getBlockProgress, isDeloadWeek } from '@/lib/blockAnalytics'
+import { getBlockProgress, isDeloadWeek, getCurrentPhase, isFailurePermitted } from '@/lib/blockAnalytics'
 import CardioExerciseLogger from '@/components/CardioExerciseLogger'
 import { formatDuration, formatDistance } from '@/components/utils/cardioCalculations'
 import { useLanguage } from '@/components/context/LanguageContext'
@@ -1216,6 +1216,44 @@ export default function WorkoutLogger() {
                     <p className="text-xs text-amber-300 leading-relaxed">{previousExercises[0].nextSessionNote}</p>
                   </div>
                 )}
+
+                {/* Phase banner — shown when this exercise targets the block's focus muscle */}
+                {(() => {
+                  if (!activeBlock?.phases) return null;
+                  const phase = getCurrentPhase(activeBlock, history);
+                  if (!phase) return null;
+                  // Map exercise muscleGroup to TrainingBlockMuscle and check it's a focus muscle
+                  const mg = exercise.muscleGroup?.toLowerCase() ?? '';
+                  const muscleMap: Record<string, string> = {
+                    chest: 'chest', borst: 'chest',
+                    back: 'back', rug: 'back', lat: 'back', lats: 'back',
+                    shoulders: 'shoulders', schouders: 'shoulders',
+                    legs: 'legs', benen: 'legs', quads: 'legs', hamstrings: 'legs',
+                    arms: 'arms', armen: 'arms', biceps: 'arms', triceps: 'arms',
+                    abs: 'abs', buik: 'abs', core: 'abs',
+                    glutes: 'glutes', billen: 'glutes',
+                    calves: 'calves', kuiten: 'calves',
+                  };
+                  const mapped = muscleMap[mg];
+                  const isFocus = mapped && (activeBlock.focusMuscles as string[]).includes(mapped);
+                  if (!isFocus) return null;
+                  const canFail = isFailurePermitted(phase, exercise.name);
+                  return (
+                    <div className="mt-2.5 mx-1 px-3 py-2 bg-violet-500/10 border border-violet-500/25 rounded-lg flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm shrink-0">{phase.emoji}</span>
+                        <div>
+                          <p className="text-xs font-bold text-violet-300 leading-tight">{phase.name}</p>
+                          <p className="text-[10px] text-violet-400/70">{phase.targetRIR} RIR</p>
+                        </div>
+                      </div>
+                      {canFail
+                        ? <span className="text-[10px] bg-orange-500/20 border border-orange-500/30 text-orange-300 px-2 py-0.5 rounded-full font-semibold shrink-0">🎯 tot spierfalen</span>
+                        : <span className="text-[10px] bg-violet-500/20 border border-violet-500/30 text-violet-300 px-2 py-0.5 rounded-full font-semibold shrink-0">⚡ stop bij {phase.targetRIR} RIR</span>
+                      }
+                    </div>
+                  );
+                })()}
               </div>
               
               {/* Anatomy Image Section - Collapsible */}
