@@ -488,7 +488,7 @@ const RestTimerBar = React.memo(({ restTimer, onAddTime, onStop }: {
 RestTimerBar.displayName = 'RestTimerBar';
 
 export default function WorkoutLogger() {
-  const { activeWorkout, updateActiveWorkout, finishWorkout, cancelWorkout, history, bodyStats, userProfile } = useData();
+  const { activeWorkout, updateActiveWorkout, finishWorkout, cancelWorkout, history, bodyStats, userProfile, activeBlock } = useData();
   const router = useRouter();
   const { t } = useLanguage();
   const { requestWakeLock, releaseWakeLock } = useWakeLock();
