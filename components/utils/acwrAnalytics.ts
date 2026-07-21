@@ -1,4 +1,4 @@
-import { WorkoutLog } from '@/components/context/DataContext';
+import type { WorkoutLog, RestDay } from '@/components/context/DataContext';
 
 /**
  * Acute:Chronic Workload Ratio (ACWR)
@@ -22,6 +22,11 @@ export interface ACWRResult {
   chronicLoad: number; // 4-week average weekly volume
   weeklyLoads: number[]; // volumes for each of the last 4 weeks (oldest → newest)
   hasEnoughData: boolean; // false if < 2 weeks of data
+  /**
+   * True when ≥4 of the 7 acute days are marked as vacation.
+   * The widget uses this to suppress the "undertraining" alarm.
+   */
+  onVacation: boolean;
 }
 
 function weeklyVolume(workouts: WorkoutLog[], startDate: Date, endDate: Date): number {
@@ -42,7 +47,7 @@ function weeklyVolume(workouts: WorkoutLog[], startDate: Date, endDate: Date): n
   return total;
 }
 
-export function calculateACWR(workouts: WorkoutLog[]): ACWRResult {
+export function calculateACWR(workouts: WorkoutLog[], restDays: RestDay[] = []): ACWRResult {
   const now = new Date();
   now.setHours(23, 59, 59, 999);
 
@@ -76,13 +81,31 @@ export function calculateACWR(workouts: WorkoutLog[]): ACWRResult {
 
   const acwr = chronicLoad > 0 ? acuteLoad / chronicLoad : 0;
 
+  // Vacation detection: ≥4 of the last 7 days are marked as vacation.
+  // When true, the widget suppresses the "undertraining" alarm — the user
+  // is intentionally away from training (Shephard & Aoyagi 2009: planned rest
+  // is not equivalent to unplanned under-recovery).
+  const vacationSet = new Set(
+    restDays
+      .filter(r => r.type === 'vacation')
+      .map(r => r.date),
+  );
+  let vacationDaysInAcuteWindow = 0;
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(now);
+    d.setDate(d.getDate() - i);
+    const key = d.toISOString().split('T')[0];
+    if (vacationSet.has(key)) vacationDaysInAcuteWindow++;
+  }
+  const onVacation = vacationDaysInAcuteWindow >= 4;
+
   let zone: ACWRZone;
   if (acwr < 0.8) zone = 'undertraining';
   else if (acwr <= 1.3) zone = 'optimal';
   else if (acwr <= 1.5) zone = 'caution';
   else zone = 'danger';
 
-  return { acwr, zone, acuteLoad, chronicLoad, weeklyLoads, hasEnoughData };
+  return { acwr, zone, acuteLoad, chronicLoad, weeklyLoads, hasEnoughData, onVacation };
 }
 
 export const ACWR_ZONES: Record<ACWRZone, { label: string; color: string; bg: string; border: string; description: string }> = {

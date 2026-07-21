@@ -1,4 +1,4 @@
-import { WorkoutLog } from '@/components/context/DataContext';
+import type { WorkoutLog, RestDay } from '@/components/context/DataContext';
 import { detectPlateau, PlateauDetection } from './strengthAnalytics';
 import { isCompoundExercise } from './exerciseClassification';
 
@@ -17,23 +17,36 @@ export interface EnhancedPlateauDetection extends PlateauDetection {
 
 /**
  * Detect plateaus across all exercises
- * Excludes deload workouts from plateau detection
+ * Excludes deload workouts from plateau detection.
+ * Optionally suppresses plateaus that overlap with a vacation period.
+ *
+ * @param restDays - User rest days. Exercises whose stagnant period is largely
+ *   covered by vacation days (≥5) are excluded — the user wasn't training,
+ *   so stagnation is expected and not a true plateau.
  */
 export function detectAllPlateaus(
   workouts: WorkoutLog[],
-  threshold: number = 3
+  threshold: number = 3,
+  restDays: RestDay[] = [],
 ): EnhancedPlateauDetection[] {
   // Exclude deload workouts from plateau detection
   const nonDeloadWorkouts = workouts.filter(w => !w.isDeload);
-  
+
   if (nonDeloadWorkouts.length < threshold) return [];
-  
+
+  // Build vacation set for fast lookup
+  const vacationSet = new Set(
+    restDays
+      .filter(r => r.type === 'vacation')
+      .map(r => r.date),
+  );
+
   // Get unique exercises
   const exerciseNames = new Set<string>();
   nonDeloadWorkouts.forEach(w => {
     w.exercises.forEach(ex => exerciseNames.add(ex.name));
   });
-  
+
   const plateaus: EnhancedPlateauDetection[] = [];
   
   exerciseNames.forEach(exerciseName => {
@@ -71,6 +84,20 @@ export function detectAllPlateaus(
       // Compounds need ≥3 weeks; isolation ≥4 weeks (more local variance / accommodation).
       const minWeeks = isCompound ? 3 : 4;
       if (weeksStagnant < minWeeks) return; // skip — not enough time to be a true plateau
+
+      // Vacation guard: if ≥5 vacation days fall within the stagnant period the user
+      // simply wasn't training — stagnation is expected, not a true plateau.
+      // (Shephard & Aoyagi 2009: deliberate rest does not impair neural encoding.)
+      if (detection.plateauStartDate && vacationSet.size > 0) {
+        const stagnantStart = new Date(detection.plateauStartDate);
+        const stagnantEnd = new Date(lastWorkoutDate);
+        let vacationDaysInRange = 0;
+        for (const dateStr of vacationSet) {
+          const d = new Date(dateStr);
+          if (d >= stagnantStart && d <= stagnantEnd) vacationDaysInRange++;
+        }
+        if (vacationDaysInRange >= 5) return; // vacation explains the stagnation
+      }
       
       // Get muscle group from most recent workout with this exercise
       const muscleGroup = relevantWorkouts[0]?.exercises.find(ex => ex.name === exerciseName)?.muscleGroup;

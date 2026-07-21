@@ -56,13 +56,41 @@ export function detectDeloadNeed(
     r => r.type === 'deload' && new Date(r.date) >= fourteenDaysAgo,
   );
 
-  if (hasRecentExplicitDeload || hasRecentDeloadRestDays) {
+  // Suppress when the user had an extended vacation (≥5 consecutive vacation days
+  // in the last 21 days). An extended vacation is functionally equivalent to a
+  // deload: muscles recover, fatigue dissipates (Rønnestad et al. 2018).
+  const twentyOneDaysAgo = new Date();
+  twentyOneDaysAgo.setDate(twentyOneDaysAgo.getDate() - 21);
+  const recentVacationDates = restDays
+    .filter(r => r.type === 'vacation' && new Date(r.date) >= twentyOneDaysAgo)
+    .map(r => r.date)
+    .sort();
+  let hasExtendedVacation = false;
+  if (recentVacationDates.length >= 5) {
+    let consecutive = 1;
+    for (let i = 1; i < recentVacationDates.length; i++) {
+      const prev = new Date(recentVacationDates[i - 1]);
+      const curr = new Date(recentVacationDates[i]);
+      const dayDiff = Math.round((curr.getTime() - prev.getTime()) / (1000 * 60 * 60 * 24));
+      if (dayDiff === 1) {
+        consecutive++;
+        if (consecutive >= 5) { hasExtendedVacation = true; break; }
+      } else {
+        consecutive = 1;
+      }
+    }
+  }
+
+  if (hasRecentExplicitDeload || hasRecentDeloadRestDays || hasExtendedVacation) {
+    const message = hasExtendedVacation && !hasRecentExplicitDeload && !hasRecentDeloadRestDays
+      ? 'Je bent recent terug van vakantie. Bouw het volume de eerste week rustig op! 🏝️'
+      : 'Je hebt recent een deload gehad. Bouw het volume rustig weer op! 💪';
     return {
       shouldDeload: false,
       urgency: 'low',
       weeksOfHighVolume: 0,
       signals: [],
-      recommendation: 'Je hebt recent een deload gehad. Bouw het volume rustig weer op! 💪',
+      recommendation: message,
     };
   }
   // ─────────────────────────────────────────────────────────────────────────

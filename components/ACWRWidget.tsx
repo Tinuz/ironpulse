@@ -13,8 +13,8 @@ function formatVolume(v: number): string {
 }
 
 export default function ACWRWidget() {
-  const { history } = useData()
-  const result = calculateACWR(history)
+  const { history, restDays } = useData()
+  const result = calculateACWR(history, restDays)
   const zone = ACWR_ZONES[result.zone]
 
   if (!result.hasEnoughData) {
@@ -45,20 +45,27 @@ export default function ACWRWidget() {
 
   const TrendIcon = result.acwr > 1.3 ? TrendingUp : result.acwr < 0.8 ? TrendingDown : Minus
 
+  // Vacation override: show a calm banner instead of the undertraining alarm.
+  // The effective zone for styling purposes stays as-is (so the gauge still renders
+  // correctly), but the description text and badge are overridden.
+  const displayZone = result.onVacation && result.zone === 'undertraining'
+    ? { ...zone, label: 'Op vakantie 🏝️', color: 'text-cyan-400', bg: 'bg-cyan-500/15', border: 'border-cyan-500/30', description: 'Je bent op vakantie — dit is geen undertraining, maar gepland herstel. Welkom terug! 💪' }
+    : zone
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className={clsx('rounded-2xl p-5 border', zone.bg, zone.border)}
+      className={clsx('rounded-2xl p-5 border', displayZone.bg, displayZone.border)}
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <Activity size={18} className={zone.color} />
+          <Activity size={18} className={displayZone.color} />
           <h3 className="font-bold text-base">Belastingsratio (ACWR)</h3>
         </div>
-        <span className={clsx('text-xs font-bold px-2 py-0.5 rounded-full', zone.bg, zone.color, 'border', zone.border)}>
-          {zone.label}
+        <span className={clsx('text-xs font-bold px-2 py-0.5 rounded-full', displayZone.bg, displayZone.color, 'border', displayZone.border)}>
+          {displayZone.label}
         </span>
       </div>
 
@@ -157,9 +164,9 @@ export default function ACWRWidget() {
       </div>
 
       {/* Description */}
-      <p className={clsx('text-xs leading-relaxed', zone.color)}>
+      <p className={clsx('text-xs leading-relaxed', displayZone.color)}>
         <TrendIcon size={12} className="inline mr-1" />
-        {zone.description}
+        {displayZone.description}
       </p>
     </motion.div>
   )

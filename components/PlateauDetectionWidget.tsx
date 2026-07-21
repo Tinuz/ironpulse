@@ -12,11 +12,11 @@ import {
 import { getRecentPRs } from '@/components/utils/strengthAnalytics'
 
 export default function PlateauDetectionWidget() {
-  const { history } = useData()
+  const { history, restDays } = useData()
   const [showAll, setShowAll] = useState(false)
   
   const summary = generatePlateauSummary(history)
-  const allPlateaus = detectAllPlateaus(history, 3)
+  const allPlateaus = detectAllPlateaus(history, 3, restDays)
   
   // Filter out exercises with recent PRs (last 7 days)
   const recentPRs = getRecentPRs(history, 7)
