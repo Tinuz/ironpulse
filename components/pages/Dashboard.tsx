@@ -2,6 +2,7 @@
 
 import React from 'react'
 import { User, Utensils, Calendar, BarChart3 } from 'lucide-react'
+import QuickRestDayCard from '@/components/QuickRestDayCard'
 import { useRouter } from 'next/navigation'
 import { useData } from '@/components/context/DataContext'
 import { useAuth } from '@/components/context/AuthContext'
@@ -110,6 +111,7 @@ export default function Dashboard() {
         </div>
       </div>
 
+      <QuickRestDayCard />
       <DailyCheckInWidget />
 
       <WeeklyConsistencyWidget history={history} />
