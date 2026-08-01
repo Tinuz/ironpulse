@@ -18,6 +18,7 @@ import {
   getPersonalRecord 
 } from '@/components/utils/workoutCalculations'
 import type { WorkoutLog } from '@/components/context/DataContext'
+import { DEFAULT_WORKOUT_INTENT } from '@/components/utils/workoutIntent'
 
 export default function WorkoutDetail() {
   const { history, deleteWorkout } = useData();
@@ -86,7 +87,8 @@ export default function WorkoutDetail() {
           endTime: data.end_time,
           exercises: data.exercises,
           totalCalories: data.total_calories,
-          isDeload: data.is_deload || false
+          isDeload: data.is_deload || false,
+          trainingIntent: data.training_intent || DEFAULT_WORKOUT_INTENT
         };
         setWorkout(fetchedWorkout);
         setIsOwnWorkout(user?.id === data.user_id);
@@ -216,6 +218,15 @@ export default function WorkoutDetail() {
               {workout.isDeload && (
                 <span className="px-2.5 py-1 bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-full text-xs font-bold uppercase tracking-wider">
                   🔻 Deload Week
+                </span>
+              )}
+              {(workout.trainingIntent ?? DEFAULT_WORKOUT_INTENT) !== 'standard' && (
+                <span className="px-2.5 py-1 bg-blue-500/15 text-blue-300 border border-blue-500/30 rounded-full text-xs font-bold uppercase tracking-wider">
+                  {(workout.trainingIntent ?? DEFAULT_WORKOUT_INTENT) === 'technique'
+                    ? 'Techniek sessie'
+                    : (workout.trainingIntent ?? DEFAULT_WORKOUT_INTENT) === 'speed'
+                      ? 'Speed sessie'
+                      : 'Vorm-focus'}
                 </span>
               )}
             </div>

@@ -10,6 +10,7 @@ import { useLanguage } from '@/components/context/LanguageContext'
 import { getBest1RM, roundTo } from '@/components/utils/workoutCalculations'
 import WorkoutCalendar from '@/components/WorkoutCalendar'
 import type { WorkoutLog } from '@/components/context/DataContext'
+import { DEFAULT_WORKOUT_INTENT } from '@/components/utils/workoutIntent'
 
 export default function History() {
   const { history, deleteWorkout } = useData();
@@ -172,6 +173,15 @@ export default function History() {
                           {log.isDeload && (
                             <span className="px-2 py-0.5 bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-full text-[10px] font-bold uppercase tracking-wider">
                               🔻 Deload
+                            </span>
+                          )}
+                          {(log.trainingIntent ?? DEFAULT_WORKOUT_INTENT) !== 'standard' && (
+                            <span className="px-2 py-0.5 bg-blue-500/15 text-blue-300 border border-blue-500/30 rounded-full text-[10px] font-bold uppercase tracking-wider">
+                              {(log.trainingIntent ?? DEFAULT_WORKOUT_INTENT) === 'technique'
+                                ? 'Techniek'
+                                : (log.trainingIntent ?? DEFAULT_WORKOUT_INTENT) === 'speed'
+                                  ? 'Speed'
+                                  : 'Vorm'}
                             </span>
                           )}
                         </div>

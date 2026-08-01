@@ -1054,6 +1054,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         end_time: updatedWorkout.endTime,
         exercises: updatedWorkout.exercises,
         is_deload: updatedWorkout.isDeload || false,
+        training_intent: updatedWorkout.trainingIntent || DEFAULT_WORKOUT_INTENT,
         total_calories: updatedWorkout.totalCalories || null,
         met_value: updatedWorkout.metValue || null
       })

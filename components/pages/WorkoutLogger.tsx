@@ -1081,31 +1081,6 @@ export default function WorkoutLogger() {
               <WorkoutTimerDisplay startTime={workoutData.startTime} isPaused={showSummary} />
               {restTimer?.active && <RestTimerInlineDisplay restTimer={restTimer} />}
             </div>
-            <div className="mt-1 flex items-center gap-1.5 flex-wrap justify-center">
-              {([
-                ['standard', 'Normaal'],
-                ['technique', 'Techniek'],
-                ['speed', 'Speed'],
-                ['form_focus', 'Vorm'],
-              ] as Array<[WorkoutIntent, string]>).map(([intent, label]) => (
-                <button
-                  key={intent}
-                  onClick={() => {
-                    const updated = { ...workoutData, trainingIntent: intent };
-                    setWorkoutData(updated);
-                    updateActiveWorkout(updated);
-                  }}
-                  className={clsx(
-                    'px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider transition-all border',
-                    (workoutData.trainingIntent ?? DEFAULT_WORKOUT_INTENT) === intent
-                      ? 'bg-blue-500/20 text-blue-300 border-blue-500/30'
-                      : 'bg-white/5 text-muted-foreground border-white/10 hover:border-white/20'
-                  )}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
             {/* Deload Mode Toggle */}
             <button
               onClick={toggleDeloadMode}
