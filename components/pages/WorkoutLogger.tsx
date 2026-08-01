@@ -33,6 +33,7 @@ import { useWorkoutAutoSave } from '@/components/utils/useWorkoutAutoSave'
 import { type MuscleGroup, getMuscleGroup } from '@/components/utils/volumeAnalytics'
 import CircuitPlayer from '@/components/CircuitPlayer'
 import { generateSetsFromOneRM, validateOneRM } from '@/components/utils/oneRepMaxCalculations'
+import { DEFAULT_WORKOUT_INTENT, type WorkoutIntent } from '@/components/utils/workoutIntent'
 import { getExerciseImages } from '@/lib/exerciseData'
 import WorkoutSummaryModal from '@/components/workout/WorkoutSummaryModal'
 
@@ -41,11 +42,13 @@ const ExerciseStats = ({
   previousExercises,
   workoutId,
   allLiveExercises,
+  workoutIntent,
 }: { 
   exercise: WorkoutExercise;
   previousExercises: WorkoutExercise[];
   workoutId: string;
   allLiveExercises: WorkoutExercise[];
+  workoutIntent: WorkoutIntent;
 }) => {
   const { t } = useLanguage();
   const { activeBlock, history } = useData();
@@ -232,8 +235,8 @@ const ExerciseStats = ({
     );
   }
 
-  const progression = calculateProgression(exercise, previousExercises);
-  const suggestion = generateOverloadSuggestion(exercise, progression);
+  const progression = calculateProgression(exercise, previousExercises, workoutIntent);
+  const suggestion = generateOverloadSuggestion(exercise, progression, workoutIntent);
 
   return (
     <div className="px-4 pb-3 space-y-2.5">
@@ -1078,6 +1081,31 @@ export default function WorkoutLogger() {
               <WorkoutTimerDisplay startTime={workoutData.startTime} isPaused={showSummary} />
               {restTimer?.active && <RestTimerInlineDisplay restTimer={restTimer} />}
             </div>
+            <div className="mt-1 flex items-center gap-1.5 flex-wrap justify-center">
+              {([
+                ['standard', 'Normaal'],
+                ['technique', 'Techniek'],
+                ['speed', 'Speed'],
+                ['form_focus', 'Vorm'],
+              ] as Array<[WorkoutIntent, string]>).map(([intent, label]) => (
+                <button
+                  key={intent}
+                  onClick={() => {
+                    const updated = { ...workoutData, trainingIntent: intent };
+                    setWorkoutData(updated);
+                    updateActiveWorkout(updated);
+                  }}
+                  className={clsx(
+                    'px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider transition-all border',
+                    (workoutData.trainingIntent ?? DEFAULT_WORKOUT_INTENT) === intent
+                      ? 'bg-blue-500/20 text-blue-300 border-blue-500/30'
+                      : 'bg-white/5 text-muted-foreground border-white/10 hover:border-white/20'
+                  )}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
             {/* Deload Mode Toggle */}
             <button
               onClick={toggleDeloadMode}
@@ -1133,7 +1161,8 @@ export default function WorkoutLogger() {
             exercise.name,
             exercise,
             history,
-            workoutData.id
+            workoutData.id,
+            workoutData.trainingIntent ?? DEFAULT_WORKOUT_INTENT
           );
 
           // Compact hypertrophy target for Row 2 badge
@@ -1631,6 +1660,7 @@ export default function WorkoutLogger() {
                   previousExercises={previousExercises}
                   workoutId={workoutData.id}
                   allLiveExercises={workoutData.exercises}
+                  workoutIntent={workoutData.trainingIntent ?? DEFAULT_WORKOUT_INTENT}
                 />
               </div>
               )}

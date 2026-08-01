@@ -145,7 +145,7 @@ export function generatePreWorkoutBriefing(
   let readiness = 100;
 
   // ── 1. ACWR ──────────────────────────────────────────────
-  const acwr = calculateACWR(history);
+  const acwr = calculateACWR(history, restDays);
   if (acwr.hasEnoughData) {
     if (acwr.zone === 'danger') {
       readiness -= 30;

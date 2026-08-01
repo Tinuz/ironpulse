@@ -1,4 +1,5 @@
 import { WorkoutExercise, WorkoutLog } from '@/components/context/DataContext';
+import { DEFAULT_WORKOUT_INTENT, isLightWorkoutIntent, type WorkoutIntent } from '@/components/utils/workoutIntent';
 
 /**
  * 1RM berekening via gecombineerde formule:
@@ -87,6 +88,7 @@ export function getPreviousWorkoutsForExercise(
     .filter(w => {
       if (excludeWorkoutId && w.id === excludeWorkoutId) return false;
       if (w.isDeload) return false; // Exclude deload workouts from progression tracking
+      if (isLightWorkoutIntent(w.trainingIntent)) return false;
       return w.exercises.some(ex => ex.name.toLowerCase() === exerciseName.toLowerCase());
     })
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -125,8 +127,35 @@ export interface ProgressionData {
 
 export function calculateProgression(
   currentExercise: WorkoutExercise,
-  previousExercises: WorkoutExercise[]
+  previousExercises: WorkoutExercise[],
+  currentWorkoutIntent: WorkoutIntent = DEFAULT_WORKOUT_INTENT
 ): ProgressionData {
+  if (isLightWorkoutIntent(currentWorkoutIntent)) {
+    const current1RM = getBest1RM(currentExercise);
+    const currentVolume = calculateVolume(currentExercise);
+    const currentCompletedSets = currentExercise.sets.filter(s => s.completed && !s.isWarmup && s.reps > 0);
+    const currentAverageReps = currentCompletedSets.length > 0
+      ? currentCompletedSets.reduce((sum, s) => sum + s.reps, 0) / currentCompletedSets.length
+      : 0;
+
+    return {
+      current1RM: current1RM?.oneRM || 0,
+      previous1RM: null,
+      difference: 0,
+      percentageChange: 0,
+      currentVolume,
+      previousVolume: null,
+      volumeDifference: 0,
+      status: 'same',
+      daysSinceLast: null,
+      sameWeight: false,
+      repProgression: 0,
+      readyForWeightIncrease: false,
+      currentAverageReps,
+      previousAverageReps: null
+    };
+  }
+
   const current1RM = getBest1RM(currentExercise);
   const currentVolume = calculateVolume(currentExercise);
   
@@ -265,8 +294,16 @@ export interface OverloadSuggestion {
 
 export function generateOverloadSuggestion(
   currentExercise: WorkoutExercise,
-  progression: ProgressionData
+  progression: ProgressionData,
+  currentWorkoutIntent: WorkoutIntent = DEFAULT_WORKOUT_INTENT
 ): OverloadSuggestion {
+  if (isLightWorkoutIntent(currentWorkoutIntent)) {
+    return {
+      type: 'maintain',
+      message: 'Techniek-/snelheidsdag: focus op vorm, ROM en controle. Vergelijk deze sessie niet met je standaard load.'
+    };
+  }
+
   const best = getBest1RM(currentExercise);
   
   if (!best) {

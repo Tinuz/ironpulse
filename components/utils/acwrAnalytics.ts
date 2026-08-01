@@ -1,4 +1,5 @@
 import type { WorkoutLog, RestDay } from '@/components/context/DataContext';
+import { isLightWorkoutIntent } from './workoutIntent';
 
 /**
  * Acute:Chronic Workload Ratio (ACWR)
@@ -48,6 +49,7 @@ function weeklyVolume(workouts: WorkoutLog[], startDate: Date, endDate: Date): n
 }
 
 export function calculateACWR(workouts: WorkoutLog[], restDays: RestDay[] = []): ACWRResult {
+  const standardWorkouts = workouts.filter(w => !w.isDeload && !isLightWorkoutIntent(w.trainingIntent));
   const now = new Date();
   now.setHours(23, 59, 59, 999);
 
@@ -55,7 +57,7 @@ export function calculateACWR(workouts: WorkoutLog[], restDays: RestDay[] = []):
   const acuteStart = new Date(now);
   acuteStart.setDate(acuteStart.getDate() - 6);
   acuteStart.setHours(0, 0, 0, 0);
-  const acuteLoad = weeklyVolume(workouts, acuteStart, new Date(now.getTime() + 1));
+  const acuteLoad = weeklyVolume(standardWorkouts, acuteStart, new Date(now.getTime() + 1));
 
   // Chronic = 4-week rolling average (last 28 days split into 4 × 7-day windows)
   const weeklyLoads: number[] = [];
@@ -66,7 +68,7 @@ export function calculateACWR(workouts: WorkoutLog[], restDays: RestDay[] = []):
     wStart.setDate(wStart.getDate() - 6);
     wStart.setHours(0, 0, 0, 0);
     wEnd.setHours(23, 59, 59, 999);
-    weeklyLoads.push(weeklyVolume(workouts, wStart, new Date(wEnd.getTime() + 1)));
+    weeklyLoads.push(weeklyVolume(standardWorkouts, wStart, new Date(wEnd.getTime() + 1)));
   }
 
   // The most recent week IS the acute load (already in weeklyLoads[3])

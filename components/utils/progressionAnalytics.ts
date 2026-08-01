@@ -6,8 +6,9 @@
  */
 
 import { WorkoutLog, WorkoutExercise } from '@/components/context/DataContext';
+import { DEFAULT_WORKOUT_INTENT, isLightWorkoutIntent, type WorkoutIntent } from '@/components/utils/workoutIntent';
 
-export type ProgressionStatus = 'improved' | 'maintained' | 'decreased';
+export type ProgressionStatus = 'improved' | 'maintained' | 'decreased' | 'intentional';
 
 export interface ProgressionResult {
   status: ProgressionStatus;
@@ -47,6 +48,10 @@ export function findLastWorkoutWithExercise(
 
     // Skip deload workouts - they shouldn't affect progressive overload tracking
     if (workout.isDeload) {
+      continue;
+    }
+
+    if (isLightWorkoutIntent(workout.trainingIntent)) {
       continue;
     }
 
@@ -102,8 +107,20 @@ export function getTotalVolume(exercise: WorkoutExercise): number {
  */
 export function calculateProgression(
   currentExercise: WorkoutExercise,
-  previousExercise: WorkoutExercise | null
+  previousExercise: WorkoutExercise | null,
+  currentWorkoutIntent: WorkoutIntent = DEFAULT_WORKOUT_INTENT
 ): ProgressionResult {
+  if (isLightWorkoutIntent(currentWorkoutIntent)) {
+    const currentBest = getBestSet(currentExercise);
+    return {
+      status: 'intentional',
+      delta: 0,
+      metric: 'weight',
+      previousBest: previousExercise ? getBestSet(previousExercise) || undefined : undefined,
+      currentBest: currentBest || undefined
+    };
+  }
+
   const currentBest = getBestSet(currentExercise);
   
   // No previous data - can't determine progression
@@ -256,10 +273,11 @@ export function getExerciseProgression(
   exerciseName: string,
   currentExercise: WorkoutExercise,
   history: WorkoutLog[],
-  excludeWorkoutId?: string
+  excludeWorkoutId?: string,
+  currentWorkoutIntent: WorkoutIntent = DEFAULT_WORKOUT_INTENT
 ): ProgressionResult {
   const previousExercise = findLastWorkoutWithExercise(history, exerciseName, excludeWorkoutId);
-  return calculateProgression(currentExercise, previousExercise);
+  return calculateProgression(currentExercise, previousExercise, currentWorkoutIntent);
 }
 
 /**
@@ -267,6 +285,10 @@ export function getExerciseProgression(
  */
 export function formatProgressionDelta(result: ProgressionResult): string {
   const sign = result.delta > 0 ? '+' : '';
+
+  if (result.status === 'intentional') {
+    return 'Techniekdag';
+  }
   
   switch (result.metric) {
     case 'weight':

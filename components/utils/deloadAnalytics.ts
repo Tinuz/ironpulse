@@ -2,6 +2,7 @@ import { WorkoutLog, BodyStats, RestDay } from '@/components/context/DataContext
 import { calculateWeeklySummary } from './weeklyAnalytics';
 import { detectAllPlateaus } from './plateauDetection';
 import { isCompoundExercise } from './exerciseClassification';
+import { isLightWorkoutIntent } from './workoutIntent';
 
 /**
  * Deload recommendation data structure
@@ -96,7 +97,7 @@ export function detectDeloadNeed(
   // ─────────────────────────────────────────────────────────────────────────
 
   // Exclude deload workouts from fatigue analysis
-  const nonDeloadWorkouts = workouts.filter(w => !w.isDeload);
+  const nonDeloadWorkouts = workouts.filter(w => !w.isDeload && !isLightWorkoutIntent(w.trainingIntent));
   
   const signals: DeloadSignal[] = [];
   

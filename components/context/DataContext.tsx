@@ -10,6 +10,7 @@ import WorkoutRecoveryModal from '@/components/WorkoutRecoveryModal';
 import { useRouter } from 'next/navigation';
 import { generateSetsFromOneRM, validateOneRM } from '@/components/utils/oneRepMaxCalculations';
 import { getExerciseImages } from '@/lib/exerciseData';
+import { DEFAULT_WORKOUT_INTENT, type WorkoutIntent } from '@/components/utils/workoutIntent';
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -107,6 +108,7 @@ export interface WorkoutLog {
   metValue?: number; // MET value used for calculation (default: 5)
   completedAt?: string; // ISO timestamp when workout was completed
   isDeload?: boolean; // Whether this is a deload/recovery week workout (excludes from progressive overload tracking)
+  trainingIntent?: WorkoutIntent; // Standard vs technique/speed/form-focus session intent
   circuitConfig?: CircuitConfig;       // Present when this log is a circuit workout
   circuitWeights?: Record<string, number>; // exerciseId → weight used
   circuitRoundsCompleted?: number;     // rounds actually completed
@@ -280,7 +282,7 @@ interface DataContextType {
   addSchema: (schema: Schema) => void;
   updateSchema: (id: string, schema: Schema) => Promise<void>;
   deleteSchema: (id: string) => void;
-  startWorkout: (schema?: Schema, exercises?: WorkoutExercise[], customName?: string) => WorkoutLog;
+  startWorkout: (schema?: Schema, exercises?: WorkoutExercise[], customName?: string, trainingIntent?: WorkoutIntent) => WorkoutLog;
   updateActiveWorkout: (workout: WorkoutLog) => void;
   finishWorkout: (workoutOverride?: WorkoutLog) => void;
   cancelWorkout: () => void;
@@ -319,6 +321,15 @@ interface DataContextType {
 // ============================================================================
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
+
+function normalizeWorkoutLog(workout: any): WorkoutLog | null {
+  if (!workout) return null;
+  return {
+    ...workout,
+    trainingIntent: workout.trainingIntent || DEFAULT_WORKOUT_INTENT,
+    isDeload: workout.isDeload || false,
+  };
+}
 
 export const useData = () => {
   const context = useContext(DataContext);
@@ -492,6 +503,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           endTime: h.end_time,
           exercises: h.exercises,
           isDeload: h.is_deload || false,
+          trainingIntent: h.training_intent || DEFAULT_WORKOUT_INTENT,
           totalCalories: h.total_calories || undefined,
           metValue: h.met_value || undefined
         })));
@@ -599,7 +611,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         } else {
           // No incomplete workout found, load normally from localStorage
           const savedActive = localStorage.getItem('ft_active');
-          const parsedWorkout = savedActive ? JSON.parse(savedActive) : null;
+          const parsedWorkout = normalizeWorkoutLog(savedActive ? JSON.parse(savedActive) : null);
           setActiveWorkout(parsedWorkout);
         }
         
@@ -609,7 +621,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } else {
         // Already checked OR active session, just load from localStorage
         const savedActive = localStorage.getItem('ft_active');
-        const parsedWorkout = savedActive ? JSON.parse(savedActive) : null;
+        const parsedWorkout = normalizeWorkoutLog(savedActive ? JSON.parse(savedActive) : null);
         setActiveWorkout(parsedWorkout);
       }
 
@@ -830,7 +842,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const startWorkout = (schema?: Schema, exercises?: WorkoutExercise[], customName?: string): WorkoutLog => {
+  const startWorkout = (schema?: Schema, exercises?: WorkoutExercise[], customName?: string, trainingIntent: WorkoutIntent = DEFAULT_WORKOUT_INTENT): WorkoutLog => {
     // Clear any existing workout first
     localStorage.removeItem('ft_active');
     setActiveWorkout(null);
@@ -847,6 +859,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       date: new Date().toISOString(),
       startTime: Date.now(),
       endTime: null,
+      trainingIntent,
       circuitConfig: schema?.circuitConfig,
       exercises: exercises ? exercises : (schema ? schema.exercises.map(e => {
         // Look up the most recent logged session for this exercise across ALL schemas
@@ -966,6 +979,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           end_time: finishedWorkout.endTime,
           exercises: cleanedExercises,
           is_deload: finishedWorkout.isDeload || false,
+          training_intent: finishedWorkout.trainingIntent || DEFAULT_WORKOUT_INTENT,
           total_calories: finishedWorkout.totalCalories || null,
           met_value: finishedWorkout.metValue || 5.0
         })
@@ -983,6 +997,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           exercises: data.exercises,
           completedAt: finishedWorkout.completedAt,
           isDeload: data.is_deload || false,
+          trainingIntent: data.training_intent || DEFAULT_WORKOUT_INTENT,
           totalCalories: data.total_calories || undefined,
           metValue: data.met_value || undefined
         };

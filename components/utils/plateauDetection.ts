@@ -1,6 +1,7 @@
 import type { WorkoutLog, RestDay } from '@/components/context/DataContext';
 import { detectPlateau, PlateauDetection } from './strengthAnalytics';
 import { isCompoundExercise } from './exerciseClassification';
+import { isLightWorkoutIntent } from './workoutIntent';
 
 /**
  * Enhanced plateau detection with AI-powered suggestions
@@ -30,7 +31,7 @@ export function detectAllPlateaus(
   restDays: RestDay[] = [],
 ): EnhancedPlateauDetection[] {
   // Exclude deload workouts from plateau detection
-  const nonDeloadWorkouts = workouts.filter(w => !w.isDeload);
+  const nonDeloadWorkouts = workouts.filter(w => !w.isDeload && !isLightWorkoutIntent(w.trainingIntent));
 
   if (nonDeloadWorkouts.length < threshold) return [];
 

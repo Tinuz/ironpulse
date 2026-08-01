@@ -47,6 +47,15 @@ export default function ProgressionBadge({
     );
   }
 
+  if (status === 'intentional') {
+    return (
+      <div className={`inline-flex items-center gap-1 bg-blue-500/10 text-blue-300 border border-blue-500/20 rounded-lg font-semibold ${sizeClasses[size]}`}>
+        <Minus size={iconSize} strokeWidth={2.5} />
+        {showText && <span>{delta}</span>}
+      </div>
+    );
+  }
+
   // Maintained status
   return (
     <div className={`inline-flex items-center gap-1 bg-yellow-500/10 text-yellow-500 border border-yellow-500/20 rounded-lg font-semibold ${sizeClasses[size]}`}>
