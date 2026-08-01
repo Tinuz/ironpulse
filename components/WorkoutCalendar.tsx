@@ -237,7 +237,7 @@ export default function WorkoutCalendar({ onDateClick }: WorkoutCalendarProps) {
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: index * 0.01 }}
                 onClick={() => handleDayClick(day, dayWorkouts)}
-                disabled={!isCurrentMonth || isFutureDay}
+                disabled={isFutureDay || (!isCurrentMonth && dayWorkouts.length === 0)}
                 className={`
                   aspect-square rounded-xl p-1.5 text-center relative transition-all
                   ${!isCurrentMonth ? 'opacity-30' : ''}

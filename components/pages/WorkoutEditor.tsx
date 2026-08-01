@@ -8,6 +8,7 @@ import { format } from 'date-fns'
 import { useData, WorkoutLog, WorkoutExercise, WorkoutSet } from '@/components/context/DataContext'
 import { useAuth } from '@/components/context/AuthContext'
 import { uploadExerciseImage, deleteExerciseImage, compressImage } from '@/lib/exerciseImages'
+import { DEFAULT_WORKOUT_INTENT, type WorkoutIntent } from '@/components/utils/workoutIntent'
 
 export default function WorkoutEditor() {
   const { history, updateWorkout } = useData()
@@ -69,6 +70,10 @@ export default function WorkoutEditor() {
 
   const updateWorkoutName = (name: string) => {
     setWorkoutData(prev => prev ? { ...prev, name } : null)
+  }
+
+  const updateWorkoutIntent = (trainingIntent: WorkoutIntent) => {
+    setWorkoutData(prev => prev ? { ...prev, trainingIntent } : null)
   }
 
   const updateExerciseName = (exerciseId: string, name: string) => {
@@ -304,6 +309,28 @@ export default function WorkoutEditor() {
           <p className="text-txt-tertiary text-sm">
             {format(new Date(workoutData.date), 'EEEE, MMMM d, yyyy • h:mm a')}
           </p>
+
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {([
+              ['standard', 'Normaal'],
+              ['technique', 'Techniek'],
+              ['speed', 'Speed'],
+              ['form_focus', 'Vorm'],
+            ] as Array<[WorkoutIntent, string]>).map(([intent, label]) => (
+              <button
+                key={intent}
+                onClick={() => updateWorkoutIntent(intent)}
+                className={[
+                  'px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider border transition-colors',
+                  (workoutData.trainingIntent ?? DEFAULT_WORKOUT_INTENT) === intent
+                    ? 'bg-accent-primary/20 text-accent-primary border-accent-primary/30'
+                    : 'bg-bg-tertiary text-txt-secondary border-border-default hover:border-accent-primary/40',
+                ].join(' ')}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
         </motion.div>
 
         {/* Exercises */}
