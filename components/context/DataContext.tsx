@@ -206,7 +206,13 @@ export interface RestDay {
 }
 
 export type TrainingBlockStatus = 'active' | 'completed';
-export type TrainingBlockMuscle = 'chest' | 'back' | 'shoulders' | 'legs' | 'arms' | 'abs' | 'glutes' | 'calves';
+export type TrainingBlockMuscle =
+  | 'chest' | 'back' | 'shoulders'
+  | 'legs'       // broad fallback (backward-compat for existing blocks)
+  | 'quadriceps' | 'hamstrings'
+  | 'arms'       // broad fallback (backward-compat for existing blocks)
+  | 'biceps' | 'triceps'
+  | 'abs' | 'glutes' | 'calves';
 
 /**
  * A named training phase within a mesocyclus block.

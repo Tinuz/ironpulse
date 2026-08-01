@@ -313,8 +313,15 @@ describe('getBlockProgress', () => {
     expect(mainMuscles).not.toContain('chest');
     expect(mainMuscles).not.toContain('back');
     expect(mainMuscles).toContain('shoulders');
-    expect(mainMuscles).toContain('legs');
-    expect(mainMuscles).toHaveLength(6); // 8 total - 2 focus
+    // 'legs' replaced by specific sub-groups
+    expect(mainMuscles).not.toContain('legs');
+    expect(mainMuscles).toContain('quadriceps');
+    expect(mainMuscles).toContain('hamstrings');
+    // 'arms' replaced by specific sub-groups
+    expect(mainMuscles).not.toContain('arms');
+    expect(mainMuscles).toContain('biceps');
+    expect(mainMuscles).toContain('triceps');
+    expect(mainMuscles).toHaveLength(8); // 10 total - 2 focus
   });
 
   it('status is "under" when no sets done for maintenance muscle', () => {

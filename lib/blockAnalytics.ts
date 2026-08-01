@@ -17,16 +17,24 @@ import { getMuscleGroup } from '@/components/utils/volumeAnalytics';
 // Constants
 // ---------------------------------------------------------------------------
 
-/** Starting sets per muscle group (MEV — minimum effective volume). */
+/** Starting sets per muscle group (MEV — minimum effective volume).
+ * Sources: Israetel & Hoffman (RP Strength 2019) — maintenance MEV values.
+ */
 export const BLOCK_START_SETS: Record<TrainingBlockMuscle, number> = {
-  chest:     8,
-  back:      10,
-  shoulders: 8,
-  legs:      8,
-  arms:      6,
-  abs:       6,
-  glutes:    6,
-  calves:    8,
+  chest:      8,
+  back:       10,
+  shoulders:  8,
+  // Broad fallbacks — used when focus muscle is set to the generic category
+  legs:       8,
+  arms:       6,
+  // Specific sub-groups shown in maintenance tracking
+  quadriceps: 8,   // Israetel: ~8 MEV for quad-dominant work
+  hamstrings: 6,   // Israetel: ~6 MEV; hamstrings get indirect volume from deadlift patterns
+  biceps:     8,   // Israetel: ~8 MEV for direct bicep work
+  triceps:    6,   // Israetel: ~6 MEV; heavy indirect volume from pressing
+  abs:        6,
+  glutes:     6,
+  calves:     8,
 };
 
 /** Sets added per build week. */
@@ -35,10 +43,40 @@ export const SETS_PER_BUILD_WEEK = 3;
 /** Fraction of last build week used for the deload week. */
 export const DELOAD_FRACTION = 0.5;
 
-/** All muscle groups that can be tracked in a block (focus or maintenance). */
+/** All muscle groups tracked for maintenance MEV in a block.
+ * Uses granular sub-groups (quadriceps/hamstrings, biceps/triceps) so the
+ * widget shows specific muscles instead of the broad "Benen" / "Armen" buckets.
+ * The broad 'legs' and 'arms' keys are kept in TrainingBlockMuscle only for
+ * backward-compat with existing blocks that stored them as focus muscles.
+ */
 export const ALL_BLOCK_MUSCLES: TrainingBlockMuscle[] = [
-  'chest', 'back', 'shoulders', 'legs', 'arms', 'abs', 'glutes', 'calves',
+  'chest', 'back', 'shoulders',
+  'quadriceps', 'hamstrings',   // replaces broad 'legs'
+  'biceps', 'triceps',          // replaces broad 'arms'
+  'abs', 'glutes', 'calves',
 ];
+
+/**
+ * Maps broad focus-muscle keys to the specific sub-groups they cover.
+ * Used to exclude the correct maintenance muscles when a block focuses on
+ * e.g. 'legs' (old blocks) — the maintenance list should then hide both
+ * 'quadriceps' and 'hamstrings'.
+ */
+export const FOCUS_MUSCLE_COVERS: Partial<Record<TrainingBlockMuscle, TrainingBlockMuscle[]>> = {
+  legs: ['quadriceps', 'hamstrings'],
+  arms: ['biceps', 'triceps'],
+};
+
+/**
+ * Maps broad getMuscleGroup() return values to their primary specific bucket
+ * for set counting. Exercises tagged as generic 'legs' default to 'quadriceps'
+ * (most compound leg exercises are quad-dominant). Generic 'arms' default to
+ * 'biceps' (curl patterns are most common in arm blocks).
+ */
+const BROAD_MUSCLE_NORMALIZE: Partial<Record<string, TrainingBlockMuscle>> = {
+  legs: 'quadriceps',
+  arms: 'biceps',
+};
 
 // ---------------------------------------------------------------------------
 // Core calculations
@@ -181,8 +219,15 @@ export function getBlockProgress(
 
   for (const workout of weekWorkouts) {
     for (const ex of workout.exercises) {
-      const resolved = getMuscleGroup(ex.name, ex.muscleGroup);
+      let resolved = getMuscleGroup(ex.name, ex.muscleGroup) as string | null;
       if (!resolved) continue;
+
+      // Normalize broad buckets ('legs'/'arms') to their primary specific muscle
+      // so sets are always counted at the granular level used by ALL_BLOCK_MUSCLES.
+      if (resolved in BROAD_MUSCLE_NORMALIZE) {
+        resolved = BROAD_MUSCLE_NORMALIZE[resolved]!;
+      }
+
       const muscle = resolved as TrainingBlockMuscle;
       if (!ALL_BLOCK_MUSCLES.includes(muscle)) continue;
 
@@ -194,9 +239,14 @@ export function getBlockProgress(
     }
   }
 
+  // Focus muscles — use the block's own focusMuscles array.
+  // When focusMuscles contains a broad key ('legs', 'arms'), the set counts
+  // come from its normalized specific muscle ('quadriceps', 'biceps').
   const muscles: MuscleProgress[] = block.focusMuscles.map(muscle => {
+    // Look up actual sets using the normalized key when the focus muscle is broad.
+    const countKey = (BROAD_MUSCLE_NORMALIZE[muscle] as TrainingBlockMuscle | undefined) ?? muscle;
     const targetSets = getBlockWeekTargets(muscle, block.durationWeeks, week);
-    const actualSets = setCounts.get(muscle) ?? 0;
+    const actualSets = setCounts.get(countKey) ?? 0;
     return {
       muscle,
       targetSets,
@@ -205,8 +255,15 @@ export function getBlockProgress(
     };
   });
 
+  // Maintenance muscles — exclude muscles covered by the focus selection.
+  // A broad focus key ('legs') covers its specific sub-groups ('quadriceps', 'hamstrings').
+  const focusCovered = new Set<TrainingBlockMuscle>(block.focusMuscles);
+  block.focusMuscles.forEach(fm => {
+    (FOCUS_MUSCLE_COVERS[fm] ?? []).forEach(specific => focusCovered.add(specific));
+  });
+
   const maintenanceMuscles: MaintenanceMuscleProgress[] = ALL_BLOCK_MUSCLES
-    .filter(m => !block.focusMuscles.includes(m))
+    .filter(m => !focusCovered.has(m))
     .map(m => {
       const mevFull = BLOCK_START_SETS[m];
       const mevTarget = deload ? Math.max(1, Math.round(mevFull * DELOAD_FRACTION)) : mevFull;
