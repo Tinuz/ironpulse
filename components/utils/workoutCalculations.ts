@@ -1,5 +1,5 @@
 import { WorkoutExercise, WorkoutLog } from '@/components/context/DataContext';
-import { DEFAULT_WORKOUT_INTENT, isLightWorkoutIntent, type WorkoutIntent } from '@/components/utils/workoutIntent';
+import { DEFAULT_WORKOUT_INTENT, isLightWorkoutIntent, isLightWorkoutSession, type WorkoutIntent } from '@/components/utils/workoutIntent';
 
 /**
  * 1RM berekening via gecombineerde formule:
@@ -88,7 +88,7 @@ export function getPreviousWorkoutsForExercise(
     .filter(w => {
       if (excludeWorkoutId && w.id === excludeWorkoutId) return false;
       if (w.isDeload) return false; // Exclude deload workouts from progression tracking
-      if (isLightWorkoutIntent(w.trainingIntent)) return false;
+      if (isLightWorkoutSession(w)) return false;
       return w.exercises.some(ex => ex.name.toLowerCase() === exerciseName.toLowerCase());
     })
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());

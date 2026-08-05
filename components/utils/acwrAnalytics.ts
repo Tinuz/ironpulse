@@ -1,5 +1,5 @@
 import type { WorkoutLog, RestDay } from '@/components/context/DataContext';
-import { isLightWorkoutIntent } from './workoutIntent';
+import { isLightWorkoutSession } from './workoutIntent';
 
 /**
  * Acute:Chronic Workload Ratio (ACWR)
@@ -49,7 +49,7 @@ function weeklyVolume(workouts: WorkoutLog[], startDate: Date, endDate: Date): n
 }
 
 export function calculateACWR(workouts: WorkoutLog[], restDays: RestDay[] = []): ACWRResult {
-  const standardWorkouts = workouts.filter(w => !w.isDeload && !isLightWorkoutIntent(w.trainingIntent));
+  const standardWorkouts = workouts.filter(w => !w.isDeload && !isLightWorkoutSession(w));
   const now = new Date();
   now.setHours(23, 59, 59, 999);
 

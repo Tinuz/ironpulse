@@ -1,5 +1,5 @@
 import { WorkoutLog } from '@/components/context/DataContext';
-import { isLightWorkoutIntent } from './workoutIntent';
+import { isLightWorkoutSession } from './workoutIntent';
 
 /**
  * Week-over-Week Volume Progression Analytics
@@ -49,7 +49,7 @@ function calcWeekVolume(workouts: WorkoutLog[], weekStart: Date): number {
   const weekEnd = addDays(weekStart, 7);
   let total = 0;
   for (const w of workouts) {
-    if (w.isDeload || isLightWorkoutIntent(w.trainingIntent)) continue;
+    if (w.isDeload || isLightWorkoutSession(w)) continue;
     const d = new Date(w.date);
     if (d >= weekStart && d < weekEnd) {
       for (const ex of w.exercises) {
@@ -69,7 +69,7 @@ export function calculateWeeklyVolumeProgression(
   workouts: WorkoutLog[],
   weeksBack: number = 8
 ): WeeklyVolumeProgressionResult {
-  const standardWorkouts = workouts.filter(w => !w.isDeload && !isLightWorkoutIntent(w.trainingIntent));
+  const standardWorkouts = workouts.filter(w => !w.isDeload && !isLightWorkoutSession(w));
   const thisMonday = getMondayOf(new Date());
 
   const weekStarts: Date[] = [];

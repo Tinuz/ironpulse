@@ -6,7 +6,7 @@
  */
 
 import { WorkoutLog, WorkoutExercise } from '@/components/context/DataContext';
-import { DEFAULT_WORKOUT_INTENT, isLightWorkoutIntent, type WorkoutIntent } from '@/components/utils/workoutIntent';
+import { DEFAULT_WORKOUT_INTENT, isLightWorkoutIntent, isLightWorkoutSession, type WorkoutIntent } from '@/components/utils/workoutIntent';
 
 export type ProgressionStatus = 'improved' | 'maintained' | 'decreased' | 'intentional';
 
@@ -51,7 +51,7 @@ export function findLastWorkoutWithExercise(
       continue;
     }
 
-    if (isLightWorkoutIntent(workout.trainingIntent)) {
+    if (isLightWorkoutSession(workout)) {
       continue;
     }
 

@@ -18,7 +18,7 @@ import {
   getPersonalRecord 
 } from '@/components/utils/workoutCalculations'
 import type { WorkoutLog } from '@/components/context/DataContext'
-import { DEFAULT_WORKOUT_INTENT } from '@/components/utils/workoutIntent'
+import { DEFAULT_WORKOUT_INTENT, inferWorkoutIntent } from '@/components/utils/workoutIntent'
 
 export default function WorkoutDetail() {
   const { history, deleteWorkout } = useData();
@@ -88,7 +88,7 @@ export default function WorkoutDetail() {
           exercises: data.exercises,
           totalCalories: data.total_calories,
           isDeload: data.is_deload || false,
-          trainingIntent: data.training_intent || DEFAULT_WORKOUT_INTENT
+          trainingIntent: inferWorkoutIntent(data.name, data.training_intent)
         };
         setWorkout(fetchedWorkout);
         setIsOwnWorkout(user?.id === data.user_id);

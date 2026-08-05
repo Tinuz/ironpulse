@@ -22,18 +22,21 @@ function makeWorkout(
   daysAgo: number,
   exercises: WorkoutExercise[],
   isDeload = false,
+  name = 'Test',
+  trainingIntent?: WorkoutLog['trainingIntent'],
 ): WorkoutLog {
   const date = new Date();
   date.setDate(date.getDate() - daysAgo);
   return {
     id,
     schemaId: null,
-    name: 'Test',
+    name,
     date: date.toISOString(),
     startTime: Date.now(),
     endTime: null,
     exercises,
     isDeload,
+    trainingIntent,
   };
 }
 
@@ -86,6 +89,31 @@ describe('detectAllPlateaus', () => {
       makeWorkout('w3', 7, [makeExercise('Bench Press', stagnantSet)], true),
     ];
     // After excluding deload, only 2 workouts remain → below threshold
+    const plateaus = detectAllPlateaus(workouts);
+    expect(plateaus.length).toBe(0);
+  });
+
+  it('excludes technique intent workouts from plateau detection', () => {
+    const stagnantSet = [makeSet(80, 5)];
+    const workouts = [
+      makeWorkout('w1', 21, [makeExercise('Bench Press', stagnantSet)]),
+      makeWorkout('w2', 14, [makeExercise('Bench Press', stagnantSet)]),
+      makeWorkout('w3', 7, [makeExercise('Bench Press', stagnantSet)], false, 'Techniek Push', 'technique'),
+      makeWorkout('w4', 0, [makeExercise('Bench Press', stagnantSet)], false, 'Techniek Push', 'technique'),
+    ];
+    // After excluding technique sessions only 2 valid sessions remain -> below threshold
+    const plateaus = detectAllPlateaus(workouts);
+    expect(plateaus.length).toBe(0);
+  });
+
+  it('infers technique intent from workout name when intent field is missing', () => {
+    const stagnantSet = [makeSet(80, 5)];
+    const workouts = [
+      makeWorkout('w1', 21, [makeExercise('Bench Press', stagnantSet)], false, 'Upper A'),
+      makeWorkout('w2', 14, [makeExercise('Bench Press', stagnantSet)], false, 'Upper B'),
+      makeWorkout('w3', 7, [makeExercise('Bench Press', stagnantSet)], false, 'Techniek borst sessie'),
+      makeWorkout('w4', 0, [makeExercise('Bench Press', stagnantSet)], false, 'Techniek borst sessie'),
+    ];
     const plateaus = detectAllPlateaus(workouts);
     expect(plateaus.length).toBe(0);
   });

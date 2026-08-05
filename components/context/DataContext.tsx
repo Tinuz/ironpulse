@@ -10,7 +10,7 @@ import WorkoutRecoveryModal from '@/components/WorkoutRecoveryModal';
 import { useRouter } from 'next/navigation';
 import { generateSetsFromOneRM, validateOneRM } from '@/components/utils/oneRepMaxCalculations';
 import { getExerciseImages } from '@/lib/exerciseData';
-import { DEFAULT_WORKOUT_INTENT, type WorkoutIntent } from '@/components/utils/workoutIntent';
+import { DEFAULT_WORKOUT_INTENT, inferWorkoutIntent, type WorkoutIntent } from '@/components/utils/workoutIntent';
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -326,7 +326,7 @@ function normalizeWorkoutLog(workout: any): WorkoutLog | null {
   if (!workout) return null;
   return {
     ...workout,
-    trainingIntent: workout.trainingIntent || DEFAULT_WORKOUT_INTENT,
+    trainingIntent: inferWorkoutIntent(workout.name, workout.trainingIntent),
     isDeload: workout.isDeload || false,
   };
 }
@@ -503,7 +503,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           endTime: h.end_time,
           exercises: h.exercises,
           isDeload: h.is_deload || false,
-          trainingIntent: h.training_intent || DEFAULT_WORKOUT_INTENT,
+          trainingIntent: inferWorkoutIntent(h.name, h.training_intent),
           totalCalories: h.total_calories || undefined,
           metValue: h.met_value || undefined
         })));
@@ -979,7 +979,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           end_time: finishedWorkout.endTime,
           exercises: cleanedExercises,
           is_deload: finishedWorkout.isDeload || false,
-          training_intent: finishedWorkout.trainingIntent || DEFAULT_WORKOUT_INTENT,
+          training_intent: inferWorkoutIntent(finishedWorkout.name, finishedWorkout.trainingIntent),
           total_calories: finishedWorkout.totalCalories || null,
           met_value: finishedWorkout.metValue || 5.0
         })
@@ -997,7 +997,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           exercises: data.exercises,
           completedAt: finishedWorkout.completedAt,
           isDeload: data.is_deload || false,
-          trainingIntent: data.training_intent || DEFAULT_WORKOUT_INTENT,
+          trainingIntent: inferWorkoutIntent(data.name, data.training_intent),
           totalCalories: data.total_calories || undefined,
           metValue: data.met_value || undefined
         };
@@ -1054,7 +1054,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         end_time: updatedWorkout.endTime,
         exercises: updatedWorkout.exercises,
         is_deload: updatedWorkout.isDeload || false,
-        training_intent: updatedWorkout.trainingIntent || DEFAULT_WORKOUT_INTENT,
+        training_intent: inferWorkoutIntent(updatedWorkout.name, updatedWorkout.trainingIntent),
         total_calories: updatedWorkout.totalCalories || null,
         met_value: updatedWorkout.metValue || null
       })

@@ -42,18 +42,21 @@ function makeWorkout(
   daysAgo: number,
   exercises: WorkoutExercise[],
   isDeload = false,
+  name = 'Test',
+  trainingIntent?: WorkoutLog['trainingIntent'],
 ): WorkoutLog {
   const date = new Date();
   date.setDate(date.getDate() - daysAgo);
   return {
     id,
     schemaId: null,
-    name: 'Test',
+    name,
     date: date.toISOString(),
     startTime: Date.now(),
     endTime: null,
     exercises,
     isDeload,
+    trainingIntent,
   };
 }
 
@@ -63,9 +66,11 @@ function spreadWorkouts(
   totalDays: number,
   exercises: WorkoutExercise[],
   isDeload = false,
+  name = 'Test',
+  trainingIntent?: WorkoutLog['trainingIntent'],
 ): WorkoutLog[] {
   return Array.from({ length: n }, (_, i) =>
-    makeWorkout(`w${i}`, Math.round((totalDays / n) * i), exercises, isDeload),
+    makeWorkout(`w${i}`, Math.round((totalDays / n) * i), exercises, isDeload, name, trainingIntent),
   );
 }
 
@@ -93,6 +98,35 @@ describe('detectDeloadNeed — structure', () => {
       true, // isDeload = true
     );
     const result = detectDeloadNeed(deloadWorkouts);
+    expect(result.shouldDeload).toBe(false);
+    expect(result.signals).toHaveLength(0);
+  });
+
+  it('excludes technique workouts from deload signal analysis', () => {
+    const techniqueWorkouts = spreadWorkouts(
+      8,
+      42,
+      [makeExercise('Bench Press', [makeSet(70, 8), makeSet(70, 8), makeSet(70, 8)])],
+      false,
+      'Techniek sessie',
+      'technique',
+    );
+
+    const result = detectDeloadNeed(techniqueWorkouts);
+    expect(result.shouldDeload).toBe(false);
+    expect(result.signals).toHaveLength(0);
+  });
+
+  it('infers technique workouts from name when intent field is missing', () => {
+    const inferredTechniqueWorkouts = spreadWorkouts(
+      8,
+      42,
+      [makeExercise('Bench Press', [makeSet(70, 8), makeSet(70, 8), makeSet(70, 8)])],
+      false,
+      'Techniek dag',
+    );
+
+    const result = detectDeloadNeed(inferredTechniqueWorkouts);
     expect(result.shouldDeload).toBe(false);
     expect(result.signals).toHaveLength(0);
   });
